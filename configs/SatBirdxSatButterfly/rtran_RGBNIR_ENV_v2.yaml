@@ -1,8 +1,8 @@
 #where to save checkpoints
-save_path: "baseline_joint_rtran_resnet18_RGBNIR_ENV_4"
+save_path: "baseline_joint_rtran_resnet18_RGBNIR_ENV_7"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "baseline_joint_rtran_resnet18_RGBNIR_ENV_4"
+load_ckpt_path: "baseline_joint_rtran_resnet18_RGBNIR_ENV_7"
 save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
 log_comet: true
 
@@ -14,8 +14,8 @@ base_dir: ""
 
 comet:
   project_name: "new_baselines"
-  tags: ["rtran", "ebutterfly_less_species(100)", "wEbird_range_maps", "ebutterfly+ebirdcolocated", "0.5_structured_masking", "normalization", "unknown0.5", "resnet18", "CE", "att3", "head4", "dropout2", "allaug", "LR0.00009sched", "AdamW", "weight_decay0.01", "pretrainedFalse", "RGBNIR_ENV"]
-  experiment_name: "baseline_joint_rtran_resnet18_RGBNIR_ENV_4" # specify for training, or use to report test results, TODO: also use to resume training
+  tags: ["rtran", "172butterfly_species", "ebutterfly+ebirdcolocated+independentbutterfly", "0.5_structured_masking", "normalization", "unknown0.5", "resnet18", "CE", "att3", "head4", "dropout2", "allaug", "LR0.00009sched", "AdamW", "weight_decay0.01", "pretrainedTrue", "RGBNIR_ENV"]
+  experiment_name: "baseline_joint_rtran_resnet18_RGBNIR_ENV_7" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 experiment:
@@ -125,28 +125,29 @@ data:
       res: 1000
 
   files:
-    base: "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer"
-    train: ["summer_hotspots_train.csv"]
-    val: ["summer_hotspots_val.csv"] # "butterfly_hotspots_ebird_valid.csv"
-    test: ["summer_hotspots_test.csv"] #"butterfly_hotspots_ebird_test.csv"
+    base: "/network/projects/ecosystem-embeddings"
+    #TODO: trainer depends on the number of train files given, so it has to match val and test always (even if testing)
+    train: ["SatBird_data_v2/USA_summer/summer_hotspots_train.csv", "SatButterfly_v1/USA/butterfly_hotspots_train.csv"]
+    val: ["SatBird_data_v2/USA_summer/summer_hotspots_val.csv", "SatButterfly_v1/USA/butterfly_hotspots_valid.csv"] #"butterfly_hotspots_ebird_valid.csv"]
+    test: ["SatBird_data_v2/USA_summer/summer_hotspots_test.csv", "SatButterfly_v1/USA/butterfly_hotspots_test.csv"] #"butterfly_hotspots_ebird_valid.csv"]
 
-    targets_folder: ["corrected_targets", "butterfly_targets_2"]
-    env_data_folder: ["environmental_bounded_2"]
-    images_folder: ["images"]
+#    targets_folder: ["SatBird_data_v2/USA_summer/corrected_targets", "SatBird_data_v2/USA_summer/butterfly_targets_2"]
+    targets_folder: ["SatBird_data_v2/USA_summer/corrected_targets", "SatButterfly_v1/USA/butterfly_targets_2"]
+    images_folder: ["SatBird_data_v2/USA_summer/images", "SatButterfly_v1/USA/images"]
+    env_data_folder: ["SatBird_data_v2/USA_summer/environmental_bounded_2", "SatButterfly_v1/USA/environmental_data"]
+    correction_thresh: "SatBird_data_v2/USA_summer/range_maps.pkl" # range maps - threshold = False
 
-    correction_thresh: "range_maps.pkl" # range maps - threshold = False
-
-    rgbnir_means: "stats/means_rgbnir.npy"
-    rgbnir_stds: "stats/stds_rgbnir.npy"
+    rgbnir_means: "SatBird_data_v2/USA_summer/stats/means_rgbnir_SatBirdxSatButterfly.npy"
+    rgbnir_stds: "SatBird_data_v2/USA_summer/stats/stds_rgbnir.npy" # _SatBirdxSatButterfly
 
     rgb_means: "stats/means_images_visual.npy"
     rgb_stds: "stats/stds_images_visual.npy"
 
-    env_means: "stats/env_means.npy"
-    env_stds: "stats/env_stds.npy"
+    env_means: "SatBird_data_v2/USA_summer/stats/env_means_SatBirdxSatButterfly.npy"
+    env_stds: "SatBird_data_v2/USA_summer/stats/env_stds_SatBirdxSatButterfly.npy"
 
   correction_factor:
-     thresh: "after" # to train with RM
+     thresh: # to train with RM
 
   target:
     type: "probs"  #binary for classification targets  or "probs" for regression (default should be "probs")
@@ -219,6 +220,6 @@ data:
 
   species: [670, 172]
 #  species: [ 670, 601]
-  total_species: 842  #1271  # list if more than one family of species, otherwise, normal count
+  total_species: 842  #1271 # list if more than one family of species, otherwise, normal count
 trainer:
   auto_scale_batch_size: False
