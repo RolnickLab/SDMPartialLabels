@@ -26,6 +26,18 @@ def custom_replace(tensor, on_neg_1, on_zero, on_one):
     return res
 
 
+def custom_replace_n(tensor):
+    """
+    replacing unique values with their index
+    """
+    res = tensor.clone()
+    unique_vals = torch.unique(tensor)
+    for i, val in enumerate(unique_vals):
+        res[tensor == val] = i
+
+    return res
+
+
 def maksed_loss_custom_replace(tensor, on_neg_2, on_neg_1, on_zero, on_one):
     res = tensor.clone()
     res[tensor == -2] = on_neg_2

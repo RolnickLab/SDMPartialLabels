@@ -5,12 +5,12 @@ Code is based on the C-tran paper: https://github.com/QData/C-Tran
 import torch
 import torch.nn as nn
 import numpy as np
-from Rtran.utils import weights_init, custom_replace, PositionEmbeddingSine
+from Rtran.utils import weights_init, custom_replace, custom_replace_n, PositionEmbeddingSine
 from Rtran.models import *
 
 
 class RTranModel(nn.Module):
-    def __init__(self, num_classes, backbone='Resnet18', pretrained_backbone=True, input_channels=3, d_hidden=512, n_state=3, attention_layers=2, heads=2, dropout=0.2, use_pos_encoding=False, scale_embeddings_by_labels=False):
+    def __init__(self, num_classes, backbone='Resnet18', pretrained_backbone=True, quantized_mask_bins=1, input_channels=3, d_hidden=512, attention_layers=2, heads=2, dropout=0.2, use_pos_encoding=False, scale_embeddings_by_labels=False):
         """
         pos_emb is false by default
         """
@@ -18,6 +18,9 @@ class RTranModel(nn.Module):
         self.d_hidden = d_hidden  # this should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
         self.scale_embeddings_by_labels = scale_embeddings_by_labels
         self.use_pos_encoding = use_pos_encoding
+
+        self.quantized_mask_bins = quantized_mask_bins
+        self.n_embedding_state = self.quantized_mask + 2
 
         # ResNet101 backbone
         self.backbone = globals()[backbone](input_channels=input_channels, pretrained=pretrained_backbone)
@@ -28,7 +31,7 @@ class RTranModel(nn.Module):
         self.label_embeddings = torch.nn.Embedding(num_classes, self.d_hidden, padding_idx=None)  # LxD
 
         # State Embeddings
-        self.state_embeddings = torch.nn.Embedding(n_state, self.d_hidden, padding_idx=0) # Dx2 (known, unknown)
+        self.state_embeddings = torch.nn.Embedding(self.n_embedding_state, self.d_hidden, padding_idx=0) # Dx2 (known, unknown)
 
         # embedding for the regression labels
         # self.regression_embedding = torch.nn.Linear(num_classes, num_classes)
@@ -53,7 +56,7 @@ class RTranModel(nn.Module):
         self.self_attn_layers.apply(weights_init)
         self.output_linear.apply(weights_init)
 
-    def forward(self, images, mask, labels=None):
+    def forward(self, images, mask, mask_q=None):
         z_features = self.backbone(images) # image: HxWxD
 
         if self.use_pos_encoding:
@@ -70,7 +73,12 @@ class RTranModel(nn.Module):
         # print(self.state_embeddings)
         # unknown_mask = custom_replace(mask, 1, 0, 0)
         mask[mask == -2] = -1
-        label_feat_vec = custom_replace(mask, 0, 1, 2).long()
+        if self.quantized_mask_bins > 1:
+            mask_q[mask_q == -2] = -1
+            label_feat_vec = custom_replace_n(mask_q).long()
+        else:
+            label_feat_vec = custom_replace(mask, 0, 1, 2).long()
+        print(label_feat_vec.unique())
         state_embeddings = self.state_embeddings(label_feat_vec) # input: 3, output: 512
         # if labels is not None:
         #     regression_labels = self.regression_embedding(labels)

@@ -38,6 +38,7 @@ class RegressionTransformerTask(pl.LightningModule):
 
         self.model = RTranModel(num_classes=self.num_species,
                                 backbone=self.config.Rtran.backbone, pretrained_backbone=self.config.Rtran.pretrained_backbone,
+                                quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
                                 input_channels=self.image_input_channels, d_hidden=self.config.Rtran.features_size,
                                 use_pos_encoding=self.config.Rtran.use_positional_encoding,
                                 scale_embeddings_by_labels=self.config.Rtran.scale_embeddings_by_labels)
@@ -68,15 +69,10 @@ class RegressionTransformerTask(pl.LightningModule):
         y = batch["target"]
         mask = batch["mask"].long()
 
-        y_pred = self.sigmoid_activation(self.model(x, mask.clone()))
+        y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
 
         # if using range maps
         if self.config.data.correction_factor.thresh:
-            if len(self.config.data.species) > 1:
-                RM_end_index = self.config.data.species[0]
-            else:
-                RM_end_index = -1
-
             range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').loc[list(hotspot_id)]).values
             range_maps_correction_data = torch.tensor(range_maps_correction_data, device=y.device)
             ones = torch.ones(range_maps_correction_data.shape[0], self.config.data.species[1], device=y.device)
@@ -90,6 +86,7 @@ class RegressionTransformerTask(pl.LightningModule):
             unknown_mask = custom_replace(mask, 1, 0, 0)
             loss = self.criterion(y_pred[unknown_mask.bool()], y[unknown_mask.bool()], reduction='None')
             loss = loss.sum() / unknown_mask.sum().item()
+        #TODO: not efficient
         elif len(mask.unique()) > 3:
             unknown_mask = maksed_loss_custom_replace(mask, 0, 1, 1, 1)
             loss = self.criterion(y_pred[unknown_mask.bool()], y[unknown_mask.bool()], reduction='None')
@@ -115,14 +112,9 @@ class RegressionTransformerTask(pl.LightningModule):
         y = batch["target"]
         mask = batch["mask"].long()
 
-        y_pred = self.sigmoid_activation(self.model(x, mask.clone()))
+        y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
         # if using range maps
         if self.config.data.correction_factor.thresh:
-            if len(self.config.data.species) > 1:
-                RM_end_index = self.config.data.species[0]
-            else:
-                RM_end_index = -1
-
             range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').loc[list(hotspot_id)]).values
 
             range_maps_correction_data = torch.tensor(range_maps_correction_data, device=y.device)
@@ -153,15 +145,10 @@ class RegressionTransformerTask(pl.LightningModule):
         y = batch["target"]
         mask = batch["mask"].long()
 
-        y_pred = self.sigmoid_activation(self.model(x, mask.clone()))
+        y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
 
         # if using range maps
         if self.config.data.correction_factor.thresh:
-            if len(self.config.data.species) > 1:
-                RM_end_index = self.config.data.species[0]
-            else:
-                RM_end_index = -1
-
             range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').loc[list(hotspot_id)]).values
             range_maps_correction_data = torch.tensor(range_maps_correction_data, device=y.device)
             ones = torch.ones(range_maps_correction_data.shape[0], self.config.data.species[1], device=y.device)
@@ -268,10 +255,24 @@ class SDMDataModule(pl.LightningDataModule):
         self.data_base_dir = self.config.data.files.base
         self.targets_folder = self.config.data.files.targets_folder
         self.env_data_folder = self.config.data.files.env_data_folder
+        self.images_folder = self.config.data.files.images_folder
 
-        self.df_train = pd.read_csv(os.path.join(self.data_base_dir, self.config.data.files.train))
-        self.df_val = pd.read_csv(os.path.join(self.data_base_dir, self.config.data.files.val))
-        self.df_test = pd.read_csv(os.path.join(self.data_base_dir, self.config.data.files.test))
+        self.df_train = pd.read_csv(os.path.join(self.data_base_dir, self.config.data.files.train[0]))
+        if len(self.config.data.files.train) > 1:
+            for df_file_name in self.config.data.files.train[1:]:
+                self.df_train = pd.concat([self.df_train, pd.read_csv(os.path.join(self.data_base_dir, df_file_name))], axis=0)
+
+        self.df_val = pd.read_csv(os.path.join(self.data_base_dir, self.config.data.files.val[0]))
+        if len(self.config.data.files.val) > 1:
+            for df_file_name in self.config.data.files.val[1:]:
+                self.df_val = pd.concat(
+                    [self.df_val, pd.read_csv(os.path.join(self.data_base_dir, df_file_name))], axis=0)
+
+        self.df_test = pd.read_csv(os.path.join(self.data_base_dir, self.config.data.files.test[0]))
+        if len(self.config.data.files.test) > 1:
+            for df_file_name in self.config.data.files.test[1:]:
+                self.df_test = pd.concat(
+                    [self.df_test, pd.read_csv(os.path.join(self.data_base_dir, df_file_name))], axis=0)
 
         self.bands = self.config.data.bands
         self.env = self.config.data.env
@@ -283,9 +284,11 @@ class SDMDataModule(pl.LightningDataModule):
         self.num_species = self.config.data.total_species
 
         if len(self.config.data.species) > 1:
-            self.dataloader_to_use = "SDMVJointDataset"
+            self.dataloader_to_use = "SDMCoLocatedDataset"
+            if len(self.config.data.files.train) > 1:
+                self.dataloader_to_use = "SDMCombinedDataset"
         else:
-            self.dataloader_to_use = "SDMVisionMaskedDataset"
+            self.dataloader_to_use = "SDMMaskedDataset"
 
     def setup(self, stage: Optional[str] = None) -> None:
         """create the train/test/val splits and prepare the transforms for the multires"""
@@ -298,12 +301,14 @@ class SDMDataModule(pl.LightningDataModule):
             mode="train",
             datatype=self.datatype,
             targets_folder=self.targets_folder,
+            images_folder=self.images_folder,
             env_data_folder=self.env_data_folder,
             maximum_unknown_labels_ratio=self.config.Rtran.train_unknown_ratio,
             subset=self.subset,
             num_species=self.num_species,
             species_set=self.config.data.species,
-            predict_family=self.predict_family)
+            predict_family=self.predict_family,
+            quantized_mask=self.config.Rtran.quantized_mask)
 
         self.all_val_dataset = globals()[self.dataloader_to_use](
             df=self.df_val,
@@ -314,12 +319,14 @@ class SDMDataModule(pl.LightningDataModule):
             mode="val",
             datatype=self.datatype,
             targets_folder=self.targets_folder,
+            images_folder=self.images_folder,
             env_data_folder=self.env_data_folder,
             maximum_unknown_labels_ratio=self.config.Rtran.eval_unknown_ratio,
             subset=self.subset,
             num_species=self.num_species,
             species_set = self.config.data.species,
-            predict_family=self.predict_family)
+            predict_family=self.predict_family,
+            quantized_mask=self.config.Rtran.quantized_mask)
 
         self.all_test_dataset = globals()[self.dataloader_to_use](
             df=self.df_test,
@@ -330,12 +337,14 @@ class SDMDataModule(pl.LightningDataModule):
             mode="test",
             datatype=self.datatype,
             targets_folder=self.targets_folder,
+            images_folder=self.images_folder,
             env_data_folder=self.env_data_folder,
             maximum_unknown_labels_ratio=self.config.Rtran.eval_unknown_ratio,
             subset=self.subset,
             num_species=self.num_species,
             species_set=self.config.data.species,
-            predict_family=self.predict_family)
+            predict_family=self.predict_family,
+            quantized_mask=self.config.Rtran.quantized_mask)
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Returns the actual dataloader"""
