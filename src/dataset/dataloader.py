@@ -73,9 +73,9 @@ class EbirdVisionDataset(VisionDataset):
 
         # satellite image
         if self.type == 'img':
-            img_path = os.path.join(self.data_base_dir, self.images_folder + "_visual", hotspot_id + '_visual.tif')
+            img_path = os.path.join(self.data_base_dir, self.images_folder[0] + "_visual", hotspot_id + '_visual.tif')
         else:
-            img_path = os.path.join(self.data_base_dir, self.images_folder, hotspot_id + '.tif')
+            img_path = os.path.join(self.data_base_dir, self.images_folder[0], hotspot_id + '.tif')
 
         img = load_file(img_path)
         sats = torch.from_numpy(img).float()
@@ -84,7 +84,7 @@ class EbirdVisionDataset(VisionDataset):
         assert len(self.env) == len(self.env_var_sizes), "env variables sizes must be equal to the size of env vars specified`"
         # env rasters
         for i, env_var in enumerate(self.env):
-            env_npy = os.path.join(self.data_base_dir, self.env_data_folder, hotspot_id + '.npy')
+            env_npy = os.path.join(self.data_base_dir, self.env_data_folder[0], hotspot_id + '.npy')
             env_data = load_file(env_npy)
             s_i = i * self.env_var_sizes[i - 1]
             e_i = self.env_var_sizes[i] + s_i
@@ -97,7 +97,7 @@ class EbirdVisionDataset(VisionDataset):
             item_["sat"] = torch.cat([item_["sat"], item_[e]], dim=-3).float()
 
         # target labels
-        species = load_file(os.path.join(self.data_base_dir, self.targets_folder, hotspot_id + '.json'))
+        species = load_file(os.path.join(self.data_base_dir, self.targets_folder[0], hotspot_id + '.json'))
         if self.target == "probs":
             if not self.subset is None:
                 item_["target"] = np.array(species["probs"])[self.subset]

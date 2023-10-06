@@ -61,7 +61,7 @@ def compute_means_stds_images(root_dir, train_csv, img_folder='images', output_f
                 cropped = crop_center(arr, 64, 64)
                 std = ((cropped - means) ** 2 / (64 * 64)).sum(axis=0).sum(axis=0)
                 new_row = {'hotspot_id': hs, 'r_std': std[2], 'g_std': std[1], 'b_std': std[0], 'nir_std': std[3]}
-                stats_df_2 = stats_df.append(new_row, ignore_index=True)
+                stats_df = stats_df.append(new_row, ignore_index=True)
 
         std_r = np.sqrt(stats_df["r_std"].mean())
         std_g = np.sqrt(stats_df["g_std"].mean())

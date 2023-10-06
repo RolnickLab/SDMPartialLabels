@@ -397,9 +397,9 @@ class EbirdDataModule(pl.LightningDataModule):
         self.targets_folder = self.opts.data.files.targets_folder
         self.env_data_folder = self.opts.data.files.env_data_folder
         self.images_folder = self.opts.data.files.images_folder
-        self.df_train = pd.read_csv(os.path.join(self.data_base_dir, self.opts.data.files.train))
-        self.df_val = pd.read_csv(os.path.join(self.data_base_dir, self.opts.data.files.val))
-        self.df_test = pd.read_csv(os.path.join(self.data_base_dir, self.opts.data.files.test))
+        self.df_train = pd.read_csv(os.path.join(self.data_base_dir, self.opts.data.files.train[0]))
+        self.df_val = pd.read_csv(os.path.join(self.data_base_dir, self.opts.data.files.val[0]))
+        self.df_test = pd.read_csv(os.path.join(self.data_base_dir, self.opts.data.files.test[0]))
         self.bands = self.opts.data.bands
         self.env = self.opts.data.env
         self.env_var_sizes = self.opts.data.env_var_sizes
