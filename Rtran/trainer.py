@@ -308,7 +308,7 @@ class SDMDataModule(pl.LightningDataModule):
             num_species=self.num_species,
             species_set=self.config.data.species,
             predict_family=self.predict_family,
-            quantized_mask=self.config.Rtran.quantized_mask)
+            quantized_mask_bins=self.config.Rtran.quantized_mask_bins)
 
         self.all_val_dataset = globals()[self.dataloader_to_use](
             df=self.df_val,
@@ -326,7 +326,7 @@ class SDMDataModule(pl.LightningDataModule):
             num_species=self.num_species,
             species_set = self.config.data.species,
             predict_family=self.predict_family,
-            quantized_mask=self.config.Rtran.quantized_mask)
+            quantized_mask_bins=self.config.Rtran.quantized_mask_bins)
 
         self.all_test_dataset = globals()[self.dataloader_to_use](
             df=self.df_test,
@@ -344,7 +344,7 @@ class SDMDataModule(pl.LightningDataModule):
             num_species=self.num_species,
             species_set=self.config.data.species,
             predict_family=self.predict_family,
-            quantized_mask=self.config.Rtran.quantized_mask)
+            quantized_mask_bins=self.config.Rtran.quantized_mask_bins)
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Returns the actual dataloader"""

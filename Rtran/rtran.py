@@ -20,7 +20,7 @@ class RTranModel(nn.Module):
         self.use_pos_encoding = use_pos_encoding
 
         self.quantized_mask_bins = quantized_mask_bins
-        self.n_embedding_state = self.quantized_mask + 2
+        self.n_embedding_state = self.quantized_mask_bins + 2
 
         # ResNet101 backbone
         self.backbone = globals()[backbone](input_channels=input_channels, pretrained=pretrained_backbone)
@@ -78,7 +78,7 @@ class RTranModel(nn.Module):
             label_feat_vec = custom_replace_n(mask_q).long()
         else:
             label_feat_vec = custom_replace(mask, 0, 1, 2).long()
-        print(label_feat_vec.unique())
+        # print(label_feat_vec.unique())
         state_embeddings = self.state_embeddings(label_feat_vec) # input: 3, output: 512
         # if labels is not None:
         #     regression_labels = self.regression_embedding(labels)
