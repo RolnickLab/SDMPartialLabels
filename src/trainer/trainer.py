@@ -12,6 +12,7 @@ import torch
 import torchvision
 import torch.nn as nn
 from torch import Tensor
+from torch.nn import BCEWithLogitsLoss
 from torch.utils.data import DataLoader
 from torchvision import models
 
@@ -59,6 +60,7 @@ class EbirdTask(pl.LightningModule):
             self.criterion = RMSLELoss()
         elif self.opts.losses.criterion == "Focal":
             self.criterion = CustomFocalLoss()
+
         else:
             # target is num checklists reporting species i / total number of checklists at a hotspot
             if self.opts.experiment.module.use_weighted_loss:
@@ -110,8 +112,8 @@ class EbirdTask(pl.LightningModule):
             if self.opts.experiment.module.transfer_weights == "SECO":
                 # this works for https://zenodo.org/record/4728033/files/seco_resnet18_1m.ckpt?download=1
                 # Seco ResNet-18-1M model - from which the state dict corresponding only to the ResNet18 part encoder was extracted.
-                # because of some package version compatibility issues, we saved the encoder weights of the Seco ResNet-18-1M model as pkl 
-                # and that is what is supported in this code. 
+                # because of some package version compatibility issues, we saved the encoder weights of the Seco ResNet-18-1M model as pkl
+                # and that is what is supported in this code.
                 print("Initializing with SeCo weights")
                 with open(self.opts.experiment.module.resume, "rb") as file:
                     enc = pickle.load(file)
@@ -397,9 +399,6 @@ class EbirdDataModule(pl.LightningDataModule):
         self.targets_folder = self.opts.data.files.targets_folder
         self.env_data_folder = self.opts.data.files.env_data_folder
         self.images_folder = self.opts.data.files.images_folder
-        self.df_train = pd.read_csv(os.path.join(self.data_base_dir, self.opts.data.files.train[0]))
-        self.df_val = pd.read_csv(os.path.join(self.data_base_dir, self.opts.data.files.val[0]))
-        self.df_test = pd.read_csv(os.path.join(self.data_base_dir, self.opts.data.files.test[0]))
         self.bands = self.opts.data.bands
         self.env = self.opts.data.env
         self.env_var_sizes = self.opts.data.env_var_sizes
@@ -412,49 +411,101 @@ class EbirdDataModule(pl.LightningDataModule):
 
     def setup(self, stage: Optional[str] = None) -> None:
         """create the train/test/val splits and prepare the transforms for the multires"""
-        self.all_train_dataset = EbirdVisionDataset(df_paths=self.df_train, data_base_dir=self.data_base_dir,
-                                                    bands=self.bands, env=self.env, env_var_sizes=self.env_var_sizes,
-                                                    transforms=get_transforms(self.opts, "train"), mode="train",
-                                                    datatype=self.datatype, target=self.target,
-                                                    targets_folder=self.targets_folder,
-                                                    env_data_folder=self.env_data_folder,
-                                                    images_folder=self.images_folder, subset=self.subset, res=self.res,
-                                                    use_loc=self.use_loc, num_species=self.num_species)
+        list_of_datasets = []
+        for index, df_train_file in enumerate(self.opts.data.files.train):
+            df_train = pd.read_csv(os.path.join(self.data_base_dir, df_train_file))
+            dataset = EbirdVisionDataset(
+                df_paths= df_train,
+                data_base_dir=self.data_base_dir,
+                bands=self.bands,
+                env=self.env,
+                env_var_sizes=self.env_var_sizes,
+                transforms=get_transforms(self.opts, "train"),
+                mode="train",
+                datatype=self.datatype,
+                target=self.target,
+                targets_folder=self.targets_folder[index],
+                env_data_folder=self.env_data_folder[index],
+                images_folder=self.images_folder[index],
+                subset=self.subset,
+                res=self.res,
+                use_loc=self.use_loc,
+                num_species=self.num_species
+            )
+            list_of_datasets.append(dataset)
+        self.all_train_dataset = torch.utils.data.ConcatDataset(list_of_datasets)
 
-        self.all_test_dataset = EbirdVisionDataset(df_paths=self.df_test, data_base_dir=self.data_base_dir,
-                                                   bands=self.bands, env=self.env, env_var_sizes=self.env_var_sizes,
-                                                   transforms=get_transforms(self.opts, "val"), mode="test",
-                                                   datatype=self.datatype, target=self.target,
-                                                   targets_folder=self.targets_folder,
-                                                   env_data_folder=self.env_data_folder,
-                                                   images_folder=self.images_folder, subset=self.subset, res=self.res,
-                                                   use_loc=self.use_loc, num_species=self.num_species)
+        list_of_datasets = []
+        for index, df_val_file in enumerate(self.opts.data.files.val):
+            df_val = pd.read_csv(os.path.join(self.data_base_dir, df_val_file))
+            dataset = EbirdVisionDataset(
+                df_paths=df_val,
+                data_base_dir=self.data_base_dir,
+                bands=self.bands,
+                env=self.env,
+                env_var_sizes=self.env_var_sizes,
+                transforms=get_transforms(self.opts, "val"),
+                mode="val",
+                datatype=self.datatype,
+                target=self.target,
+                targets_folder=self.targets_folder[index],
+                env_data_folder=self.env_data_folder[index],
+                images_folder=self.images_folder[index],
+                subset=self.subset,
+                res=self.res,
+                use_loc=self.use_loc,
+                num_species=self.num_species
+            )
+            list_of_datasets.append(dataset)
+        self.all_val_dataset = torch.utils.data.ConcatDataset(list_of_datasets)
 
-        self.all_val_dataset = EbirdVisionDataset(df_paths=self.df_val, data_base_dir=self.data_base_dir,
-                                                  bands=self.bands, env=self.env, env_var_sizes=self.env_var_sizes,
-                                                  transforms=get_transforms(self.opts, "val"), mode="val",
-                                                  datatype=self.datatype, target=self.target,
-                                                  targets_folder=self.targets_folder,
-                                                  env_data_folder=self.env_data_folder,
-                                                  images_folder=self.images_folder, subset=self.subset, res=self.res,
-                                                  use_loc=self.use_loc, num_species=self.num_species)
-
-        # TODO: Create subsets of the data
-
-        self.train_dataset = self.all_train_dataset
-
-        self.test_dataset = self.all_test_dataset
-
-        self.val_dataset = self.all_val_dataset
+        list_of_datasets = []
+        for index, df_test_file in enumerate(self.opts.data.files.test):
+            df_test = pd.read_csv(os.path.join(self.data_base_dir, df_test_file))
+            dataset = EbirdVisionDataset(
+                df_paths=df_test,
+                data_base_dir=self.data_base_dir,
+                bands=self.bands,
+                env=self.env,
+                env_var_sizes=self.env_var_sizes,
+                transforms=get_transforms(self.opts, "val"),
+                mode="test",
+                datatype=self.datatype,
+                target=self.target,
+                targets_folder=self.targets_folder[index],
+                env_data_folder=self.env_data_folder[index],
+                images_folder=self.images_folder[index],
+                subset=self.subset,
+                res=self.res,
+                use_loc=self.use_loc,
+                num_species=self.num_species
+            )
+            list_of_datasets.append(dataset)
+        self.all_test_dataset = torch.utils.data.ConcatDataset(list_of_datasets)
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Returns the actual dataloader"""
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True, )
+        return DataLoader(
+            self.all_train_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=True,
+        )
 
     def val_dataloader(self) -> DataLoader[Any]:
         """Returns the validation dataloader"""
-        return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=False, )
+        return DataLoader(
+            self.all_val_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=False,
+        )
 
     def test_dataloader(self) -> DataLoader[Any]:
         """Returns the test dataloader"""
-        return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=False, )
+        return DataLoader(
+            self.all_test_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=False,
+        )
