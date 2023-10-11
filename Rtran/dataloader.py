@@ -159,10 +159,7 @@ class SDMMaskedDataset(VisionDataset):
         # constructing targets
         species = load_file(os.path.join(self.data_base_dir, self.targets_folder[0], hotspot_id + '.json'))
 
-        if self.subset:
-            item_["target"] = np.array(species["probs"])[self.subset]
-        else:
-            item_["target"] = species["probs"]
+        item_["target"] = species["probs"]
         item_["target"] = torch.Tensor(item_["target"])
 
         # constructing mask for R-tran
@@ -268,10 +265,7 @@ class SDMCoLocatedDataset(VisionDataset):
 
         species["probs"] = species["probs"] + species_2["probs"]
 
-        if self.subset:
-            item_["target"] = np.array(species["probs"])[self.subset]
-        else:
-            item_["target"] = species["probs"]
+        item_["target"] = species["probs"]
         item_["target"] = torch.Tensor(item_["target"])
 
         # constructing mask for R-tran
@@ -298,7 +292,7 @@ class SDMCoLocatedDataset(VisionDataset):
 class SDMCombinedDataset(VisionDataset):
     def __init__(self, df, data_base_dir, env, env_var_sizes,
                  transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None, mode="train", datatype="refl",
-                 targets_folder="corrected_targets", targets_folder_2="SatBird_data_v2/USA_summer/butterfly_targets_2", images_folder="images", env_data_folder="environmental",
+                 targets_folder="corrected_targets", targets_folder_2="SatBird_data_v2/USA_summer/butterfly_targets_v1.2", images_folder="images", env_data_folder="environmental",
                  maximum_unknown_labels_ratio=0.5, subset=None, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
         """
         SatBird + SatButterfly co-located with SatBird + SatButterfly independently from ebird
@@ -390,10 +384,7 @@ class SDMCombinedDataset(VisionDataset):
 
         species["probs"] = species["probs"] + species_2["probs"]
 
-        if self.subset:
-            item_["target"] = np.array(species["probs"])[self.subset]
-        else:
-            item_["target"] = species["probs"]
+        item_["target"] = species["probs"]
         item_["target"] = torch.Tensor(item_["target"])
 
         # constructing mask for R-tran
