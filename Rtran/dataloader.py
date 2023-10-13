@@ -92,7 +92,7 @@ class SDMMaskedDataset(VisionDataset):
     def __init__(self, df, data_base_dir, env, env_var_sizes,
                  transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None, mode="train", datatype="refl",
                  targets_folder="corrected_targets", images_folder="images", env_data_folder="environmental",
-                 maximum_unknown_labels_ratio=0.5, subset=None, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
+                 maximum_unknown_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
         """
         df_paths: dataframe with hotspot IDs
         data_base_dir: base directory for data
@@ -115,7 +115,6 @@ class SDMMaskedDataset(VisionDataset):
         self.targets_folder = targets_folder
         self.img_folder = images_folder
         self.env_data_folder = env_data_folder
-        self.subset = get_subset(subset, num_species)
         self.num_species = num_species
         self.maximum_unknown_labels_ratio = maximum_unknown_labels_ratio
         self.quantized_mask_bins = quantized_mask_bins
@@ -186,7 +185,7 @@ class SDMCoLocatedDataset(VisionDataset):
     def __init__(self, df, data_base_dir, env, env_var_sizes,
                  transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None, mode="train", datatype="refl",
                  targets_folder="corrected_targets", images_folder="images", env_data_folder="environmental",
-                maximum_unknown_labels_ratio=0.5, subset=None, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
+                maximum_unknown_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
         """
         SatBird + SatButterfly co-located with some of ebird positions
         df_paths: dataframe with hotspot IDs
@@ -210,7 +209,6 @@ class SDMCoLocatedDataset(VisionDataset):
         self.targets_folder = targets_folder
         self.img_folder = images_folder
         self.env_data_folder = env_data_folder
-        self.subset = get_subset(subset, num_species)
         self.num_species = num_species
         self.species_set = species_set
         self.maximum_unknown_labels_ratio = maximum_unknown_labels_ratio
@@ -293,7 +291,7 @@ class SDMCombinedDataset(VisionDataset):
     def __init__(self, df, data_base_dir, env, env_var_sizes,
                  transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None, mode="train", datatype="refl",
                  targets_folder="corrected_targets", targets_folder_2="SatBird_data_v2/USA_summer/butterfly_targets_v1.2", images_folder="images", env_data_folder="environmental",
-                 maximum_unknown_labels_ratio=0.5, subset=None, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
+                 maximum_unknown_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
         """
         SatBird + SatButterfly co-located with SatBird + SatButterfly independently from ebird
         df_paths: dataframe with paths (image, image_visual, targets, env_data)to data for each hotspot
@@ -318,7 +316,6 @@ class SDMCombinedDataset(VisionDataset):
         self.targets_folder_2 = targets_folder_2
         self.img_folder = images_folder
         self.env_data_folder = env_data_folder
-        self.subset = get_subset(subset, num_species)
         self.num_species = num_species
         self.species_set = species_set
         self.maximum_unknown_labels_ratio = maximum_unknown_labels_ratio

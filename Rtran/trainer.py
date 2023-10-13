@@ -113,15 +113,13 @@ class RegressionTransformerTask(pl.LightningModule):
         mask = batch["mask"].long()
 
         y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
-        # if using range maps
+        # if using  range maps
         if self.config.data.correction_factor.thresh:
             range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').loc[list(hotspot_id)]).values
 
             range_maps_correction_data = torch.tensor(range_maps_correction_data, device=y.device)
             ones = torch.ones(range_maps_correction_data.shape[0], self.config.data.species[1], device=y.device)
             range_maps_correction_data = torch.cat((range_maps_correction_data, ones), 1)
-            # y_pred[:, :RM_end_index] = y_pred[:, :RM_end_index] * range_maps_correction_data.int()
-            # y[:, :RM_end_index] = y[:, :RM_end_index] * range_maps_correction_data.int()
             y_pred = y_pred * range_maps_correction_data.int()
             y = y * range_maps_correction_data.int()
 
@@ -153,8 +151,6 @@ class RegressionTransformerTask(pl.LightningModule):
             range_maps_correction_data = torch.tensor(range_maps_correction_data, device=y.device)
             ones = torch.ones(range_maps_correction_data.shape[0], self.config.data.species[1], device=y.device)
             range_maps_correction_data = torch.cat((range_maps_correction_data, ones), 1)
-            # y_pred[:, :RM_end_index] = y_pred[:, :RM_end_index] * range_maps_correction_data.int()
-            # y[:, :RM_end_index] = y[:, :RM_end_index] * range_maps_correction_data.int()
             y_pred = y_pred * range_maps_correction_data.int()
             y = y * range_maps_correction_data.int()
 
@@ -201,13 +197,17 @@ class RegressionTransformerTask(pl.LightningModule):
         else:
             return optimizer
 
-    def __log_metric(self, mode, pred, y):
+    def __log_metric(self, mode, pred, y, mask=None):
         for (name, _, scale) in self.metrics:
             nname = str(mode) + "_" + name
             if name == "accuracy":
                 value = getattr(self, nname)(pred, y.type(torch.uint8))
             elif name == 'r2':
                 value = torch.mean(getattr(self, nname)(y, pred))
+            elif name == 'mae' and mask != None:
+                value = getattr(self, nname)(y, pred, mask)
+            elif name == 'mse' and mask != None:
+                value = getattr(self, nname)(y, pred, mask)
             else:
                 value = getattr(self, nname)(y, pred)
 
@@ -217,8 +217,8 @@ class RegressionTransformerTask(pl.LightningModule):
         """
         log metrics through logger
         """
+        unknown_mask = mask
         if mask is not None:
-            unknown_mask = mask
             if self.config.Rtran.mask_eval_metrics:
                 if len(mask.unique()) > 3:
                     unknown_mask = maksed_loss_custom_replace(mask, 0, 1, 0, 0)
@@ -237,7 +237,7 @@ class RegressionTransformerTask(pl.LightningModule):
         else:
             loss = self.criterion(pred, y)
 
-        self.__log_metric(mode, pred, y)
+        self.__log_metric(mode, pred, y, unknown_mask)
         self.log(str(mode) + "_loss", loss, on_epoch=True)
 
 
@@ -279,7 +279,6 @@ class SDMDataModule(pl.LightningDataModule):
         self.env_var_sizes = self.config.data.env_var_sizes
         self.datatype = self.config.data.datatype
 
-        self.subset = self.config.data.target.subset
         self.predict_family = self.config.Rtran.predict_family_of_species
         self.num_species = self.config.data.total_species
 
@@ -304,7 +303,6 @@ class SDMDataModule(pl.LightningDataModule):
             images_folder=self.images_folder,
             env_data_folder=self.env_data_folder,
             maximum_unknown_labels_ratio=self.config.Rtran.train_unknown_ratio,
-            subset=self.subset,
             num_species=self.num_species,
             species_set=self.config.data.species,
             predict_family=self.predict_family,
@@ -322,7 +320,6 @@ class SDMDataModule(pl.LightningDataModule):
             images_folder=self.images_folder,
             env_data_folder=self.env_data_folder,
             maximum_unknown_labels_ratio=self.config.Rtran.eval_unknown_ratio,
-            subset=self.subset,
             num_species=self.num_species,
             species_set = self.config.data.species,
             predict_family=self.predict_family,
@@ -340,7 +337,6 @@ class SDMDataModule(pl.LightningDataModule):
             images_folder=self.images_folder,
             env_data_folder=self.env_data_folder,
             maximum_unknown_labels_ratio=self.config.Rtran.eval_unknown_ratio,
-            subset=self.subset,
             num_species=self.num_species,
             species_set=self.config.data.species,
             predict_family=self.predict_family,
