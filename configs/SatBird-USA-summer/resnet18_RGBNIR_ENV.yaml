@@ -42,7 +42,7 @@ experiment:
     #initializes biases of the output layer sothat sigmoid(bias) = mean over the training set for each species
     init_bias: ""
     means_path: ""
-    lr: 0.0001
+    lr: 0.0003
 
 
 optimizer: "Adam"  #"Adam", "AdamW", "SGD"
@@ -107,13 +107,13 @@ data:
   
   files:
     base: "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer"
-    train: "train_split.csv"
-    val: "valid_split.csv"
-    test: "test_split.csv"
+    train: ["train_split.csv"]
+    val: ["valid_split.csv"]
+    test: ["test_split.csv"]
 
-    targets_folder: "targets"
-    env_data_folder: "environmental"
-    images_folder: "images"
+    targets_folder: ["targets"]
+    env_data_folder: ["environmental"]
+    images_folder: ["images"]
     correction_thresh: "range_maps.pkl" # range maps - threshold = False
 
     rgbnir_means: "stats/means_rgbnir.npy"
