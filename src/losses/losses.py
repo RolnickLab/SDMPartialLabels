@@ -53,11 +53,17 @@ class CustomFocalLoss:
         self.alpha = alpha
         self.gamma = gamma
 
-    def __call__(self, pred, target):
-        ce_loss = (- target * torch.log(pred + eps) - (1 - target) * torch.log(1 - pred + eps)).mean()
+    def __call__(self, pred, target, reduction='mean'):
+        ce_loss = (- target * torch.log(pred + eps) - (1 - target) * torch.log(1 - pred + eps))
         pt = torch.exp(-ce_loss)
-        focal_loss = self.alpha * (1 - pt) ** self.gamma * ce_loss
-        return focal_loss
+        loss = self.alpha * (1 - pt) ** self.gamma * ce_loss
+        if reduction == 'mean':
+            loss = loss.mean()
+        elif reduction == 'sum':
+            loss = loss.sum()
+        else: # reduction = None
+            loss = loss
+        return loss
 
 
 class CustomCrossEntropy(Metric):

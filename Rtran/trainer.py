@@ -73,7 +73,10 @@ class RegressionTransformerTask(pl.LightningModule):
 
         # if using range maps
         if self.config.data.correction_factor.thresh:
-            range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').loc[list(hotspot_id)]).values
+            range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').drop(
+                                        columns=["index"]))
+            range_maps_correction_data = range_maps_correction_data.reindex(list(hotspot_id), fill_value=True).values
+            print(range_maps_correction_data)
             range_maps_correction_data = torch.tensor(range_maps_correction_data, device=y.device)
             ones = torch.ones(range_maps_correction_data.shape[0], self.config.data.species[1], device=y.device)
             range_maps_correction_data = torch.cat((range_maps_correction_data, ones), 1)
@@ -113,10 +116,11 @@ class RegressionTransformerTask(pl.LightningModule):
         mask = batch["mask"].long()
 
         y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
-        # if using  range maps
+        # if using range maps
         if self.config.data.correction_factor.thresh:
-            range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').loc[list(hotspot_id)]).values
-
+            range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').drop(
+                                        columns=["index"]))
+            range_maps_correction_data = range_maps_correction_data.reindex(list(hotspot_id), fill_value=True).values
             range_maps_correction_data = torch.tensor(range_maps_correction_data, device=y.device)
             ones = torch.ones(range_maps_correction_data.shape[0], self.config.data.species[1], device=y.device)
             range_maps_correction_data = torch.cat((range_maps_correction_data, ones), 1)
@@ -147,7 +151,9 @@ class RegressionTransformerTask(pl.LightningModule):
 
         # if using range maps
         if self.config.data.correction_factor.thresh:
-            range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').loc[list(hotspot_id)]).values
+            range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').drop(
+                                        columns=["index"]))
+            range_maps_correction_data = range_maps_correction_data.reindex(list(hotspot_id), fill_value=True).values
             range_maps_correction_data = torch.tensor(range_maps_correction_data, device=y.device)
             ones = torch.ones(range_maps_correction_data.shape[0], self.config.data.species[1], device=y.device)
             range_maps_correction_data = torch.cat((range_maps_correction_data, ones), 1)
