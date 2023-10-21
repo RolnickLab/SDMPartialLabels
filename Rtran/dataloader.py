@@ -13,7 +13,7 @@ import numpy as np
 
 def get_unknown_mask_indices(num_labels, mode, max_unknown=0.5, absent_species=-1,
                              species_set=None, predict_family_of_species=-1,
-                             per_species_mask_file="/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/bird_species_order_mapping.json"):
+                             per_species_mask_file="/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/bird_species_family_mapping.json"):
     """
     num_labels: total number of species
     mode: train, val or test
@@ -40,28 +40,27 @@ def get_unknown_mask_indices(num_labels, mode, max_unknown=0.5, absent_species=-
                     unk_mask_indices = np.arange(present_species * species_set[absent_species],
                                         species_set[present_species] + (present_species * species_set[present_species]))
             else:
-                absent_species = int(np.random.randint(0, mask_max_size, 1)[0])
-                unk_mask_indices = np.array(list(per_species_mask.values())[absent_species])
-                # num_unknown = random.randint(0, int(num_labels * max_unknown))
-                # unk_mask_indices = random.sample(range(num_labels), num_unknown)
-        else:
-            if absent_species == 1: # butterflies missing
+                # absent_species = int(np.random.randint(0, mask_max_size, 1)[0])
+                # unk_mask_indices = np.array(list(per_species_mask.values())[absent_species])
+                num_unknown = random.randint(0, int(num_labels * max_unknown))
+                unk_mask_indices = random.sample(range(num_labels), num_unknown)
+        elif absent_species == 1: # butterflies missing
                 present_species = 1 - absent_species
 
-                what_to_mask = int(np.random.randint(0, mask_max_size, 1)[0])
-                unk_mask_indices = np.array(list(per_species_mask.values())[what_to_mask])
-                # unk_mask_indices = random.sample(list(np.arange(present_species * species_set[absent_species],
-                #                                                 species_set[present_species] + (
-                #                                                             present_species * species_set[
-                #                                                         absent_species]))),
-                #                                  int(species_set[present_species] * max_unknown))
-            elif absent_species == 0: #birds unknown
-                present_species = 1 - absent_species
+                # what_to_mask = int(np.random.randint(0, mask_max_size, 1)[0])
+                # unk_mask_indices = np.array(list(per_species_mask.values())[what_to_mask])
                 unk_mask_indices = random.sample(list(np.arange(present_species * species_set[absent_species],
-                                                                species_set[absent_species] + (
+                                                                species_set[present_species] + (
                                                                             present_species * species_set[
-                                                                        present_species]))),
+                                                                        absent_species]))),
                                                  int(species_set[present_species] * max_unknown))
+        elif absent_species == 0: #birds unknown
+            present_species = 1 - absent_species
+            unk_mask_indices = random.sample(list(np.arange(present_species * species_set[absent_species],
+                                                            species_set[absent_species] + (
+                                                                        present_species * species_set[
+                                                                    present_species]))),
+                                             int(species_set[present_species] * max_unknown))
             # if absent = 1,
             # present = 0
             # max_unknown = 0, 0.5*670

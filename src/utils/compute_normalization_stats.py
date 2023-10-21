@@ -91,7 +91,7 @@ def compute_means_stds_images_visual(root_dir, train_csv, img_folder="images_vis
             df = pd.read_csv(os.path.join(root_dir, train_csv_file))
             for i, row in tqdm(df.iterrows()):
                 hs = row["hotspot_id"]
-                arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}.tif"))
+                arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}_visual.tif"))
                 cropped = crop_center(arr, 64, 64)
                 means = np.mean(np.mean(cropped, axis=0), axis=0)
                 new_row = {'hotspot_id': hs, 'r': means[2], 'g': means[1], 'b': means[0], 'nir': means[3]}
@@ -116,7 +116,7 @@ def compute_means_stds_images_visual(root_dir, train_csv, img_folder="images_vis
             df = pd.read_csv(os.path.join(root_dir, train_csv_file))
             for i, row in tqdm(df.iterrows()):
                 hs = row["hotspot_id"]
-                arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}.tif"))
+                arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}_visual.tif"))
                 cropped = crop_center(arr, 64, 64)
                 std = ((cropped - means) ** 2 / (64 * 64)).sum(axis=0).sum(axis=0)
                 new_row = {'hotspot_id': hs, 'r_std': std[2], 'g_std': std[1], 'b_std': std[0], 'nir_std': std[3]}
