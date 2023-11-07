@@ -5,12 +5,12 @@ Code is based on the C-tran paper: https://github.com/QData/C-Tran
 import torch
 import torch.nn as nn
 import numpy as np
-from Rtran.utils import weights_init, custom_replace, custom_replace_n, PositionEmbeddingSine
+from Rtran.utils import weights_init, custom_replace, custom_replace_n, PositionEmbeddingSine, positional_encoding_2d, get_2d_sincos_pos_embed
 from Rtran.models import *
 
 
 class RTranModel(nn.Module):
-    def __init__(self, num_classes, backbone='Resnet18', pretrained_backbone=True, quantized_mask_bins=1, input_channels=3, d_hidden=512, attention_layers=2, heads=2, dropout=0.2, use_pos_encoding=False, scale_embeddings_by_labels=False):
+    def __init__(self, num_classes, backbone='Resnet18', pretrained_backbone=True, quantized_mask_bins=1, input_channels=3, d_hidden=512, attention_layers=3, heads=4, dropout=0.1, use_pos_encoding=False, scale_embeddings_by_labels=False):
         """
         pos_emb is false by default
         """
@@ -37,7 +37,9 @@ class RTranModel(nn.Module):
         # self.regression_embedding = torch.nn.Linear(num_classes, num_classes)
         # TODO: Position Embeddings (for image features)
         if self.use_pos_encoding:
-            self.position_encoding = PositionEmbeddingSine(self.d_hidden)
+            # self.position_encoding = positional_encoding_2d(2, 2, self.d_hidden)
+            self.position_encoding = get_2d_sincos_pos_embed(embed_dim=self.d_hidden, grid_size=2, cls_token=False).reshape(2, 2, self.d_hidden)
+
         # Transformer
         self.self_attn_layers = nn.ModuleList([SelfAttnLayer(self.d_hidden, heads, dropout) for _ in range(attention_layers)])
 
@@ -57,10 +59,22 @@ class RTranModel(nn.Module):
         self.output_linear.apply(weights_init)
 
     def forward(self, images, mask, mask_q=None):
+
+        # labels = torch.arange(0, 842).long().to(images.device)  # Replace num_labels with your actual number of labels
+        # embeddings = self.label_embeddings(labels)
+        #
+        # np.save("/home/mila/h/hager.radi/scratch/ecosystem-embedding/rtran_label_embeddings_random.npy", embeddings.detach().cpu().numpy())
+        # exit(0)
         z_features = self.backbone(images) # image: HxWxD
+        # cls_tokens = self.cls_token.expand(images.size(0), -1, -1)  # stole cls_tokens impl from Phil Wang, thanks
+        # x = torch.cat((cls_tokens, z_features), dim=1)  # (N, L+1, D)
+        # print(x.size())
+        # z_features = x
 
         if self.use_pos_encoding:
-            pos_encoding = self.position_encoding(mask)
+            pos_encoding = torch.from_numpy(self.position_encoding).float().to(images.device)
+            # print(pos_encoding.size(), z_features.size())
+            pos_encoding = pos_encoding.view(1, pos_encoding.size(2), pos_encoding.size(0), pos_encoding.size(1)).repeat(z_features.size(0), 1, 1, 1)
             z_features = z_features + pos_encoding
 
         z_features = z_features.view(z_features.size(0), z_features.size(1), -1).permute(0, 2, 1)

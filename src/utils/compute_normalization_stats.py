@@ -105,7 +105,7 @@ def compute_means_stds_images_visual(root_dir, train_csv, img_folder="images_vis
         means_to_save = np.array([mean_r, mean_g, mean_b, mean_nir])
         np.save(output_file_means_path, means_to_save)
         del stats_df
-    print("Images-visual RGB means: ", means_to_save)
+    print("Images-visual RGB means: ", means)
 
     output_file_stds_path = os.path.join(root_dir, output_file_std)
     if os.path.exists(output_file_stds_path):

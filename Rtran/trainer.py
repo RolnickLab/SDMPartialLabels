@@ -44,7 +44,7 @@ class RegressionTransformerTask(pl.LightningModule):
                                 scale_embeddings_by_labels=self.config.Rtran.scale_embeddings_by_labels)
 
         self.sigmoid_activation = nn.Sigmoid()
-
+        # self.load_resnet18_weights()
         # if using range maps (RM)
         if self.config.data.correction_factor.thresh:
             with open(os.path.join(self.config.data.files.base, self.config.data.files.correction_thresh), 'rb') as f:
@@ -60,6 +60,21 @@ class RegressionTransformerTask(pl.LightningModule):
             setattr(self, "test_" + name, value)
         self.metrics = metrics
 
+    def load_resnet18_weights(self):
+        ckpt = torch.load(self.config.experiment.module.resume)
+        loaded_dict = ckpt['state_dict']
+        model_dict = self.model.state_dict()
+
+        # load state dict keys
+        for key_model, key_pretrained in zip(model_dict.keys(), loaded_dict.keys()):
+            # ignore first layer weights(use imagenet ones)
+            if "backbone" in key_model:
+                if "fc" in key_model:
+                    continue
+                print("loaded.. ", key_model, key_pretrained)
+                model_dict[key_model] = loaded_dict[key_pretrained]
+
+        self.model.load_state_dict(model_dict)
     def training_step(
             self, batch: Dict[str, Any], batch_idx: int):
 
@@ -87,16 +102,13 @@ class RegressionTransformerTask(pl.LightningModule):
 
         if self.config.Rtran.masked_loss:         # to train on unknown labels only
             unknown_mask = custom_replace(mask, 1, 0, 0)
-            loss = self.criterion(y_pred[unknown_mask.bool()], y[unknown_mask.bool()], reduction='None')
-            loss = loss.sum() / unknown_mask.sum().item()
         #TODO: not efficient
         elif len(mask.unique()) > 3:
             unknown_mask = maksed_loss_custom_replace(mask, 0, 1, 1, 1)
-            loss = self.criterion(y_pred[unknown_mask.bool()], y[unknown_mask.bool()], reduction='None')
-            loss = loss.sum() / unknown_mask.sum().item()
         else:
-            loss = self.criterion(y_pred, y)
+            unknown_mask = None
 
+        loss = self.criterion(y_pred, y, mask=unknown_mask)
         if batch_idx % 50 == 0:
             self.log("train_loss", loss, on_epoch=True)
             if len(self.config.data.species) > 1:
@@ -133,9 +145,6 @@ class RegressionTransformerTask(pl.LightningModule):
         else:
             self.log_metrics(mode="val", pred=y_pred, y=y)
 
-        # print(torch.topk(y_pred[0], k=30))
-        # print(torch.topk(y[0], k=30))
-        # exit(0)
 
     def test_step(
             self, batch: Dict[str, Any], batch_idx: int
@@ -234,8 +243,7 @@ class RegressionTransformerTask(pl.LightningModule):
             unknown_mask[unknown_mask == -2] = 0
             unknown_mask[unknown_mask == -1] = 1
 
-            loss = self.criterion(pred[unknown_mask.bool()], y[unknown_mask.bool()], reduction='None')
-            loss = loss.sum() / unknown_mask.sum().item()
+            loss = self.criterion(pred, y, mask=unknown_mask)
 
             pred = pred * unknown_mask
             y = y * unknown_mask

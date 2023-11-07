@@ -23,9 +23,9 @@ def get_unknown_mask_indices(num_labels, mode, max_unknown=0.5, absent_species=-
     predict family of species: (only if not training) mask out either birds or butterflies
     """
     # sample random number of known labels during training; in testing, everything is unknown
-    with open(per_species_mask_file, 'r') as f:
-        per_species_mask = json.load(f)
-        mask_max_size = len(per_species_mask.keys())
+    # with open(per_species_mask_file, 'r') as f:
+    #     per_species_mask = json.load(f)
+    #     mask_max_size = len(per_species_mask.keys())
 
     if mode == 'train': # all species are there
         random.seed()

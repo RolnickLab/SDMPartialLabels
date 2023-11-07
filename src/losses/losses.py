@@ -13,21 +13,28 @@ class CustomCrossEntropyLoss:
         self.lambd_abs = lambd_abs
         self.lambd_pres = lambd_pres
 
-    def __call__(self, pred, target, reduction='mean'):
+    def __call__(self, pred, target, mask=None,  weights=1, reduction='mean'):
         """
         target: ground truth
         pred: prediction
         reduction: mean, sum, none
         """
-        loss = (-self.lambd_pres * target * torch.log(pred + eps) - self.lambd_abs * (1 - target) * torch.log(
-            1 - pred + eps))
+        if mask != None:
+            target = target[mask.bool()]
+            pred = pred[mask.bool()]
+
+        loss = weights*(-self.lambd_pres * target * torch.log(pred + eps) - self.lambd_abs * (1 - target) * torch.log(1 - pred + eps))
+
         if reduction == 'mean':
-            loss = loss.mean()
+            if mask != None:
+                loss = loss.sum() / mask.sum().item()
+            else:
+                loss = loss.mean()
         elif reduction == 'sum':
             loss = loss.sum()
-        else:  # reduction = None
+        else: # reduction = None
             loss = loss
-
+        # print('inside_loss',loss)
         return loss
 
 
@@ -40,8 +47,17 @@ class RMSLELoss(nn.Module):
         super().__init__()
         self.mse = nn.MSELoss()
 
-    def forward(self, pred, target):
-        return torch.sqrt(self.mse(torch.log(pred + 1), torch.log(target + 1)))
+    def forward(self, pred, target, mask=None, reduction='None'):
+        if mask is not None:
+            target = target[mask.bool()]
+            pred = pred[mask.bool()]
+            squared_diff = (torch.log1p(pred) - torch.log1p(target)) ** 2
+            loss = squared_diff.sum() / mask.sum().item()
+            loss = torch.sqrt(loss)
+        else:
+            loss = torch.sqrt(self.mse(torch.log1p(pred), torch.log1p(target)))
+
+        return loss
 
 
 class CustomFocalLoss:
@@ -53,12 +69,19 @@ class CustomFocalLoss:
         self.alpha = alpha
         self.gamma = gamma
 
-    def __call__(self, pred, target, reduction='mean'):
+    def __call__(self, pred, target, mask=None, reduction='mean'):
+        if mask != None:
+            target = target[mask.bool()]
+            pred = pred[mask.bool()]
+
         ce_loss = (- target * torch.log(pred + eps) - (1 - target) * torch.log(1 - pred + eps))
         pt = torch.exp(-ce_loss)
         loss = self.alpha * (1 - pt) ** self.gamma * ce_loss
         if reduction == 'mean':
-            loss = loss.mean()
+            if mask != None:
+                loss = loss.sum() / mask.sum().item()
+            else:
+                loss = loss.mean()
         elif reduction == 'sum':
             loss = loss.sum()
         else: # reduction = None
@@ -79,8 +102,7 @@ class CustomCrossEntropy(Metric):
         target: target distribution
         pred: predicted distribution
         """
-        self.correct += (-self.lambd_pres * target * torch.log(pred) - self.lambd_abs * (1 - target) * torch.log(
-            1 - pred)).sum()
+        self.correct += (-self.lambd_pres * target * torch.log(pred) - self.lambd_abs * (1 - target) * torch.log(1 - pred)).sum()
         self.total += target.numel()
 
     def compute(self):

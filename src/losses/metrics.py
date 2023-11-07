@@ -13,7 +13,7 @@ class CustomKL(Metric):
         self.add_state("correct", default=torch.FloatTensor([0]), dist_reduce_fx="sum")
         self.add_state("total", default=torch.FloatTensor([0]), dist_reduce_fx="sum")
 
-    def update(self, p: torch.Tensor, q: torch.Tensor):
+    def update(self, p: torch.Tensor, q: torch.Tensor, mask=None):
         """
         p: target distribution
         q: predicted distribution
@@ -45,7 +45,7 @@ class CustomTopK(Metric):
         self.add_state("correct", default=torch.tensor(0).float(), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0).float(), dist_reduce_fx="sum")
 
-    def update(self, target: torch.Tensor, preds: torch.Tensor):
+    def update(self, target: torch.Tensor, preds: torch.Tensor, mask=None):
 
         assert preds.shape == target.shape
         non_zero_counts = torch.count_nonzero(target, dim=1)
@@ -134,7 +134,7 @@ class MaskedMSE(Metric):
     def __init__(self):
         super().__init__()
 
-    def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor):
+    def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor=None):
         squared_diffs = (preds - target) ** 2
         self.masked_squared_diffs = squared_diffs * mask
         self.non_zero_sum = mask.sum()
@@ -148,7 +148,7 @@ class MaskedMAE(Metric):
     def __init__(self):
         super().__init__()
 
-    def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor):
+    def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor=None):
         squared_diffs = torch.abs(preds - target)
         # Apply the mask
         self.masked_abs_diffs = squared_diffs * mask
