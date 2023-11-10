@@ -159,6 +159,31 @@ class MaskedMAE(Metric):
         return mae
 
 
+class CustomMultiLabelAcc(Metric):
+    def __init__(self):
+        super().__init__()
+        self.add_state("correct", default=torch.tensor(0).float(), dist_reduce_fx="sum")
+        self.add_state("total", default=torch.tensor(0).float(), dist_reduce_fx="sum")
+
+    def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor=None):
+        """
+        Compute the accuracy for multi-label classification.
+
+        Returns:
+        float: The accuracy score.
+        """
+        # Compare with true labels
+        correct_pred = (preds == target).float()
+
+        # Compute the accuracy per sample
+        self.correct += correct_pred.sum()
+
+        self.total += target.numel()
+
+    def compute(self):
+        return self.correct.float() / self.total
+
+
 def get_metric(metric, masked=False):
     """Returns the transform function associated to a
     transform_item listed in opts.data.transforms ; transform_item is
@@ -189,7 +214,7 @@ def get_metric(metric, masked=False):
     elif metric.name == "kl" and not metric.ignore is True:
         return CustomKL()
     elif metric.name == "accuracy" and not metric.ignore is True:
-        return torchmetrics.Accuracy()
+        return CustomMultiLabelAcc()
     elif metric.ignore is True:
         return None
     else:

@@ -38,6 +38,39 @@ class CustomCrossEntropyLoss:
         return loss
 
 
+class BCE(nn.Module):
+    """
+    Binary cross entropy with logits, used with binary inputs
+    """
+    def __init__(self):
+        super().__init__()
+
+    def __call__(self, pred, target, mask=None,  weights=1, reduction='mean'):
+        """
+        target: ground truth
+        pred: prediction
+        reduction: mean, sum, none
+        """
+        loss_fn = nn.BCEWithLogitsLoss(reduction='none')
+        if mask != None:
+            target = target[mask.bool()]
+            pred = pred[mask.bool()]
+
+        loss = loss_fn(pred, target)
+
+        if reduction == 'mean':
+            if mask != None:
+                loss = loss.sum() / mask.sum().item()
+            else:
+                loss = loss.mean()
+        elif reduction == 'sum':
+            loss = loss.sum()
+        else: # reduction = None
+            loss = loss
+
+        return loss
+
+
 class RMSLELoss(nn.Module):
     """
     root mean squared log error

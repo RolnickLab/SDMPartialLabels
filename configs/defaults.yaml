@@ -215,10 +215,10 @@ losses:
       lambd_abs: 1
       scale : 1
     - name: mae
-      ignore: False
+      ignore: True
       scale: 10
     - name: mse
-      ignore: False
+      ignore: True
       scale: 10
     - name: topk
       ignore: False
@@ -230,7 +230,7 @@ losses:
       ignore: False
       scale : 1
     - name: accuracy
-      ignore: True
+      ignore: False
       scale: 1
     - name: top10
       ignore: False

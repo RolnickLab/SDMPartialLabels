@@ -113,6 +113,8 @@ class EbirdVisionDataset(VisionDataset):
             item_["original_target"] = torch.Tensor(targ)
             targ[targ > 0] = 1
             item_["target"] = torch.Tensor(targ)
+            # item_["target"] = species["probs"]
+            # item_["target"] = torch.Tensor(item_["target"])
 
         elif self.target == "log":
             if not self.subset is None:
@@ -124,6 +126,7 @@ class EbirdVisionDataset(VisionDataset):
             raise NameError("type of target not supported, should be probs or binary")
 
         item_["num_complete_checklists"] = species["num_complete_checklists"]
+        # item_["target"] = torch.clamp_max(item_["target"], 1)
 
         if self.use_loc:
             if self.loc_type == "latlon":

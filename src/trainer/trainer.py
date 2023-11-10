@@ -12,7 +12,7 @@ import torch
 import torchvision
 import torch.nn as nn
 from torch import Tensor
-from torch.nn import BCEWithLogitsLoss
+from torch.nn import BCEWithLogitsLoss, BCELoss
 from torch.utils.data import DataLoader
 from torchvision import models
 
@@ -35,7 +35,7 @@ class EbirdTask(pl.LightningModule):
         self.save_hyperparameters(opts)
         self.opts = opts
         self.means = None
-
+        self.is_transfer_learning = True if self.opts.experiment.module.resume else False
         self.freeze_backbone = self.opts.experiment.module.freeze
         # get target vector size (number of species we consider)
         self.subset = get_subset(self.opts.data.target.subset, self.opts.data.total_species)
@@ -60,7 +60,8 @@ class EbirdTask(pl.LightningModule):
             self.criterion = RMSLELoss()
         elif self.opts.losses.criterion == "Focal":
             self.criterion = CustomFocalLoss()
-
+        elif self.opts.losses.criterion == "BCE":
+            self.criterion = BCEWithLogitsLoss()
         else:
             # target is num checklists reporting species i / total number of checklists at a hotspot
             if self.opts.experiment.module.use_weighted_loss:
@@ -242,11 +243,14 @@ class EbirdTask(pl.LightningModule):
         else:
             loss = self.criterion(pred, y)
 
+        if self.opts.data.target.type == "binary":
+            pred_ = self.sigmoid_activation(pred_)
+            pred_[pred_ >= 0.5] = 1
+            pred_[pred_ < 0.5] = 0
+
         for (name, _, scale) in self.metrics:
             nname = "train_" + name
-            if name == "accuracy":
-                value = getattr(self, nname)(pred_, y.type(torch.uint8))
-            elif name == 'r2':
+            if name == 'r2':
                 value = torch.mean(getattr(self, nname)(y, pred_))
             else:
                 value = getattr(self, nname)(y, pred_)
@@ -275,7 +279,10 @@ class EbirdTask(pl.LightningModule):
         else:
             y_hat = self.forward(x)
 
-        pred = self.sigmoid_activation(y_hat).type_as(y)
+        if self.target_type == "log" or self.target_type == "binary":
+            pred = y_hat.type_as(y)
+        else:
+            pred = self.sigmoid_activation(y_hat).type_as(y)
 
         if self.opts.data.correction_factor.thresh == 'after':
             mask = correction_t
@@ -290,12 +297,14 @@ class EbirdTask(pl.LightningModule):
 
         loss = self.criterion(pred, y)
 
+
+        if self.opts.data.target.type == "binary":
+            pred_[pred_ >= 0.5] = 1
+            pred_[pred_ < 0.5] = 0
+
         for (name, _, scale) in self.metrics:
             nname = "val_" + name
-            if name == "accuracy":
-                value = getattr(self, name)(pred_, y.type(torch.uint8))
-                print(nname, getattr(self, name))
-            elif name == 'r2':
+            if name == 'r2':
                 value = torch.mean(getattr(self, nname)(y, pred_))
             else:
                 value = getattr(self, nname)(y, pred_)
@@ -339,12 +348,14 @@ class EbirdTask(pl.LightningModule):
 
         pred_ = pred.clone().type_as(y)
 
+        if self.opts.data.target.type == "binary":
+            pred_ = self.sigmoid_activation(pred_)
+            pred_[pred_ >= 0.5] = 1
+            pred_[pred_ < 0.5] = 0
+
         for (name, _, scale) in self.metrics:
             nname = "test_" + name
-            if name == "accuracy":
-                value = getattr(self, name)(pred_, y.type(torch.uint8))
-                print(nname, getattr(self, name))
-            elif name == 'r2':
+            if name == 'r2':
                 value = torch.mean(getattr(self, nname)(y, pred_))
             else:
                 value = getattr(self, nname)(y, pred_)
