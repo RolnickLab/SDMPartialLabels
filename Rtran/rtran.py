@@ -10,7 +10,7 @@ from Rtran.models import *
 
 
 class RTranModel(nn.Module):
-    def __init__(self, num_classes, backbone='Resnet18', pretrained_backbone=True, quantized_mask_bins=1, input_channels=3, d_hidden=512, attention_layers=3, heads=4, dropout=0.1, use_pos_encoding=False, scale_embeddings_by_labels=False):
+    def __init__(self, num_classes, backbone='Resnet18', pretrained_backbone=True, quantized_mask_bins=1, input_channels=3, d_hidden=512, attention_layers=3, heads=4, dropout=0.2, use_pos_encoding=False, scale_embeddings_by_labels=False):
         """
         pos_emb is false by default
         """
@@ -18,6 +18,7 @@ class RTranModel(nn.Module):
         self.d_hidden = d_hidden  # this should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
         self.scale_embeddings_by_labels = scale_embeddings_by_labels
         self.use_pos_encoding = use_pos_encoding
+        self.use_lmt = True
 
         self.quantized_mask_bins = quantized_mask_bins
         self.n_embedding_state = self.quantized_mask_bins + 2
@@ -93,13 +94,16 @@ class RTranModel(nn.Module):
         else:
             label_feat_vec = custom_replace(mask, 0, 1, 2).long()
         # print(label_feat_vec.unique())
-        state_embeddings = self.state_embeddings(label_feat_vec) # input: 3, output: 512
         # if labels is not None:
         #     regression_labels = self.regression_embedding(labels)
         #     init_label_embeddings += (state_embeddings * regression_labels.unsqueeze(-1))
         # else:
-        init_label_embeddings += state_embeddings
-        # print(init_label_embeddings.size())
+        if self.use_lmt:
+            # Get state embeddings
+            state_embeddings = self.state_embeddings(label_feat_vec)  # input: 3, output: 512
+
+            # Add state embeddings to label embeddings
+            init_label_embeddings += state_embeddings
         # concatenate images features to label embeddings
         embeddings = torch.cat((z_features, init_label_embeddings), 1)
         # print(embeddings.size())

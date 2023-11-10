@@ -11,7 +11,7 @@ from torchvision import transforms as trsfs
 import numpy as np
 
 
-def get_unknown_mask_indices(num_labels, mode, max_unknown=0.5, absent_species=-1,
+def get_unknown_mask_indices(num_labels, mode, max_known=0.5, absent_species=-1,
                              species_set=None, predict_family_of_species=-1,
                              per_species_mask_file="/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/bird_species_family_mapping.json"):
     """
@@ -42,8 +42,8 @@ def get_unknown_mask_indices(num_labels, mode, max_unknown=0.5, absent_species=-
             else:
                 # absent_species = int(np.random.randint(0, mask_max_size, 1)[0])
                 # unk_mask_indices = np.array(list(per_species_mask.values())[absent_species])
-                num_unknown = random.randint(0, int(num_labels * max_unknown))
-                unk_mask_indices = random.sample(range(num_labels), num_unknown)
+                num_unknown = random.randint(0, int(num_labels * max_known))
+                unk_mask_indices = random.sample(range(num_labels), int(num_labels - num_unknown))
         elif absent_species == 1: # butterflies missing
                 present_species = 1 - absent_species
 
@@ -53,14 +53,14 @@ def get_unknown_mask_indices(num_labels, mode, max_unknown=0.5, absent_species=-
                                                                 species_set[present_species] + (
                                                                             present_species * species_set[
                                                                         absent_species]))),
-                                                 int(species_set[present_species] * max_unknown))
+                                                 int(species_set[present_species] * max_known))
         elif absent_species == 0: #birds unknown
             present_species = 1 - absent_species
             unk_mask_indices = random.sample(list(np.arange(present_species * species_set[absent_species],
                                                             species_set[absent_species] + (
                                                                         present_species * species_set[
                                                                     present_species]))),
-                                             int(species_set[present_species] * max_unknown))
+                                             int(species_set[present_species] * max_known))
             # if absent = 1,
             # present = 0
             # max_unknown = 0, 0.5*670
@@ -77,15 +77,16 @@ def get_unknown_mask_indices(num_labels, mode, max_unknown=0.5, absent_species=-
             present_species = 1 - absent_species
             unk_mask_indices = random.sample(list(np.arange(present_species * species_set[absent_species],
                                                             species_set[present_species] + (present_species * species_set[absent_species]))),
-                                                            int(species_set[present_species] * max_unknown))
+                                                            int(species_set[present_species] * max_known))
         elif absent_species == 0:
             present_species = 1 - absent_species
             unk_mask_indices = random.sample(list(np.arange(present_species * species_set[absent_species],
                                                             species_set[absent_species] + (present_species * species_set[present_species]))),
-                                                            int(species_set[present_species] * max_unknown))
+                                                            int(species_set[present_species] * max_known))
 
         else:
-            unk_mask_indices = random.sample(range(num_labels), int(num_labels * max_unknown))
+            num_unknown = int(num_labels * max_known)
+            unk_mask_indices = random.sample(range(num_labels), int(num_labels - num_unknown))
         # print(absent_species, int(species_set[present_species] * max_unknown), len(unk_mask_indices), unk_mask_indices)
 
         if predict_family_of_species != -1:
@@ -103,7 +104,7 @@ class SDMMaskedDataset(VisionDataset):
     def __init__(self, df, data_base_dir, env, env_var_sizes,
                  transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None, mode="train", datatype="refl",
                  targets_folder="corrected_targets", images_folder="images", env_data_folder="environmental",
-                 maximum_unknown_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
+                 maximum_known_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
         """
         df_paths: dataframe with hotspot IDs
         data_base_dir: base directory for data
@@ -127,7 +128,7 @@ class SDMMaskedDataset(VisionDataset):
         self.img_folder = images_folder
         self.env_data_folder = env_data_folder
         self.num_species = num_species
-        self.maximum_unknown_labels_ratio = maximum_unknown_labels_ratio
+        self.maximum_known_labels_ratio = maximum_known_labels_ratio
         self.quantized_mask_bins = quantized_mask_bins
 
     def __len__(self):
@@ -171,9 +172,10 @@ class SDMMaskedDataset(VisionDataset):
 
         item_["target"] = species["probs"]
         item_["target"] = torch.Tensor(item_["target"])
+        item_["target"][item_["target"] > 0] = 1
 
         # constructing mask for R-tran
-        unk_mask_indices = get_unknown_mask_indices(num_labels=self.num_species, mode=self.mode, max_unknown=self.maximum_unknown_labels_ratio)
+        unk_mask_indices = get_unknown_mask_indices(num_labels=self.num_species, mode=self.mode, max_known=self.maximum_known_labels_ratio)
         mask = item_["target"].clone()
         mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
 
@@ -196,7 +198,7 @@ class SDMCoLocatedDataset(VisionDataset):
     def __init__(self, df, data_base_dir, env, env_var_sizes,
                  transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None, mode="train", datatype="refl",
                  targets_folder="corrected_targets", images_folder="images", env_data_folder="environmental",
-                maximum_unknown_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
+                maximum_known_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
         """
         SatBird + SatButterfly co-located with some of ebird positions
         df_paths: dataframe with hotspot IDs
@@ -222,7 +224,7 @@ class SDMCoLocatedDataset(VisionDataset):
         self.env_data_folder = env_data_folder
         self.num_species = num_species
         self.species_set = species_set
-        self.maximum_unknown_labels_ratio = maximum_unknown_labels_ratio
+        self.maximum_known_labels_ratio = maximum_known_labels_ratio
         self.predict_family_of_species = predict_family
         self.quantized_mask_bins = quantized_mask_bins
 
@@ -278,7 +280,7 @@ class SDMCoLocatedDataset(VisionDataset):
         item_["target"] = torch.Tensor(item_["target"])
 
         # constructing mask for R-tran
-        unk_mask_indices = get_unknown_mask_indices(num_labels=self.num_species, mode=self.mode, max_unknown=self.maximum_unknown_labels_ratio,
+        unk_mask_indices = get_unknown_mask_indices(num_labels=self.num_species, mode=self.mode, max_known=self.maximum_known_labels_ratio,
                                                     absent_species=species_2_to_exclude, species_set=self.species_set, predict_family_of_species=self.predict_family_of_species)
         mask = item_["target"].clone()
         mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
@@ -302,7 +304,7 @@ class SDMCombinedDataset(VisionDataset):
     def __init__(self, df, data_base_dir, env, env_var_sizes,
                  transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None, mode="train", datatype="refl",
                  targets_folder="corrected_targets", targets_folder_2="SatBird_data_v2/USA_summer/butterfly_targets_v1.2", images_folder="images", env_data_folder="environmental",
-                 maximum_unknown_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
+                 maximum_known_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
         """
         SatBird + SatButterfly co-located with SatBird + SatButterfly independently from ebird
         df_paths: dataframe with paths (image, image_visual, targets, env_data)to data for each hotspot
@@ -329,7 +331,7 @@ class SDMCombinedDataset(VisionDataset):
         self.env_data_folder = env_data_folder
         self.num_species = num_species
         self.species_set = species_set
-        self.maximum_unknown_labels_ratio = maximum_unknown_labels_ratio
+        self.maximum_known_labels_ratio = maximum_known_labels_ratio
         self.predict_family_of_species = predict_family
         self.quantized_mask_bins = quantized_mask_bins
 
@@ -396,7 +398,7 @@ class SDMCombinedDataset(VisionDataset):
         item_["target"] = torch.Tensor(item_["target"])
 
         # constructing mask for R-tran
-        unk_mask_indices = get_unknown_mask_indices(num_labels=self.num_species, mode=self.mode, max_unknown=self.maximum_unknown_labels_ratio,
+        unk_mask_indices = get_unknown_mask_indices(num_labels=self.num_species, mode=self.mode, max_known=self.maximum_known_labels_ratio,
                                                     absent_species=species_to_exclude, species_set=self.species_set, predict_family_of_species=self.predict_family_of_species)
         mask = item_["target"].clone()
 

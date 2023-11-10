@@ -15,7 +15,7 @@ from torch.utils.data import DataLoader
 from Rtran.dataloader import *
 from src.transforms.transforms import get_transforms
 from src.losses.metrics import get_metrics
-from src.losses.losses import RMSLELoss, CustomFocalLoss, CustomCrossEntropyLoss
+from src.losses.losses import RMSLELoss, CustomFocalLoss, CustomCrossEntropyLoss, BCE
 from Rtran.rtran import RTranModel
 from Rtran.utils import *
 
@@ -75,6 +75,7 @@ class RegressionTransformerTask(pl.LightningModule):
                 model_dict[key_model] = loaded_dict[key_pretrained]
 
         self.model.load_state_dict(model_dict)
+
     def training_step(
             self, batch: Dict[str, Any], batch_idx: int):
 
@@ -84,14 +85,16 @@ class RegressionTransformerTask(pl.LightningModule):
         y = batch["target"]
         mask = batch["mask"].long()
 
-        y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
+        if self.config.data.target.type == "binary":
+            y_pred = self.model(x, mask.clone(), batch["mask_q"])
+        else:
+            y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
 
         # if using range maps
         if self.config.data.correction_factor.thresh:
             range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').drop(
                                         columns=["index"]))
             range_maps_correction_data = range_maps_correction_data.reindex(list(hotspot_id), fill_value=True).values
-            print(range_maps_correction_data)
             range_maps_correction_data = torch.tensor(range_maps_correction_data, device=y.device)
             ones = torch.ones(range_maps_correction_data.shape[0], self.config.data.species[1], device=y.device)
             range_maps_correction_data = torch.cat((range_maps_correction_data, ones), 1)
@@ -127,7 +130,11 @@ class RegressionTransformerTask(pl.LightningModule):
         y = batch["target"]
         mask = batch["mask"].long()
 
-        y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
+        if self.config.data.target.type == "binary":
+            y_pred = self.model(x, mask.clone(), batch["mask_q"])
+        else:
+            y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
+
         # if using range maps
         if self.config.data.correction_factor.thresh:
             range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').drop(
@@ -139,7 +146,6 @@ class RegressionTransformerTask(pl.LightningModule):
             y_pred = y_pred * range_maps_correction_data.int()
             y = y * range_maps_correction_data.int()
 
-        # print(mask.unique(), y.unique())
         if self.config.Rtran.mask_eval_metrics or len(self.config.data.species) > 1:
             self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask)
         else:
@@ -156,7 +162,10 @@ class RegressionTransformerTask(pl.LightningModule):
         y = batch["target"]
         mask = batch["mask"].long()
 
-        y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
+        if self.config.data.target.type == "binary":
+            y_pred = self.model(x, mask.clone(), batch["mask_q"])
+        else:
+            y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
 
         # if using range maps
         if self.config.data.correction_factor.thresh:
@@ -186,19 +195,21 @@ class RegressionTransformerTask(pl.LightningModule):
             "MAE": nn.L1Loss(),
             "RMSLE": RMSLELoss(),
             "Focal": CustomFocalLoss(),
-            "CE": CustomCrossEntropyLoss()
+            "CE": CustomCrossEntropyLoss(),
+            "BCE": BCE()
         }
         return loss_mapping.get(loss_fn_name)
 
     def configure_optimizers(self):
         optimizer_mapping = {
             "Adam": optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.learning_rate, weight_decay=0.01),
-            "AdamW": optim.AdamW(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.learning_rate, weight_decay=0.01),
+            "AdamW": optim.AdamW(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.learning_rate, weight_decay=0.1), #0.1
             "SGD": optim.SGD(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.learning_rate, momentum=0.9)
         }
         optimizer = optimizer_mapping.get(self.config.optimizer)
 
         if self.config.scheduler.name == "ReduceLROnPlateau":
+            # scheduler_warmup = WarmupLinearSchedule(optimizer, 1, 300000)
             scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=self.config.scheduler.reduce_lr_plateau.factor,
                               patience=self.config.scheduler.reduce_lr_plateau.lr_schedule_patience)
             return {
@@ -250,6 +261,11 @@ class RegressionTransformerTask(pl.LightningModule):
 
         else:
             loss = self.criterion(pred, y)
+
+        if self.config.data.target.type == "binary":
+            pred = self.sigmoid_activation(pred)
+            pred[pred >= 0.5] = 1
+            pred[pred < 0.5] = 0
 
         self.__log_metric(mode, pred, y, unknown_mask)
         self.log(str(mode) + "_loss", loss, on_epoch=True)
@@ -316,7 +332,7 @@ class SDMDataModule(pl.LightningDataModule):
             targets_folder=self.targets_folder,
             images_folder=self.images_folder,
             env_data_folder=self.env_data_folder,
-            maximum_unknown_labels_ratio=self.config.Rtran.train_unknown_ratio,
+            maximum_known_labels_ratio=self.config.Rtran.train_known_ratio,
             num_species=self.num_species,
             species_set=self.config.data.species,
             predict_family=self.predict_family,
@@ -333,7 +349,7 @@ class SDMDataModule(pl.LightningDataModule):
             targets_folder=self.targets_folder,
             images_folder=self.images_folder,
             env_data_folder=self.env_data_folder,
-            maximum_unknown_labels_ratio=self.config.Rtran.eval_unknown_ratio,
+            maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
             num_species=self.num_species,
             species_set = self.config.data.species,
             predict_family=self.predict_family,
@@ -350,7 +366,7 @@ class SDMDataModule(pl.LightningDataModule):
             targets_folder=self.targets_folder,
             images_folder=self.images_folder,
             env_data_folder=self.env_data_folder,
-            maximum_unknown_labels_ratio=self.config.Rtran.eval_unknown_ratio,
+            maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
             num_species=self.num_species,
             species_set=self.config.data.species,
             predict_family=self.predict_family,
