@@ -13,7 +13,7 @@ import numpy as np
 
 def get_unknown_mask_indices(num_labels, mode, max_known=0.5, absent_species=-1,
                              species_set=None, predict_family_of_species=-1,
-                             per_species_mask_file="/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/bird_species_family_mapping.json"):
+                             per_species_mask_file="/network/projects/ecosystem-embeddings/SatButterfly_v1/bird_species_family_mapping.json"):
     """
     num_labels: total number of species
     mode: train, val or test
@@ -23,9 +23,9 @@ def get_unknown_mask_indices(num_labels, mode, max_known=0.5, absent_species=-1,
     predict family of species: (only if not training) mask out either birds or butterflies
     """
     # sample random number of known labels during training; in testing, everything is unknown
-    # with open(per_species_mask_file, 'r') as f:
-    #     per_species_mask = json.load(f)
-    #     mask_max_size = len(per_species_mask.keys())
+    with open(per_species_mask_file, 'r') as f:
+        per_species_mask = json.load(f)
+        mask_max_size = len(per_species_mask.keys())
 
     if mode == 'train': # all species are there
         random.seed()
@@ -40,10 +40,10 @@ def get_unknown_mask_indices(num_labels, mode, max_known=0.5, absent_species=-1,
                     unk_mask_indices = np.arange(present_species * species_set[absent_species],
                                         species_set[present_species] + (present_species * species_set[present_species]))
             else:
-                # absent_species = int(np.random.randint(0, mask_max_size, 1)[0])
-                # unk_mask_indices = np.array(list(per_species_mask.values())[absent_species])
-                num_unknown = random.randint(0, int(num_labels * max_known))
-                unk_mask_indices = random.sample(range(num_labels), int(num_labels - num_unknown))
+                absent_species = int(np.random.randint(0, mask_max_size, 1)[0])
+                unk_mask_indices = np.array(list(per_species_mask.values())[absent_species])
+                # num_known = random.randint(0, int(num_labels * max_known))
+                # unk_mask_indices = random.sample(range(num_labels), int(num_labels - num_known))
         elif absent_species == 1: # butterflies missing
                 present_species = 1 - absent_species
 
@@ -85,8 +85,8 @@ def get_unknown_mask_indices(num_labels, mode, max_known=0.5, absent_species=-1,
                                                             int(species_set[present_species] * max_known))
 
         else:
-            num_unknown = int(num_labels * max_known)
-            unk_mask_indices = random.sample(range(num_labels), int(num_labels - num_unknown))
+            num_known = int(num_labels * max_known)
+            unk_mask_indices = random.sample(range(num_labels), int(num_labels - num_known))
         # print(absent_species, int(species_set[present_species] * max_unknown), len(unk_mask_indices), unk_mask_indices)
 
         if predict_family_of_species != -1:
