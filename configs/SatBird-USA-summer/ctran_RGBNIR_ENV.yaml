@@ -1,8 +1,8 @@
 #where to save checkpoints
-save_path: "baseline_ctran_resnet18_RGBNIR_ENV_5"
+save_path: "baseline_ctran_resnet18_RGBNIR_ENV_6"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "baseline_ctran_resnet18_RGBNIR_ENV_5"
+load_ckpt_path: "baseline_ctran_resnet18_RGBNIR_ENV_6"
 save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
 log_comet: true
 
@@ -14,8 +14,8 @@ base_dir: ""
 
 comet:
   project_name: "new_baselines"
-  tags: ["ctran","family_masking", "known0.75", "resnet18", "BCE", "att3", "head4", "dropout0.2", "allaug", "LR0.0001sched", "AdamW", "weight_decay0.1", "pretrainedTrue", "RGBNIR_ENV"]
-  experiment_name: "baseline_ctran_resnet18_RGBNIR_ENV_5" # specify for training, or use to report test results, TODO: also use to resume training
+  tags: ["ctran","family_masking", "known0.9", "resnet18", "BCE", "att3", "head4", "dropout0.2", "allaug", "LR0.0001sched", "AdamW", "weight_decay0.1", "pretrainedTrue", "RGBNIR_ENV"]
+  experiment_name: "baseline_ctran_resnet18_RGBNIR_ENV_6" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 experiment:
@@ -55,7 +55,7 @@ Rtran:
     # use the actual regression labels as input to the model and multiply with the embeddings (true or false)
     scale_embeddings_by_labels: False
     # max ratio of unknown labels during training
-    train_known_ratio: 0.75
+    train_known_ratio: 0.9
     # what known ratios do we consider when testing
     eval_known_ratio: 0.0 #[0.0, 0.1, 0.2, 0.5]
     # should the known values be masked out of the reported metrics or no
