@@ -19,7 +19,7 @@ class RTranModel(nn.Module):
         self.scale_embeddings_by_labels = scale_embeddings_by_labels
         self.use_pos_encoding = use_pos_encoding
         self.use_lmt = True
-        self.use_text_species = True
+        self.use_text_species = False
 
         self.quantized_mask_bins = quantized_mask_bins
         self.n_embedding_state = self.quantized_mask_bins + 2
