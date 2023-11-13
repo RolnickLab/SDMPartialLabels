@@ -42,7 +42,7 @@ def get_unknown_mask_indices(num_labels, mode, max_known=0.5, absent_species=-1,
             else:
                 # absent_species = int(np.random.randint(0, mask_max_size, 1)[0])
                 # unk_mask_indices = np.array(list(per_species_mask.values())[absent_species])
-                num_known = random.randint(0, int(num_labels * max_known))
+                num_known = random.randint(0, int(num_labels * max_known)) # known: 0, 0.75l -> unknown: l, 0.25l
                 unk_mask_indices = random.sample(range(num_labels), int(num_labels - num_known))
         elif absent_species == 1: # butterflies missing
                 present_species = 1 - absent_species

@@ -5,7 +5,7 @@ Code is based on the C-tran paper: https://github.com/QData/C-Tran
 import torch
 import torch.nn as nn
 import numpy as np
-from Rtran.utils import weights_init, custom_replace, custom_replace_n, PositionEmbeddingSine, positional_encoding_2d, get_2d_sincos_pos_embed
+from Rtran.utils import weights_init, custom_replace, custom_replace_n, PositionEmbeddingSine, positional_encoding_2d, get_2d_sincos_pos_embed, tokenize_species
 from Rtran.models import *
 
 
@@ -19,6 +19,7 @@ class RTranModel(nn.Module):
         self.scale_embeddings_by_labels = scale_embeddings_by_labels
         self.use_pos_encoding = use_pos_encoding
         self.use_lmt = True
+        self.use_text_species = True
 
         self.quantized_mask_bins = quantized_mask_bins
         self.n_embedding_state = self.quantized_mask_bins + 2
@@ -28,8 +29,15 @@ class RTranModel(nn.Module):
         # Label Embeddings
         self.label_input = torch.Tensor(np.arange(num_classes)).view(1, -1).long()
 
-        # TODO: modify the labels to actually take text labels rather than label numbers
-        self.label_embeddings = torch.nn.Embedding(num_classes, self.d_hidden, padding_idx=None)  # LxD
+        # word embeddings
+        if self.use_text_species:
+            vocab_size, padded_species = tokenize_species() # 866, (670, 2)
+            self.embedded_species = torch.tensor(padded_species, dtype=torch.long) # (670, 2)
+            # TODO: modify the labels to actually take text labels rather than label numbers
+            self.label_embeddings = torch.nn.Embedding(num_embeddings=vocab_size, embedding_dim=self.d_hidden, padding_idx=None)  # LxD
+        else:
+            self.label_embeddings = torch.nn.Embedding(num_classes, self.d_hidden, padding_idx=None)  # LxD
+        # print("layer: ", self.label_embeddings)
 
         # State Embeddings
         self.state_embeddings = torch.nn.Embedding(self.n_embedding_state, self.d_hidden, padding_idx=0) # Dx2 (known, unknown)
@@ -66,7 +74,7 @@ class RTranModel(nn.Module):
         #
         # np.save("/home/mila/h/hager.radi/scratch/ecosystem-embedding/rtran_label_embeddings_random.npy", embeddings.detach().cpu().numpy())
         # exit(0)
-        z_features = self.backbone(images) # image: HxWxD
+        z_features = self.backbone(images) # image: HxWxD , out: [128, 4, 512]
         # cls_tokens = self.cls_token.expand(images.size(0), -1, -1)  # stole cls_tokens impl from Phil Wang, thanks
         # x = torch.cat((cls_tokens, z_features), dim=1)  # (N, L+1, D)
         # print(x.size())
@@ -80,9 +88,19 @@ class RTranModel(nn.Module):
 
         z_features = z_features.view(z_features.size(0), z_features.size(1), -1).permute(0, 2, 1)
 
-        const_label_input = self.label_input.repeat(images.size(0), 1).to(images.device) # LxD
-        init_label_embeddings = self.label_embeddings(const_label_input)    # LxD
+        if self.use_text_species:
+            embedded_species = self.embedded_species.to(images.device)
+            embedded_species = torch.transpose(embedded_species, 0, 1) # (2, 670)
+            embedded_species = embedded_species.repeat(int(images.size(0)/2), 1) # (128, 670)
+            # to handle the last batch:
+            if embedded_species.size(0) != images.size(0):
+                embedded_species = torch.cat((embedded_species, embedded_species[0:1, :]), 0)
+            init_label_embeddings = self.label_embeddings(embedded_species)    # LxD # (128, 670, 512)
+        else:
+            const_label_input = self.label_input.repeat(images.size(0), 1).to(images.device)  # LxD (128, 670)
+            init_label_embeddings = self.label_embeddings(const_label_input)    # LxD # (128, 670, 512)
 
+        # print(embedded_species.size(), const_label_input.size(), init_label_embeddings.size())
         # Get state embeddings (mask is 0 or regression value)
         # print(torch.unique(mask))
         # print(self.state_embeddings)
@@ -100,14 +118,12 @@ class RTranModel(nn.Module):
         # else:
         if self.use_lmt:
             # Get state embeddings
-            state_embeddings = self.state_embeddings(label_feat_vec)  # input: 3, output: 512
-
+            state_embeddings = self.state_embeddings(label_feat_vec)  # (128, 670, 512)
+            # print(self.state_embeddings, state_embeddings.size())
             # Add state embeddings to label embeddings
             init_label_embeddings += state_embeddings
         # concatenate images features to label embeddings
-        embeddings = torch.cat((z_features, init_label_embeddings), 1)
-        # print(embeddings.size())
-        # exit(0)
+        embeddings = torch.cat((z_features, init_label_embeddings), 1)  # (128, 674, 512)
         # Feed all (image and label) embeddings through Transformer
         embeddings = self.LayerNorm(embeddings)
         for layer in self.self_attn_layers:

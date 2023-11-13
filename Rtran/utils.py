@@ -2,11 +2,64 @@
 utility functions for R-tran model
 """
 import math
+from collections import Counter
 import torch
 from torch import nn
 import numpy as np
 from torch.optim.lr_scheduler import LambdaLR
+from gensim.models import KeyedVectors
 
+
+def load_pretrained_weights(word_to_idx, vocab_size, embedding_dim):
+    # Path to the downloaded model
+    model_path = 'GoogleNews-vectors-negative300.bin.gz'
+    # Load the model
+    word2vec_model = KeyedVectors.load_word2vec_format(model_path, binary=True)
+    # Initialize the embedding matrix
+    embedding_matrix = np.zeros((vocab_size, embedding_dim))
+
+    for word, idx in word_to_idx.items():
+        if word in word2vec_model:
+            # Use the Word2Vec embedding if the word is in the model
+            embedding_matrix[idx] = word2vec_model[word]
+        else:
+            # Random initialization for words not in the model
+            embedding_matrix[idx] = np.random.normal(scale=0.6, size=(embedding_dim, ))
+
+    return embedding_matrix
+
+
+def tokenize_species():
+    species_file_name = "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/species_list.txt"
+
+    with open(species_file_name) as f:
+        species_names = [line.rstrip() for line in f]
+
+    # Tokenize
+    tokenized_data = [name.lower().split() for name in species_names]
+
+    # Flatten the list and count word frequencies
+    word_freq = Counter([word for sp in tokenized_data for word in sp])
+
+    # Create word to index mapping
+    word_to_idx = {word: i + 1 for i, (word, _) in enumerate(word_freq.items())}  # Start indexing from 1
+    word_to_idx['<unk>'] = 0  # Add a token for unknown words
+
+    def encode_species(species_name):
+        return [word_to_idx.get(word, word_to_idx['<unk>']) for word in species_name.lower().split()]
+
+    encoded_species = [encode_species(sp) for sp in species_names]
+
+    max_length = max(len(sp) for sp in encoded_species)
+
+    def pad_encoded_sp(encoded_sp):
+        return np.pad(encoded_sp, (0, max_length - len(encoded_sp)), mode='constant')
+
+    padded_species = np.array([pad_encoded_sp(shop) for shop in encoded_species])
+
+    vocab_size = len(word_to_idx)
+
+    return vocab_size, padded_species, word_to_idx
 
 def weights_init(module):
     """ Initialize the weights """
@@ -201,3 +254,6 @@ class WarmupLinearSchedule(LambdaLR):
         return max(0.0, float(self.t_total - step) / float(
             max(1.0, self.t_total - self.warmup_steps)))
 
+
+if __name__ == '__main__':
+    tokenize()
