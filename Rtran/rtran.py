@@ -5,7 +5,7 @@ Code is based on the C-tran paper: https://github.com/QData/C-Tran
 import torch
 import torch.nn as nn
 import numpy as np
-from Rtran.utils import weights_init, custom_replace, custom_replace_n, PositionEmbeddingSine, positional_encoding_2d, get_2d_sincos_pos_embed, tokenize_species
+from Rtran.utils import *
 from Rtran.models import *
 
 
@@ -18,8 +18,8 @@ class RTranModel(nn.Module):
         self.d_hidden = d_hidden  # this should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
         self.scale_embeddings_by_labels = scale_embeddings_by_labels
         self.use_pos_encoding = use_pos_encoding
-        self.use_lmt = False
-        self.use_text_species = False
+        self.use_lmt = True
+        self.use_text_species = True
 
         self.quantized_mask_bins = quantized_mask_bins
         self.n_embedding_state = self.quantized_mask_bins + 2
@@ -31,10 +31,11 @@ class RTranModel(nn.Module):
 
         # word embeddings
         if self.use_text_species:
-            vocab_size, padded_species = tokenize_species() # 866, (670, 2)
+            padded_species, word_to_idx, vocab_size = tokenize_species() # 866, (670, 2)
             self.embedded_species = torch.tensor(padded_species, dtype=torch.long) # (670, 2)
             # TODO: modify the labels to actually take text labels rather than label numbers
             self.label_embeddings = torch.nn.Embedding(num_embeddings=vocab_size, embedding_dim=self.d_hidden, padding_idx=None)  # LxD
+            self.label_embeddings.weight.data.copy_(torch.from_numpy(load_word2vec_pretrained_weights(word_to_idx=word_to_idx, vocab_size=vocab_size, embedding_dim=self.d_hidden)))
         else:
             self.label_embeddings = torch.nn.Embedding(num_classes, self.d_hidden, padding_idx=None)  # LxD
         # print("layer: ", self.label_embeddings)
@@ -61,7 +62,7 @@ class RTranModel(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         # Init all except pretrained backbone
-        self.label_embeddings.apply(weights_init)
+        # self.label_embeddings.apply(weights_init)
         self.state_embeddings.apply(weights_init)
         self.LayerNorm.apply(weights_init)
         self.self_attn_layers.apply(weights_init)

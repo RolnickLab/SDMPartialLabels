@@ -10,22 +10,32 @@ from torch.optim.lr_scheduler import LambdaLR
 from gensim.models import KeyedVectors
 
 
-def load_pretrained_weights(word_to_idx, vocab_size, embedding_dim):
+def load_word2vec_pretrained_weights(word_to_idx, vocab_size, embedding_dim):
     # Path to the downloaded model
-    model_path = 'GoogleNews-vectors-negative300.bin.gz'
+    model_path = '/home/mila/h/hager.radi/scratch/ecosystem-embedding/GoogleNews-vectors-negative300.bin.gz'
+    # model_path = '/home/mila/h/hager.radi/scratch/ecosystem-embedding/wiki-news-300d-1M-subword.vec.zip'
     # Load the model
     word2vec_model = KeyedVectors.load_word2vec_format(model_path, binary=True)
     # Initialize the embedding matrix
     embedding_matrix = np.zeros((vocab_size, embedding_dim))
-
+    present_words = 0
+    absent_words = 0
+    absent_ids = []
+    present_ids = []
     for word, idx in word_to_idx.items():
         if word in word2vec_model:
             # Use the Word2Vec embedding if the word is in the model
-            embedding_matrix[idx] = word2vec_model[word]
+            present_words += 1
+            present_ids.append(idx)
+            embedding_matrix[idx] = np.repeat(word2vec_model[word], 2)[:embedding_dim]
         else:
             # Random initialization for words not in the model
-            embedding_matrix[idx] = np.random.normal(scale=0.6, size=(embedding_dim, ))
+            # embedding_matrix[idx] = np.random.normal(scale=0.6, size=(embedding_dim, ))
+            absent_words += 1
+            absent_ids.append(idx)
 
+    mean_embeddings = np.mean(embedding_matrix[present_ids], axis=0)
+    embedding_matrix[absent_ids] = mean_embeddings
     return embedding_matrix
 
 
@@ -59,7 +69,7 @@ def tokenize_species():
 
     vocab_size = len(word_to_idx)
 
-    return vocab_size, padded_species, word_to_idx
+    return padded_species, word_to_idx, vocab_size
 
 def weights_init(module):
     """ Initialize the weights """
