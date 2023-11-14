@@ -18,7 +18,7 @@ class RTranModel(nn.Module):
         self.d_hidden = d_hidden  # this should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
         self.scale_embeddings_by_labels = scale_embeddings_by_labels
         self.use_pos_encoding = use_pos_encoding
-        self.use_lmt = True
+        self.use_lmt = False
         self.use_text_species = False
 
         self.quantized_mask_bins = quantized_mask_bins

@@ -1,8 +1,8 @@
 #where to save checkpoints
-save_path: "baseline_ctran_resnet18_RGBNIR_ENV_9"
+save_path: "baseline_ctran_resnet18_RGBNIR_ENV_nolmt"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "baseline_ctran_resnet18_RGBNIR_ENV_9"
+load_ckpt_path: "baseline_ctran_resnet18_RGBNIR_ENV_nolmt"
 save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
 log_comet: true
 
@@ -15,7 +15,7 @@ base_dir: ""
 comet:
   project_name: "new_baselines"
   tags: ["ctran", "known0.75", "resnet18", "BCE", "att3", "head4", "dropout0.2", "allaug", "LR0.0001sched", "AdamW", "weight_decay0.1", "pretrainedTrue", "RGBNIR_ENV"]
-  experiment_name: "baseline_ctran_resnet18_RGBNIR_ENV_9" # specify for training, or use to report test results, TODO: also use to resume training
+  experiment_name: "baseline_ctran_resnet18_RGBNIR_ENV_nolmt" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 experiment:
@@ -51,7 +51,7 @@ Rtran:
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
     quantized_mask_bins: 1
     # use positional encoding
-    use_positional_encoding: False
+    use_positional_encoding: True
     # use the actual regression labels as input to the model and multiply with the embeddings (true or false)
     scale_embeddings_by_labels: False
     # max ratio of unknown labels during training
