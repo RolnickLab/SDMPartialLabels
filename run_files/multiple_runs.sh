@@ -4,7 +4,7 @@
 #SBATCH --error=job_error_ctran.txt
 #SBATCH --ntasks=1
 #SBATCH --time=23:59:00
-#SBATCH --mem-per-cpu=50Gb
+#SBATCH --mem-per-cpu=60Gb
 #SBATCH --cpus-per-task=1
 #SBATCH --gres=gpu:1
 #SBATCH --partition=long
