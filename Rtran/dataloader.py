@@ -103,7 +103,7 @@ def get_unknown_mask_indices(num_labels, mode, max_known=0.5, absent_species=-1,
 class SDMMaskedDataset(VisionDataset):
     def __init__(self, df, data_base_dir, env, env_var_sizes,
                  transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None, mode="train", datatype="refl",
-                 targets_folder="corrected_targets", images_folder="images", env_data_folder="environmental",
+                 target_type="probs", targets_folder="corrected_targets", images_folder="images", env_data_folder="environmental",
                  maximum_known_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
         """
         df_paths: dataframe with hotspot IDs
@@ -124,6 +124,7 @@ class SDMMaskedDataset(VisionDataset):
         self.env_var_sizes = env_var_sizes
         self.mode = mode
         self.data_type = datatype
+        self.target_type = target_type
         self.targets_folder = targets_folder
         self.img_folder = images_folder
         self.env_data_folder = env_data_folder
@@ -172,7 +173,8 @@ class SDMMaskedDataset(VisionDataset):
 
         item_["target"] = species["probs"]
         item_["target"] = torch.Tensor(item_["target"])
-        item_["target"][item_["target"] > 0] = 1
+        if self.target_type == "binary":
+            item_["target"][item_["target"] > 0] = 1
 
         # constructing mask for R-tran
         unk_mask_indices = get_unknown_mask_indices(num_labels=self.num_species, mode=self.mode, max_known=self.maximum_known_labels_ratio)
@@ -197,7 +199,7 @@ class SDMMaskedDataset(VisionDataset):
 class SDMCoLocatedDataset(VisionDataset):
     def __init__(self, df, data_base_dir, env, env_var_sizes,
                  transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None, mode="train", datatype="refl",
-                 targets_folder="corrected_targets", images_folder="images", env_data_folder="environmental",
+                 target_type="probs", targets_folder="corrected_targets", images_folder="images", env_data_folder="environmental",
                 maximum_known_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
         """
         SatBird + SatButterfly co-located with some of ebird positions
@@ -219,6 +221,7 @@ class SDMCoLocatedDataset(VisionDataset):
         self.env_var_sizes = env_var_sizes
         self.mode = mode
         self.data_type = datatype
+        self.target_type = target_type
         self.targets_folder = targets_folder
         self.img_folder = images_folder
         self.env_data_folder = env_data_folder
@@ -303,7 +306,7 @@ class SDMCoLocatedDataset(VisionDataset):
 class SDMCombinedDataset(VisionDataset):
     def __init__(self, df, data_base_dir, env, env_var_sizes,
                  transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None, mode="train", datatype="refl",
-                 targets_folder="corrected_targets", targets_folder_2="SatBird_data_v2/USA_summer/butterfly_targets_v1.2", images_folder="images", env_data_folder="environmental",
+                 target_type="probs", targets_folder="corrected_targets", targets_folder_2="SatBird_data_v2/USA_summer/butterfly_targets_v1.2", images_folder="images", env_data_folder="environmental",
                  maximum_known_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
         """
         SatBird + SatButterfly co-located with SatBird + SatButterfly independently from ebird
@@ -325,6 +328,7 @@ class SDMCombinedDataset(VisionDataset):
         self.env_var_sizes = env_var_sizes
         self.mode = mode
         self.data_type = datatype
+        self.target_type = target_type
         self.targets_folder = targets_folder
         self.targets_folder_2 = targets_folder_2
         self.img_folder = images_folder

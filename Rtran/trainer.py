@@ -286,6 +286,7 @@ class SDMDataModule(pl.LightningDataModule):
         self.targets_folder = self.config.data.files.targets_folder
         self.env_data_folder = self.config.data.files.env_data_folder
         self.images_folder = self.config.data.files.images_folder
+        self.target_type = self.config.data.target.type
 
         self.df_train = pd.read_csv(os.path.join(self.data_base_dir, self.config.data.files.train[0]))
         if len(self.config.data.files.train) > 1:
@@ -329,6 +330,7 @@ class SDMDataModule(pl.LightningDataModule):
             transforms=get_transforms(self.config, "train"),
             mode="train",
             datatype=self.datatype,
+            target_type=self.target_type,
             targets_folder=self.targets_folder,
             images_folder=self.images_folder,
             env_data_folder=self.env_data_folder,
@@ -346,6 +348,7 @@ class SDMDataModule(pl.LightningDataModule):
             transforms=get_transforms(self.config, "val"),
             mode="val",
             datatype=self.datatype,
+            target_type=self.target_type,
             targets_folder=self.targets_folder,
             images_folder=self.images_folder,
             env_data_folder=self.env_data_folder,
@@ -363,6 +366,7 @@ class SDMDataModule(pl.LightningDataModule):
             transforms=get_transforms(self.config, "val"),
             mode="test",
             datatype=self.datatype,
+            target_type=self.target_type,
             targets_folder=self.targets_folder,
             images_folder=self.images_folder,
             env_data_folder=self.env_data_folder,
