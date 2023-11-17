@@ -203,7 +203,7 @@ class RegressionTransformerTask(pl.LightningModule):
     def configure_optimizers(self):
         optimizer_mapping = {
             "Adam": optim.Adam(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.learning_rate, weight_decay=0.01),
-            "AdamW": optim.AdamW(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.learning_rate, weight_decay=0.01), #0.1
+            "AdamW": optim.AdamW(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.learning_rate, weight_decay=0.1), #0.1
             "SGD": optim.SGD(filter(lambda p: p.requires_grad, self.model.parameters()), lr=self.learning_rate, momentum=0.9)
         }
         optimizer = optimizer_mapping.get(self.config.optimizer)
