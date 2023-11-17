@@ -47,8 +47,9 @@ class RTranModel(nn.Module):
         # self.regression_embedding = torch.nn.Linear(num_classes, num_classes)
         # TODO: Position Embeddings (for image features)
         if self.use_pos_encoding:
+            grid_size = 7
             # self.position_encoding = positional_encoding_2d(2, 2, self.d_hidden)
-            self.position_encoding = get_2d_sincos_pos_embed(embed_dim=self.d_hidden, grid_size=2, cls_token=False).reshape(2, 2, self.d_hidden)
+            self.position_encoding = get_2d_sincos_pos_embed(embed_dim=self.d_hidden, grid_size=grid_size, cls_token=False).reshape(grid_size, grid_size, self.d_hidden)
 
         # Transformer
         self.self_attn_layers = nn.ModuleList([SelfAttnLayer(self.d_hidden, heads, dropout) for _ in range(attention_layers)])

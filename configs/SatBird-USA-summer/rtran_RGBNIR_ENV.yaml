@@ -1,8 +1,8 @@
 #where to save checkpoints
-save_path: "baseline_rtran_resnet18_RGBNIR_ENV_23"
+save_path: "baseline_rtran_resnet18_RGBNIR_ENV_24"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "baseline_rtran_resnet18_RGBNIR_ENV_23"
+load_ckpt_path: "baseline_rtran_resnet18_RGBNIR_ENV_24"
 save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
 log_comet: true
 
@@ -15,7 +15,7 @@ base_dir: ""
 comet:
   project_name: "new_baselines"
   tags: ["rtran", "4binQuant", "known0.9", "resnet18", "CE", "att3", "head4", "dropout0.1", "allaug", "LR0.00009sched", "AdamW", "weight_decay0.01", "pretrainedTrue", "freezeResnet18", "RGBNIR_ENV"]
-  experiment_name: "baseline_rtran_resnet18_RGBNIR_ENV_23" # specify for training, or use to report test results, TODO: also use to resume training
+  experiment_name: "baseline_rtran_resnet18_RGBNIR_ENV_24" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 experiment:
@@ -169,9 +169,9 @@ data:
       height: 64
       width: 64
 
-#    - name: resize
-#      ignore: false
-#      size: [224,224]
+    - name: resize
+      ignore: false
+      size: [224,224]
 
     - name: hflip
       ignore: "val"
