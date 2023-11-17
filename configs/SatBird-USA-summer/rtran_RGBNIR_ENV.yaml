@@ -1,8 +1,8 @@
 #where to save checkpoints
-save_path: "baseline_rtran_resnet18_RGBNIR_ENV_22"
+save_path: "baseline_rtran_resnet18_RGBNIR_ENV_23"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "baseline_rtran_resnet18_RGBNIR_ENV_22"
+load_ckpt_path: "baseline_rtran_resnet18_RGBNIR_ENV_23"
 save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
 log_comet: true
 
@@ -14,8 +14,8 @@ base_dir: ""
 
 comet:
   project_name: "new_baselines"
-  tags: ["rtran", "4binQuant", "known1.0", "posEncoding", "resnet18", "CE", "att3", "head4", "dropout0.2", "allaug", "LR0.00009sched", "AdamW", "weight_decay0.01", "pretrainedTrue", "freezeResnet18", "RGBNIR_ENV"]
-  experiment_name: "baseline_rtran_resnet18_RGBNIR_ENV_22" # specify for training, or use to report test results, TODO: also use to resume training
+  tags: ["rtran", "4binQuant", "known0.9", "resnet18", "CE", "att3", "head4", "dropout0.1", "allaug", "LR0.00009sched", "AdamW", "weight_decay0.01", "pretrainedTrue", "freezeResnet18", "RGBNIR_ENV"]
+  experiment_name: "baseline_rtran_resnet18_RGBNIR_ENV_23" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 experiment:
@@ -51,11 +51,11 @@ Rtran:
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
     quantized_mask_bins: 4
     # use positional encoding
-    use_positional_encoding: False
+    use_positional_encoding: True
     # use the actual regression labels as input to the model and multiply with the embeddings (true or false)
     scale_embeddings_by_labels: False
     # max ratio of known labels during training
-    train_known_ratio: 1.0
+    train_known_ratio: 0.9
     # what known ratios do we consider when testing
     eval_known_ratio: 0.0 #[0.0, 0.1, 0.2, 0.5]
     # should the known values be masked out of the reported metrics or no
@@ -168,6 +168,11 @@ data:
       center: true # disable randomness, crop around the image's center
       height: 64
       width: 64
+
+#    - name: resize
+#      ignore: false
+#      size: [224,224]
+
     - name: hflip
       ignore: "val"
       p: 0.5

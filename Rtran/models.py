@@ -44,7 +44,7 @@ class Resnet18(nn.Module):
         x = self.base_network.layer2(x)
         x = self.base_network.layer3(x)
         x = self.base_network.layer4(x)
-        x = self.base_network.avgpool(x)
+        # x = self.base_network.avgpool(x)
         return x
 
 
