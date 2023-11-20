@@ -44,7 +44,29 @@ experiment:
     initialize_USA: False # this is to initialize experiments for Kenya with weights from USA experiments 
 
 Rtran:
-  use: False
+    use: False
+    # Resnet18 or Resnet50
+    backbone:
+    # use ImageNet pretrained weights
+    pretrained_backbone:
+    # size of hidden feature vector: should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
+    features_size:
+    # mask known labels out of the loss (true or false)
+    masked_loss:
+    # quantized mask (1 if all positives to 1, > 1 to indicate bins)
+    quantized_mask_bins:
+    # use positional encoding
+    use_positional_encoding:
+    # use the actual regression labels as input to the model and multiply with the embeddings (true or false)
+    scale_embeddings_by_labels:
+    # max ratio of unknown labels during training
+    train_unknown_ratio:
+    # what known ratios do we consider when testing
+    eval_unknown_ratio:
+    # should the known values be masked out of the reported metrics or no
+    mask_eval_metrics:
+    # eval family of birds (0), or family of butterflies (1)
+    predict_family_of_species:
 
 optimizer: "SGD"  #"Adam"
 

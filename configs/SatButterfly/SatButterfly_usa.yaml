@@ -1,8 +1,8 @@
 #where to save checkpoints
-save_path: "SatButterfly_v1.1_baseline_Resnet18_RGBNIR_env_Focal"
+save_path: "SatButterfly_v1.1_baseline_Resnet18_RGBNIR_env_CE"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "SatButterfly_v1.1_baseline_Resnet18_RGBNIR_env_Focal"
+load_ckpt_path: "SatButterfly_v1.1_baseline_Resnet18_RGBNIR_env_CE"
 save_preds_path: ""
 log_comet: true
 
@@ -42,7 +42,7 @@ optimizer: "Adam"  #"Adam"
 
 losses:
 #scale attribute is just for plotting if the values are very small
-  criterion: "Focal" #or MAE or MSE or Focal or RMSLE  (loss to choose for optim )
+  criterion: "CE" #or MAE or MSE or Focal or RMSLE  (loss to choose for optim )
 
 #auto lr will only work if there is only one optimizer
 auto_lr_find: False
@@ -99,12 +99,13 @@ data:
 
   files:
     base: "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer"
-    train: "butterfly_hotspots_ebird_train.csv"
-    val: "butterfly_hotspots_ebird_valid.csv"
-    test: "butterfly_hotspots_ebird_test.csv"
+    train: ["butterfly_hotspots_ebird_train.csv"]
+    val: ["butterfly_hotspots_ebird_valid.csv"]
+    test: ["butterfly_hotspots_ebird_test.csv"]
 
-    targets_folder: "butterfly_targets_2"
-    env_data_folder: "environmental_bounded_2"
+    targets_folder: ["butterfly_targets_v1.2"]
+    images_folder: ["images"]
+    env_data_folder: ["environmental_bounded"]
     correction_thresh: "final_range_maps.pkl" # range maps - threshold = False
 
     rgbnir_means: "stats/means_rgbnir_butterfly.npy"

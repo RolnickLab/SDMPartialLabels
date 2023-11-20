@@ -13,7 +13,7 @@ class CustomKL(Metric):
         self.add_state("correct", default=torch.FloatTensor([0]), dist_reduce_fx="sum")
         self.add_state("total", default=torch.FloatTensor([0]), dist_reduce_fx="sum")
 
-    def update(self, p: torch.Tensor, q: torch.Tensor):
+    def update(self, p: torch.Tensor, q: torch.Tensor, mask=None):
         """
         p: target distribution
         q: predicted distribution
@@ -45,7 +45,7 @@ class CustomTopK(Metric):
         self.add_state("correct", default=torch.tensor(0).float(), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0).float(), dist_reduce_fx="sum")
 
-    def update(self, target: torch.Tensor, preds: torch.Tensor):
+    def update(self, target: torch.Tensor, preds: torch.Tensor, mask=None):
 
         assert preds.shape == target.shape
         non_zero_counts = torch.count_nonzero(target, dim=1)
@@ -101,9 +101,9 @@ class CustomTop30(Metric):
         super().__init__()
         self.add_state("correct", default=torch.tensor(0).float(), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0).float(), dist_reduce_fx="sum")
+        # self.count_ki_30 = 0
 
     def update(self, target: torch.Tensor, preds: torch.Tensor):
-
         assert preds.shape == target.shape
         non_zero_counts = torch.count_nonzero(target, dim=1)
         for i, elem in enumerate(target):
@@ -123,21 +123,83 @@ class CustomTop30(Metric):
                 else:
                     self.correct += count / ki
                 self.total += 1
+            # if ki >= 30:
+            #     self.count_ki_30 += 1
 
     def compute(self):
         return self.correct.float() / self.total
 
 
-def get_metric(metric):
+class MaskedMSE(Metric):
+    def __init__(self):
+        super().__init__()
+
+    def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor=None):
+        squared_diffs = (preds - target) ** 2
+        self.masked_squared_diffs = squared_diffs * mask
+        self.non_zero_sum = mask.sum()
+
+    def compute(self):
+        mse = self.masked_squared_diffs.sum() / self.non_zero_sum
+        return mse
+
+
+class MaskedMAE(Metric):
+    def __init__(self):
+        super().__init__()
+
+    def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor=None):
+        squared_diffs = torch.abs(preds - target)
+        # Apply the mask
+        self.masked_abs_diffs = squared_diffs * mask
+        self.non_zero_sum = mask.sum()
+
+    def compute(self):
+        mae = self.masked_abs_diffs.sum() / self.non_zero_sum
+        return mae
+
+
+class CustomMultiLabelAcc(Metric):
+    def __init__(self):
+        super().__init__()
+        self.add_state("correct", default=torch.tensor(0).float(), dist_reduce_fx="sum")
+        self.add_state("total", default=torch.tensor(0).float(), dist_reduce_fx="sum")
+
+    def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor=None):
+        """
+        Compute the accuracy for multi-label classification.
+
+        Returns:
+        float: The accuracy score.
+        """
+        # Compare with true labels
+        correct_pred = (preds == target).float()
+
+        # Compute the accuracy per sample
+        self.correct += correct_pred.sum()
+
+        self.total += target.numel()
+
+    def compute(self):
+        return self.correct.float() / self.total
+
+
+def get_metric(metric, masked=False):
     """Returns the transform function associated to a
     transform_item listed in opts.data.transforms ; transform_item is
     an addict.Dict
     """
 
     if metric.name == "mae" and not metric.ignore is True:
-        return torchmetrics.MeanAbsoluteError()
+        if not masked:
+            return torchmetrics.MeanAbsoluteError()
+        else:
+            return MaskedMAE()
     elif metric.name == "mse" and not metric.ignore is True:
-        return torchmetrics.MeanSquaredError()
+        if not masked:
+            return torchmetrics.MeanSquaredError()
+        else:
+            return MaskedMSE()
     elif metric.name == "topk" and not metric.ignore is True:
         return CustomTopK()
     elif metric.name == "top10" and not metric.ignore is True:
@@ -152,7 +214,7 @@ def get_metric(metric):
     elif metric.name == "kl" and not metric.ignore is True:
         return CustomKL()
     elif metric.name == "accuracy" and not metric.ignore is True:
-        return torchmetrics.Accuracy()
+        return CustomMultiLabelAcc()
     elif metric.ignore is True:
         return None
     else:
@@ -162,6 +224,6 @@ def get_metric(metric):
 def get_metrics(config):
     metrics = []
     for m in config.losses.metrics:
-        metrics.append((m.name, get_metric(m), m.scale))
+        metrics.append((m.name, get_metric(m, config.Rtran.mask_eval_metrics), m.scale))
     metrics = [(a, b, c) for (a, b, c) in metrics if b is not None]
     return metrics

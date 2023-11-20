@@ -2,9 +2,74 @@
 utility functions for R-tran model
 """
 import math
+from collections import Counter
 import torch
 from torch import nn
+import numpy as np
+from torch.optim.lr_scheduler import LambdaLR
+from gensim.models import KeyedVectors
 
+
+def load_word2vec_pretrained_weights(word_to_idx, vocab_size, embedding_dim):
+    # Path to the downloaded model
+    model_path = '/home/mila/h/hager.radi/scratch/ecosystem-embedding/GoogleNews-vectors-negative300.bin.gz'
+    # model_path = '/home/mila/h/hager.radi/scratch/ecosystem-embedding/wiki-news-300d-1M-subword.vec.zip'
+    # Load the model
+    word2vec_model = KeyedVectors.load_word2vec_format(model_path, binary=True)
+    # Initialize the embedding matrix
+    embedding_matrix = np.zeros((vocab_size, embedding_dim))
+    present_words = 0
+    absent_words = 0
+    absent_ids = []
+    present_ids = []
+    for word, idx in word_to_idx.items():
+        if word in word2vec_model:
+            # Use the Word2Vec embedding if the word is in the model
+            present_words += 1
+            present_ids.append(idx)
+            embedding_matrix[idx] = np.repeat(word2vec_model[word], 2)[:embedding_dim]
+        else:
+            # Random initialization for words not in the model
+            # embedding_matrix[idx] = np.random.normal(scale=0.6, size=(embedding_dim, ))
+            absent_words += 1
+            absent_ids.append(idx)
+
+    mean_embeddings = np.mean(embedding_matrix[present_ids], axis=0)
+    embedding_matrix[absent_ids] = mean_embeddings
+    return embedding_matrix
+
+
+def tokenize_species():
+    species_file_name = "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/species_list.txt"
+
+    with open(species_file_name) as f:
+        species_names = [line.rstrip() for line in f]
+
+    # Tokenize
+    tokenized_data = [name.lower().split() for name in species_names]
+
+    # Flatten the list and count word frequencies
+    word_freq = Counter([word for sp in tokenized_data for word in sp])
+
+    # Create word to index mapping
+    word_to_idx = {word: i + 1 for i, (word, _) in enumerate(word_freq.items())}  # Start indexing from 1
+    word_to_idx['<unk>'] = 0  # Add a token for unknown words
+
+    def encode_species(species_name):
+        return [word_to_idx.get(word, word_to_idx['<unk>']) for word in species_name.lower().split()]
+
+    encoded_species = [encode_species(sp) for sp in species_names]
+
+    max_length = max(len(sp) for sp in encoded_species)
+
+    def pad_encoded_sp(encoded_sp):
+        return np.pad(encoded_sp, (0, max_length - len(encoded_sp)), mode='constant')
+
+    padded_species = np.array([pad_encoded_sp(shop) for shop in encoded_species])
+
+    vocab_size = len(word_to_idx)
+
+    return padded_species, word_to_idx, vocab_size
 
 def weights_init(module):
     """ Initialize the weights """
@@ -26,6 +91,18 @@ def custom_replace(tensor, on_neg_1, on_zero, on_one):
     return res
 
 
+def custom_replace_n(tensor):
+    """
+    replacing unique values with their index
+    """
+    res = tensor.clone()
+    unique_vals = torch.unique(tensor)
+    for i, val in enumerate(unique_vals):
+        res[tensor == val] = i
+
+    return res
+
+
 def maksed_loss_custom_replace(tensor, on_neg_2, on_neg_1, on_zero, on_one):
     res = tensor.clone()
     res[tensor == -2] = on_neg_2
@@ -33,6 +110,72 @@ def maksed_loss_custom_replace(tensor, on_neg_2, on_neg_1, on_zero, on_one):
     res[tensor == 0] = on_zero
     res[tensor == 1] = on_one
     return res
+
+
+def positional_encoding_2d(height, width, d_model):
+    assert d_model % 4 == 0, "Dimension of model must be divisible by 4 for 2D positional encoding"
+
+    pos_enc = np.zeros((height, width, d_model))
+    y, x = np.meshgrid(np.arange(height), np.arange(width), indexing='ij')
+
+    div_term = 10000 ** (np.arange(0, d_model, 4) / d_model)
+
+    pos_enc[:, :, 0::4] = np.sin(x[:, :, None] / div_term)
+    pos_enc[:, :, 1::4] = np.cos(x[:, :, None] / div_term)
+    pos_enc[:, :, 2::4] = np.sin(y[:, :, None] / div_term)
+    pos_enc[:, :, 3::4] = np.cos(y[:, :, None] / div_term)
+
+    return pos_enc
+
+
+def get_2d_sincos_pos_embed_from_grid(embed_dim, grid):
+    assert embed_dim % 2 == 0
+
+    # use half of dimensions to encode grid_h
+    emb_h = get_1d_sincos_pos_embed_from_grid(embed_dim // 2, grid[0])  # (H*W, D/2)
+    emb_w = get_1d_sincos_pos_embed_from_grid(embed_dim // 2, grid[1])  # (H*W, D/2)
+
+    emb = np.concatenate([emb_h, emb_w], axis=1)  # (H*W, D)
+    return emb
+
+
+def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
+    """
+    embed_dim: output dimension for each position
+    pos: a list of positions to be encoded: size (M,)
+    out: (M, D)
+    """
+    assert embed_dim % 2 == 0
+    omega = np.arange(embed_dim // 2, dtype=np.float)
+    omega /= embed_dim / 2.
+    omega = 1. / 10000 ** omega  # (D/2,)
+
+    pos = pos.reshape(-1)  # (M,)
+    out = np.einsum('m,d->md', pos, omega)  # (M, D/2), outer product
+
+    emb_sin = np.sin(out)  # (M, D/2)
+    emb_cos = np.cos(out)  # (M, D/2)
+
+    emb = np.concatenate([emb_sin, emb_cos], axis=1)  # (M, D)
+    return emb
+
+
+def get_2d_sincos_pos_embed(embed_dim, grid_size, cls_token=False):
+    """
+    grid_size: int of the grid height and width
+    return:
+    pos_embed: [grid_size*grid_size, embed_dim] or [1+grid_size*grid_size, embed_dim] (w/ or w/o cls_token)
+    """
+    grid_h = np.arange(grid_size, dtype=np.float32)
+    grid_w = np.arange(grid_size, dtype=np.float32)
+    grid = np.meshgrid(grid_w, grid_h)  # here w goes first
+    grid = np.stack(grid, axis=0)
+
+    grid = grid.reshape([2, 1, grid_size, grid_size])
+    pos_embed = get_2d_sincos_pos_embed_from_grid(embed_dim, grid)
+    if cls_token:
+        pos_embed = np.concatenate([np.zeros([1, embed_dim]), pos_embed], axis=0)
+    return pos_embed
 
 
 def positionalencoding2d(d_model, height, width):
@@ -101,3 +244,26 @@ class PositionEmbeddingSine(nn.Module):
         pos_y = torch.stack((pos_y[:, :, :, 0::2].sin(), pos_y[:, :, :, 1::2].cos()), dim=4).flatten(3)
         pos = torch.cat((pos_y, pos_x), dim=3).permute(0, 3, 1, 2)
         return pos
+
+
+class WarmupLinearSchedule(LambdaLR):
+    """ Linear warmup and then linear decay.
+        Linearly increases learning rate from 0 to 1 over `warmup_steps` training steps.
+        Linearly decreases learning rate from 1. to 0. over remaining `t_total - warmup_steps`
+        steps.
+    """
+    def __init__(self, optimizer, warmup_steps, t_total, last_epoch=-1):
+        self.warmup_steps = warmup_steps
+        self.t_total = t_total
+        super(WarmupLinearSchedule, self).__init__(
+            optimizer, self.lr_lambda, last_epoch=last_epoch)
+
+    def lr_lambda(self, step):
+        if step < self.warmup_steps:
+            return float(step) / float(max(1, self.warmup_steps))
+        return max(0.0, float(self.t_total - step) / float(
+            max(1.0, self.t_total - self.warmup_steps)))
+
+
+if __name__ == '__main__':
+    tokenize()

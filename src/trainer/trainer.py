@@ -12,6 +12,7 @@ import torch
 import torchvision
 import torch.nn as nn
 from torch import Tensor
+from torch.nn import BCEWithLogitsLoss
 from torch.utils.data import DataLoader
 from torchvision import models
 
@@ -59,6 +60,8 @@ class EbirdTask(pl.LightningModule):
             self.criterion = RMSLELoss()
         elif self.opts.losses.criterion == "Focal":
             self.criterion = CustomFocalLoss()
+        elif self.opts.losses.criterion == "BCE":
+            self.criterion = BCEWithLogitsLoss()
         else:
             # target is num checklists reporting species i / total number of checklists at a hotspot
             if self.opts.experiment.module.use_weighted_loss:
@@ -106,29 +109,8 @@ class EbirdTask(pl.LightningModule):
         elif self.opts.experiment.module.model == "resnet18":
 
             self.model = models.resnet18(pretrained=self.opts.experiment.module.pretrained)
-
-            if self.opts.experiment.module.transfer_weights == "SECO":
-                # this works for https://zenodo.org/record/4728033/files/seco_resnet18_1m.ckpt?download=1
-                # Seco ResNet-18-1M model - from which the state dict corresponding only to the ResNet18 part encoder was extracted.
-                # because of some package version compatibility issues, we saved the encoder weights of the Seco ResNet-18-1M model as pkl 
-                # and that is what is supported in this code. 
-                print("Initializing with SeCo weights")
-                with open(self.opts.experiment.module.resume, "rb") as file:
-                    enc = pickle.load(file)
-                pretrained = list(enc.items())
-                # match the weights
-                model_dict = dict(self.model.state_dict())
-                count = 0
-                for key, value in model_dict.items():
-                    if not key.startswith("fc"):
-                        if not key.startswith("conv1") and not key.startswith("bn1"):
-                            layer_name, weights = pretrained[count]
-                            model_dict[key] = weights
-                        count += 1
-
             if len(self.opts.data.bands) != 3 or len(self.opts.data.env) > 0:
                 self.bands = self.opts.data.bands + self.opts.data.env
-                orig_channels = self.model.conv1.in_channels
                 weights = self.model.conv1.weight.data.clone()
                 self.model.conv1 = nn.Conv2d(get_nb_bands(self.bands), 64, kernel_size=(7, 7), stride=(2, 2),
                                              padding=(3, 3), bias=False, )
@@ -137,24 +119,42 @@ class EbirdTask(pl.LightningModule):
                     # self.model.conv1.weight.data[:, :orig_channels, :, :] = weights
                     self.model.conv1.weight.data = init_first_layer_weights(get_nb_bands(self.bands), weights)
 
-            if self.opts.experiment.module.transfer_weights == "USA":
+            if self.opts.experiment.module.resume:
+                if self.opts.experiment.module.transfer_weights == "SECO":
+                    # this works for https://zenodo.org/record/4728033/files/seco_resnet18_1m.ckpt?download=1
+                    # Seco ResNet-18-1M model - from which the state dict corresponding only to the ResNet18 part encoder was extracted.
+                    # because of some package version compatibility issues, we saved the encoder weights of the Seco ResNet-18-1M model as pkl
+                    # and that is what is supported in this code.
+                    print("Initializing with SeCo weights")
+                    with open(self.opts.experiment.module.resume, "rb") as file:
+                        enc = pickle.load(file)
+                    pretrained = list(enc.items())
+                    # match the weights
+                    model_dict = dict(self.model.state_dict())
+                    count = 0
+                    for key, value in model_dict.items():
+                        if not key.startswith("fc"):
+                            if not key.startswith("conv1") and not key.startswith("bn1"):
+                                layer_name, weights = pretrained[count]
+                                model_dict[key] = weights
+                            count += 1
+                elif self.opts.experiment.module.transfer_weights == "USA":
+                    # this is used for transferring USA weights to Kenya
+                    print("Transferring USA weights")
 
-                # this is used for transferring USA weights to Kenya
-                print("Transferring USA weights")
+                    ckpt = torch.load(self.opts.experiment.module.resume)
+                    self.model.fc = nn.Sequential()
+                    loaded_dict = ckpt['state_dict']
+                    model_dict = self.model.state_dict()
 
-                ckpt = torch.load(self.opts.experiment.module.resume)
-                self.model.fc = nn.Sequential()
-                loaded_dict = ckpt['state_dict']
-                model_dict = self.model.state_dict()
+                    # load state dict keys
+                    for key_model, key_pretrained in zip(model_dict.keys(), loaded_dict.keys()):
+                        # ignore first layer weights(use imagenet ones)
+                        if key_model == 'conv1.weight':
+                            continue
+                        model_dict[key_model] = loaded_dict[key_pretrained]
 
-                # load state dict keys
-                for key_model, key_pretrained in zip(model_dict.keys(), loaded_dict.keys()):
-                    # ignore first layer weights(use imagenet ones)
-                    if key_model == 'conv1.weight':
-                        continue
-                    model_dict[key_model] = loaded_dict[key_pretrained]
-
-                self.model.load_state_dict(model_dict)
+                    self.model.load_state_dict(model_dict)
 
                 if self.freeze_backbone:
                     print("initialized network, freezing weights")
@@ -162,7 +162,6 @@ class EbirdTask(pl.LightningModule):
                         param.requires_grad = False
 
             self.model.fc = nn.Linear(512, self.target_size)
-
 
         else:
             raise ValueError(f"Model type '{self.opts.experiment.module.model}' is not valid")
@@ -211,12 +210,12 @@ class EbirdTask(pl.LightningModule):
         if self.opts.experiment.module.model == "satlas" or self.opts.experiment.module.model == "satmae":
             inter = self.feature_extractor(x)
             y_hat = self.forward(inter)
-
-            pred = self.sigmoid_activation(y_hat).type_as(y)
-
         else:
             y_hat = self.forward(x)
 
+        if self.target_type == "binary":
+            pred = y_hat.type_as(y)
+        else:
             pred = self.sigmoid_activation(y_hat).type_as(y)
 
         if self.opts.data.correction_factor.thresh == 'after':
@@ -232,19 +231,21 @@ class EbirdTask(pl.LightningModule):
 
             pred = cloned_pred
 
-        pred_ = pred.clone().type_as(y)
-
         if self.opts.experiment.module.use_weighted_loss:
             print("Using Weighted CrossEntropy Loss")
             loss = self.criterion(pred, y, new_weights)
         else:
             loss = self.criterion(pred, y)
 
+        pred_ = pred.clone().type_as(y)
+        if self.opts.data.target.type == "binary":
+            pred_ = self.sigmoid_activation(pred_)
+            pred_[pred_ >= 0.5] = 1
+            pred_[pred_ < 0.5] = 0
+
         for (name, _, scale) in self.metrics:
             nname = "train_" + name
-            if name == "accuracy":
-                value = getattr(self, nname)(pred_, y.type(torch.uint8))
-            elif name == 'r2':
+            if name == 'r2':
                 value = torch.mean(getattr(self, nname)(y, pred_))
             else:
                 value = getattr(self, nname)(y, pred_)
@@ -273,7 +274,10 @@ class EbirdTask(pl.LightningModule):
         else:
             y_hat = self.forward(x)
 
-        pred = self.sigmoid_activation(y_hat).type_as(y)
+        if self.target_type == "binary":
+            pred = y_hat.type_as(y)
+        else:
+            pred = self.sigmoid_activation(y_hat).type_as(y)
 
         if self.opts.data.correction_factor.thresh == 'after':
             mask = correction_t
@@ -288,12 +292,14 @@ class EbirdTask(pl.LightningModule):
 
         loss = self.criterion(pred, y)
 
+        if self.opts.data.target.type == "binary":
+            pred_ = self.sigmoid_activation(pred_)
+            pred_[pred_ >= 0.5] = 1
+            pred_[pred_ < 0.5] = 0
+
         for (name, _, scale) in self.metrics:
             nname = "val_" + name
-            if name == "accuracy":
-                value = getattr(self, name)(pred_, y.type(torch.uint8))
-                print(nname, getattr(self, name))
-            elif name == 'r2':
+            if name == 'r2':
                 value = torch.mean(getattr(self, nname)(y, pred_))
             else:
                 value = getattr(self, nname)(y, pred_)
@@ -322,7 +328,10 @@ class EbirdTask(pl.LightningModule):
         else:
             y_hat = self.forward(x)
 
-        pred = self.sigmoid_activation(y_hat).type_as(y)
+        if self.target_type == "binary":
+            pred = y_hat.type_as(y)
+        else:
+            pred = self.sigmoid_activation(y_hat).type_as(y)
 
         if self.opts.data.correction_factor.thresh == 'after':
             mask = correction_t
@@ -337,12 +346,14 @@ class EbirdTask(pl.LightningModule):
 
         pred_ = pred.clone().type_as(y)
 
+        if self.opts.data.target.type == "binary":
+            pred_ = self.sigmoid_activation(pred_)
+            pred_[pred_ >= 0.5] = 1
+            pred_[pred_ < 0.5] = 0
+
         for (name, _, scale) in self.metrics:
             nname = "test_" + name
-            if name == "accuracy":
-                value = getattr(self, name)(pred_, y.type(torch.uint8))
-                print(nname, getattr(self, name))
-            elif name == 'r2':
+            if name == 'r2':
                 value = torch.mean(getattr(self, nname)(y, pred_))
             else:
                 value = getattr(self, nname)(y, pred_)
@@ -397,9 +408,6 @@ class EbirdDataModule(pl.LightningDataModule):
         self.targets_folder = self.opts.data.files.targets_folder
         self.env_data_folder = self.opts.data.files.env_data_folder
         self.images_folder = self.opts.data.files.images_folder
-        self.df_train = pd.read_csv(os.path.join(self.data_base_dir, self.opts.data.files.train))
-        self.df_val = pd.read_csv(os.path.join(self.data_base_dir, self.opts.data.files.val))
-        self.df_test = pd.read_csv(os.path.join(self.data_base_dir, self.opts.data.files.test))
         self.bands = self.opts.data.bands
         self.env = self.opts.data.env
         self.env_var_sizes = self.opts.data.env_var_sizes
@@ -412,49 +420,100 @@ class EbirdDataModule(pl.LightningDataModule):
 
     def setup(self, stage: Optional[str] = None) -> None:
         """create the train/test/val splits and prepare the transforms for the multires"""
-        self.all_train_dataset = EbirdVisionDataset(df_paths=self.df_train, data_base_dir=self.data_base_dir,
-                                                    bands=self.bands, env=self.env, env_var_sizes=self.env_var_sizes,
-                                                    transforms=get_transforms(self.opts, "train"), mode="train",
-                                                    datatype=self.datatype, target=self.target,
-                                                    targets_folder=self.targets_folder,
-                                                    env_data_folder=self.env_data_folder,
-                                                    images_folder=self.images_folder, subset=self.subset, res=self.res,
-                                                    use_loc=self.use_loc, num_species=self.num_species)
+        list_of_datasets = []
+        for index, df_train_file in enumerate(self.opts.data.files.train):
+            df_train = pd.read_csv(os.path.join(self.data_base_dir, df_train_file))
+            dataset = EbirdVisionDataset(
+                df_paths= df_train,
+                data_base_dir=self.data_base_dir,
+                bands=self.bands,
+                env=self.env,
+                env_var_sizes=self.env_var_sizes,
+                transforms=get_transforms(self.opts, "train"),
+                mode="train",
+                datatype=self.datatype,
+                target=self.target,
+                targets_folder=self.targets_folder[index],
+                env_data_folder=self.env_data_folder[index],
+                images_folder=self.images_folder[index],
+                res=self.res,
+                use_loc=self.use_loc,
+                num_species=self.num_species
+            )
+            list_of_datasets.append(dataset)
+        self.all_train_dataset = torch.utils.data.ConcatDataset(list_of_datasets)
 
-        self.all_test_dataset = EbirdVisionDataset(df_paths=self.df_test, data_base_dir=self.data_base_dir,
-                                                   bands=self.bands, env=self.env, env_var_sizes=self.env_var_sizes,
-                                                   transforms=get_transforms(self.opts, "val"), mode="test",
-                                                   datatype=self.datatype, target=self.target,
-                                                   targets_folder=self.targets_folder,
-                                                   env_data_folder=self.env_data_folder,
-                                                   images_folder=self.images_folder, subset=self.subset, res=self.res,
-                                                   use_loc=self.use_loc, num_species=self.num_species)
+        list_of_datasets = []
+        for index, df_val_file in enumerate(self.opts.data.files.val):
+            df_val = pd.read_csv(os.path.join(self.data_base_dir, df_val_file))
+            dataset = EbirdVisionDataset(
+                df_paths=df_val,
+                data_base_dir=self.data_base_dir,
+                bands=self.bands,
+                env=self.env,
+                env_var_sizes=self.env_var_sizes,
+                transforms=get_transforms(self.opts, "val"),
+                mode="val",
+                datatype=self.datatype,
+                target=self.target,
+                targets_folder=self.targets_folder[index],
+                env_data_folder=self.env_data_folder[index],
+                images_folder=self.images_folder[index],
+                subset=self.subset,
+                res=self.res,
+                use_loc=self.use_loc,
+                num_species=self.num_species
+            )
+            list_of_datasets.append(dataset)
+        self.all_val_dataset = torch.utils.data.ConcatDataset(list_of_datasets)
 
-        self.all_val_dataset = EbirdVisionDataset(df_paths=self.df_val, data_base_dir=self.data_base_dir,
-                                                  bands=self.bands, env=self.env, env_var_sizes=self.env_var_sizes,
-                                                  transforms=get_transforms(self.opts, "val"), mode="val",
-                                                  datatype=self.datatype, target=self.target,
-                                                  targets_folder=self.targets_folder,
-                                                  env_data_folder=self.env_data_folder,
-                                                  images_folder=self.images_folder, subset=self.subset, res=self.res,
-                                                  use_loc=self.use_loc, num_species=self.num_species)
-
-        # TODO: Create subsets of the data
-
-        self.train_dataset = self.all_train_dataset
-
-        self.test_dataset = self.all_test_dataset
-
-        self.val_dataset = self.all_val_dataset
+        list_of_datasets = []
+        for index, df_test_file in enumerate(self.opts.data.files.test):
+            df_test = pd.read_csv(os.path.join(self.data_base_dir, df_test_file))
+            dataset = EbirdVisionDataset(
+                df_paths=df_test,
+                data_base_dir=self.data_base_dir,
+                bands=self.bands,
+                env=self.env,
+                env_var_sizes=self.env_var_sizes,
+                transforms=get_transforms(self.opts, "val"),
+                mode="test",
+                datatype=self.datatype,
+                target=self.target,
+                targets_folder=self.targets_folder[index],
+                env_data_folder=self.env_data_folder[index],
+                images_folder=self.images_folder[index],
+                subset=self.subset,
+                res=self.res,
+                use_loc=self.use_loc,
+                num_species=self.num_species
+            )
+            list_of_datasets.append(dataset)
+        self.all_test_dataset = torch.utils.data.ConcatDataset(list_of_datasets)
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Returns the actual dataloader"""
-        return DataLoader(self.train_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=True, )
+        return DataLoader(
+            self.all_train_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=True,
+        )
 
     def val_dataloader(self) -> DataLoader[Any]:
         """Returns the validation dataloader"""
-        return DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=False, )
+        return DataLoader(
+            self.all_val_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=False,
+        )
 
     def test_dataloader(self) -> DataLoader[Any]:
         """Returns the test dataloader"""
-        return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers, shuffle=False, )
+        return DataLoader(
+            self.all_test_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            shuffle=False,
+        )

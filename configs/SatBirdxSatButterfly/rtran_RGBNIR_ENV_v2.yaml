@@ -1,25 +1,25 @@
 #where to save checkpoints
-save_path: "baseline_rtran_resnet18_RGBNIR_ENV_20"
+save_path: "baseline_joint_rtran_resnet18_RGBNIR_ENV_14"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "baseline_rtran_resnet18_RGBNIR_ENV_20"
+load_ckpt_path: "baseline_joint_rtran_resnet18_RGBNIR_ENV_14"
 save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
 log_comet: true
 
 overfit_batches: 0.0
 # maximum number of epochs to train for
-max_epochs: 50
+max_epochs: 100
 # base directory
 base_dir: ""
 
 comet:
   project_name: "new_baselines"
-  tags: ["rtran", "4binQuant", "known0.9", "resnet18", "CE", "att3", "head4", "dropout0.1", "allaug", "LR0.00009sched", "AdamW", "weight_decay0.01", "pretrainedTrue", "freezeResnet18", "RGBNIR_ENV"]
-  experiment_name: "baseline_rtran_resnet18_RGBNIR_ENV_20" # specify for training, or use to report test results, TODO: also use to resume training
+  tags: ["rtran", "172butterfly_species", "ebutterfly+ebirdcolocated+independentbutterfly", "0.6_structured_masking", "normalization", "unknown0.5", "resnet18", "RMSLE", "att3", "head4", "dropout2", "allaug", "LR0.00009sched", "AdamW", "weight_decay0.01", "pretrainedTrue", "RGBNIR_ENV"]
+  experiment_name: "baseline_joint_rtran_resnet18_RGBNIR_ENV_14" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 experiment:
-  #TASK and name should always be ebird_classifier --> maybe remove it 
+  #TASK and name should always be ebird_classifier --> maybe remove it
   task: "ebird_classifier"
   name: "ebird_classifier"
   seed: 42
@@ -31,12 +31,12 @@ experiment:
     #use pretrained weights ( torchvision )
     pretrained: True
     # resume training from another model (transfer learning), set empty if training from scratch
-#    resume: "/home/mila/h/hager.radi/scratch/baselines/ecosystem-embedding/camera_ready_baselines/SatBirdv2_camera_ready_baseline_resnet18_RGBNIR_ENV/1337/epoch=38-step=26090.ckpt"
+    resume: ""
     freeze: False
     #initializes biases of the output layer sothat sigmoid(bias) = mean over the training set for each species
     init_bias: ""
     means_path: ""
-    lr: 0.0001
+    lr: 0.00009
 
 Rtran:
     use: true
@@ -51,39 +51,39 @@ Rtran:
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
     quantized_mask_bins: 4
     # use positional encoding
-    use_positional_encoding: True
+    use_positional_encoding: False
     # use the actual regression labels as input to the model and multiply with the embeddings (true or false)
     scale_embeddings_by_labels: False
-    # max ratio of known labels during training
-    train_known_ratio: 0.9
+    # max ratio of unknown labels during training
+    train_unknown_ratio: 0.6
     # what known ratios do we consider when testing
-    eval_known_ratio: 0.0 #[0.0, 0.1, 0.2, 0.5]
+    eval_unknown_ratio: 1.0 # [1.0, 0.9, 0.8, 0.5]
     # should the known values be masked out of the reported metrics or no
-    mask_eval_metrics: False
+    mask_eval_metrics: True
     # eval family of birds (0), or family of butterflies (1)
-    predict_family_of_species: -1
+    predict_family_of_species: 0
 
 
 optimizer: "AdamW"  #"Adam", "AdamW", "SGD"
 
 losses:
 #scale attribute is just for plotting if the values are very small
-  criterion: "CE" #or MAE or MSE or Focal or RMSLE  (loss to choose for optim )
+  criterion: "RMSLE" #or MAE or MSE or Focal or RMSLE  (loss to choose for optim )
 
-#auto lr will only work if there is only one optimizer 
+#auto lr will only work if there is only one optimizer
 auto_lr_find: False
-scheduler: 
+scheduler:
   name: "ReduceLROnPlateau" #"" for no schuler, "ReduceLROnPlateau" #"ReduceLROnPlateau" or "StepLR" "WarmUp"
-  reduce_lr_plateau: 
+  reduce_lr_plateau:
     factor: 0.5
     lr_schedule_patience: 20
   step_lr:
-    step_size: 100 
+    step_size: 100
     gamma: 0.5
   warmup:
     warmup_epochs: 5
     max_epochs: 100
-  
+
   cyclical:
     warmup_epochs: 10
 
@@ -103,49 +103,62 @@ data:
   loaders:
     num_workers: 8
     batch_size: 128
-  #What kind of satellite input ? "refl" for "raw" reflectance values or 
+  #What kind of satellite input ? "refl" for "raw" reflectance values or
   #"img" for 0-255 values (only supported for "rgb" and "nir" bands)
   datatype: "refl"
   multiscale : [64]
-  
-  bands: ["r","g","b", "nir"]  #any subset of ["r", "g", "b", "nir"] if working with "refl" data or ["rgb", "nir"] if using "img" 
-  
+
+  bands: ["r","g","b", "nir"]  #any subset of ["r", "g", "b", "nir"] if working with "refl" data or ["rgb", "nir"] if using "img"
+
   res: 10 #resolution of the images
 
   #o you want to use environmental data (pedological and bioclimatic (low res) data) #ped" or "bioclim" or both or empty list
   env: ["bioclim", "ped"]
   env_var_sizes: [19, 8]
-  
+
   #resolution of pedological and bioclimatic data in meters
-  ped: 
+  ped:
       #pedological rasters
       res: 250
-  bioclim: 
-      #bioclim 
+  bioclim:
+      #bioclim
       res: 1000
-  
+
   files:
-    base: "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer"
-    train: ["train_split.csv"]
-    val: ["valid_split.csv"]
-    test: ["test_split.csv"]
+    base: "/network/projects/ecosystem-embeddings"
+    #TODO: trainer depends on the number of train files given, so it has to match val and test always (even if testing)
+#    train: ["SatBird_data_v2/USA_summer/summer_hotspots_train.csv", "SatButterfly_v2/USA/butterfly_hotspots_train.csv"] # everything
+#    train: ["SatBird_data_v2/USA_summer/butterfly_hotspots_ebird_train.csv", "SatButterfly_v2/USA/butterfly_hotspots_train.csv"] # all butterflies only
+    train: ["SatBird_data_v2/USA_summer/summer_hotspots_train.csv"] # birds only
+#    train: ["SatBird_data_v2/USA_summer/butterfly_hotspots_ebird_train.csv"] # butterflies colocated only
 
-    targets_folder: ["targets"]
-    env_data_folder: ["environmental"]
-    images_folder: ["images"]
-    correction_thresh: "range_maps.pkl" # range maps - threshold = False
+#    val: ["SatBird_data_v2/USA_summer/summer_hotspots_val.csv", "SatButterfly_v2/USA/butterfly_hotspots_valid.csv"]
+#    val: ["SatBird_data_v2/USA_summer/butterfly_hotspots_ebird_valid.csv", "SatButterfly_v2/USA/butterfly_hotspots_valid.csv"]
+    val: ["SatBird_data_v2/USA_summer/summer_hotspots_val.csv"]
+#    val: ["SatBird_data_v2/USA_summer/butterfly_hotspots_ebird_valid.csv"]
 
-    rgbnir_means: "stats/means_rgbnir.npy"
-    rgbnir_stds: "stats/stds_rgbnir.npy"
+#    test: ["SatBird_data_v2/USA_summer/summer_hotspots_test.csv", "SatButterfly_v2/USA/butterfly_hotspots_test.csv"]
+#    test: ["SatBird_data_v2/USA_summer/butterfly_hotspots_ebird_test.csv", "SatButterfly_v2/USA/butterfly_hotspots_test.csv"]
+    test: ["SatBird_data_v2/USA_summer/summer_hotspots_test.csv"]
+#    test: ["SatBird_data_v2/USA_summer/butterfly_hotspots_ebird_test.csv"]
+
+#    targets_folder: ["SatBird_data_v2/USA_summer/corrected_targets_v2", "SatBird_data_v2/USA_summer/butterfly_targets_v1.2"] #
+    targets_folder: ["SatBird_data_v2/USA_summer/corrected_targets", "SatButterfly_v2/USA/targets_v2.2"]
+    images_folder: ["SatBird_data_v2/USA_summer/images", "SatButterfly_v2/USA/images"]
+    env_data_folder: ["SatBird_data_v2/USA_summer/environmental_bounded", "SatButterfly_v2/USA/environmental_data"]
+    correction_thresh: "SatBird_data_v2/USA_summer/range_maps.pkl" # range maps - threshold = False
+
+    rgbnir_means: "SatBird_data_v2/USA_summer/stats/means_rgbnir_SatBirdxSatButterfly.npy"
+    rgbnir_stds: "SatBird_data_v2/USA_summer/stats/stds_rgbnir_SatBirdxSatButterfly.npy" #
 
     rgb_means: "stats/means_images_visual.npy"
     rgb_stds: "stats/stds_images_visual.npy"
 
-    env_means: "stats/env_means.npy"
-    env_stds: "stats/env_stds.npy"
+    env_means: "SatBird_data_v2/USA_summer/stats/env_means_SatBirdxSatButterfly.npy"
+    env_stds: "SatBird_data_v2/USA_summer/stats/env_stds_SatBirdxSatButterfly.npy"
 
   correction_factor:
-     thresh:  # to train with RM
+     thresh: # to train with RM
 
   target:
     type: "probs"  #binary for classification targets  or "probs" for regression (default should be "probs")
@@ -168,7 +181,6 @@ data:
       center: true # disable randomness, crop around the image's center
       height: 64
       width: 64
-
     - name: hflip
       ignore: "val"
       p: 0.5
@@ -176,20 +188,17 @@ data:
       ignore: "val"
       p: 0.5
     - name: normalize
-      normalize_by_255: False
       ignore: False
       maxchan: false
       subset: ["sat"]
       custom: [*rgbnir_means, *rgbnir_std]
 
     - name: normalize
-      normalize_by_255: False
       ignore: False
       maxchan: false
       subset: ["bioclim"]
       custom: [*bioclim_means, *bioclim_std]
     - name: normalize
-      normalize_by_255: False
       ignore: False
       maxchan: false
       subset: ["ped"]
@@ -220,6 +229,8 @@ data:
       p: 0.3
       val: 2
 
-  total_species: 670
+  species: [670, 172]
+#  species: [ 670, 601]
+  total_species: 842  #1271 # list if more than one family of species, otherwise, normal count
 trainer:
   auto_scale_batch_size: False
