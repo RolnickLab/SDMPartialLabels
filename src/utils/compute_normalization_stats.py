@@ -161,8 +161,6 @@ def compute_means_stds_env_vars(root_dir, train_csv, env, env_data_folder="envir
                                 'bio_13', 'bio_14', 'bio_15', 'bio_16', 'bio_17', 'bio_18', 'bio_19']
     ped_env_column_names = ['bdticm', 'bldfie', 'cecsol', 'clyppt', 'orcdrc', 'phihox', 'sltppt', 'sndppt']
 
-    df = pd.read_csv(os.path.join(root_dir, train_csv))
-
     env_var_names = []
     if "bioclim" in env:
         env_var_names += bioclim_env_column_names

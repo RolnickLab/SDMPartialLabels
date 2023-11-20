@@ -38,6 +38,8 @@ experiment:
     pretrained: True
     # resume training from another model (transfer learning), set empty if training from scratch
     resume: ""
+    # "USA" or "SECO"
+    transfer_weights: ""
     freeze: False
     #initializes biases of the output layer sothat sigmoid(bias) = mean over the training set for each species
     init_bias: ""
@@ -156,17 +158,20 @@ data:
       ignore: "val"
       p: 0.5
     - name: normalize
+      normalize_by_255: False
       ignore: False
       maxchan: false
       subset: ["sat"]
       custom: [*rgbnir_means, *rgbnir_std]
 
     - name: normalize
+      normalize_by_255: False
       ignore: False
       maxchan: false
       subset: ["bioclim"]
       custom: [*bioclim_means, *bioclim_std]
     - name: normalize
+      normalize_by_255: False
       ignore: False
       maxchan: false
       subset: ["ped"]

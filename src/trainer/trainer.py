@@ -12,7 +12,7 @@ import torch
 import torchvision
 import torch.nn as nn
 from torch import Tensor
-from torch.nn import BCEWithLogitsLoss, BCELoss
+from torch.nn import BCEWithLogitsLoss
 from torch.utils.data import DataLoader
 from torchvision import models
 
@@ -35,7 +35,7 @@ class EbirdTask(pl.LightningModule):
         self.save_hyperparameters(opts)
         self.opts = opts
         self.means = None
-        self.is_transfer_learning = True if self.opts.experiment.module.resume else False
+
         self.freeze_backbone = self.opts.experiment.module.freeze
         # get target vector size (number of species we consider)
         self.subset = get_subset(self.opts.data.target.subset, self.opts.data.total_species)
@@ -109,29 +109,8 @@ class EbirdTask(pl.LightningModule):
         elif self.opts.experiment.module.model == "resnet18":
 
             self.model = models.resnet18(pretrained=self.opts.experiment.module.pretrained)
-
-            if self.opts.experiment.module.transfer_weights == "SECO":
-                # this works for https://zenodo.org/record/4728033/files/seco_resnet18_1m.ckpt?download=1
-                # Seco ResNet-18-1M model - from which the state dict corresponding only to the ResNet18 part encoder was extracted.
-                # because of some package version compatibility issues, we saved the encoder weights of the Seco ResNet-18-1M model as pkl
-                # and that is what is supported in this code.
-                print("Initializing with SeCo weights")
-                with open(self.opts.experiment.module.resume, "rb") as file:
-                    enc = pickle.load(file)
-                pretrained = list(enc.items())
-                # match the weights
-                model_dict = dict(self.model.state_dict())
-                count = 0
-                for key, value in model_dict.items():
-                    if not key.startswith("fc"):
-                        if not key.startswith("conv1") and not key.startswith("bn1"):
-                            layer_name, weights = pretrained[count]
-                            model_dict[key] = weights
-                        count += 1
-
             if len(self.opts.data.bands) != 3 or len(self.opts.data.env) > 0:
                 self.bands = self.opts.data.bands + self.opts.data.env
-                orig_channels = self.model.conv1.in_channels
                 weights = self.model.conv1.weight.data.clone()
                 self.model.conv1 = nn.Conv2d(get_nb_bands(self.bands), 64, kernel_size=(7, 7), stride=(2, 2),
                                              padding=(3, 3), bias=False, )
@@ -140,24 +119,42 @@ class EbirdTask(pl.LightningModule):
                     # self.model.conv1.weight.data[:, :orig_channels, :, :] = weights
                     self.model.conv1.weight.data = init_first_layer_weights(get_nb_bands(self.bands), weights)
 
-            if self.opts.experiment.module.transfer_weights == "USA":
+            if self.opts.experiment.module.resume:
+                if self.opts.experiment.module.transfer_weights == "SECO":
+                    # this works for https://zenodo.org/record/4728033/files/seco_resnet18_1m.ckpt?download=1
+                    # Seco ResNet-18-1M model - from which the state dict corresponding only to the ResNet18 part encoder was extracted.
+                    # because of some package version compatibility issues, we saved the encoder weights of the Seco ResNet-18-1M model as pkl
+                    # and that is what is supported in this code.
+                    print("Initializing with SeCo weights")
+                    with open(self.opts.experiment.module.resume, "rb") as file:
+                        enc = pickle.load(file)
+                    pretrained = list(enc.items())
+                    # match the weights
+                    model_dict = dict(self.model.state_dict())
+                    count = 0
+                    for key, value in model_dict.items():
+                        if not key.startswith("fc"):
+                            if not key.startswith("conv1") and not key.startswith("bn1"):
+                                layer_name, weights = pretrained[count]
+                                model_dict[key] = weights
+                            count += 1
+                elif self.opts.experiment.module.transfer_weights == "USA":
+                    # this is used for transferring USA weights to Kenya
+                    print("Transferring USA weights")
 
-                # this is used for transferring USA weights to Kenya
-                print("Transferring USA weights")
+                    ckpt = torch.load(self.opts.experiment.module.resume)
+                    self.model.fc = nn.Sequential()
+                    loaded_dict = ckpt['state_dict']
+                    model_dict = self.model.state_dict()
 
-                ckpt = torch.load(self.opts.experiment.module.resume)
-                self.model.fc = nn.Sequential()
-                loaded_dict = ckpt['state_dict']
-                model_dict = self.model.state_dict()
+                    # load state dict keys
+                    for key_model, key_pretrained in zip(model_dict.keys(), loaded_dict.keys()):
+                        # ignore first layer weights(use imagenet ones)
+                        if key_model == 'conv1.weight':
+                            continue
+                        model_dict[key_model] = loaded_dict[key_pretrained]
 
-                # load state dict keys
-                for key_model, key_pretrained in zip(model_dict.keys(), loaded_dict.keys()):
-                    # ignore first layer weights(use imagenet ones)
-                    if key_model == 'conv1.weight':
-                        continue
-                    model_dict[key_model] = loaded_dict[key_pretrained]
-
-                self.model.load_state_dict(model_dict)
+                    self.model.load_state_dict(model_dict)
 
                 if self.freeze_backbone:
                     print("initialized network, freezing weights")
@@ -165,7 +162,6 @@ class EbirdTask(pl.LightningModule):
                         param.requires_grad = False
 
             self.model.fc = nn.Linear(512, self.target_size)
-
 
         else:
             raise ValueError(f"Model type '{self.opts.experiment.module.model}' is not valid")
@@ -214,12 +210,12 @@ class EbirdTask(pl.LightningModule):
         if self.opts.experiment.module.model == "satlas" or self.opts.experiment.module.model == "satmae":
             inter = self.feature_extractor(x)
             y_hat = self.forward(inter)
-
-            pred = self.sigmoid_activation(y_hat).type_as(y)
-
         else:
             y_hat = self.forward(x)
 
+        if self.target_type == "binary":
+            pred = y_hat.type_as(y)
+        else:
             pred = self.sigmoid_activation(y_hat).type_as(y)
 
         if self.opts.data.correction_factor.thresh == 'after':
@@ -235,14 +231,13 @@ class EbirdTask(pl.LightningModule):
 
             pred = cloned_pred
 
-        pred_ = pred.clone().type_as(y)
-
         if self.opts.experiment.module.use_weighted_loss:
             print("Using Weighted CrossEntropy Loss")
             loss = self.criterion(pred, y, new_weights)
         else:
             loss = self.criterion(pred, y)
 
+        pred_ = pred.clone().type_as(y)
         if self.opts.data.target.type == "binary":
             pred_ = self.sigmoid_activation(pred_)
             pred_[pred_ >= 0.5] = 1
@@ -279,7 +274,7 @@ class EbirdTask(pl.LightningModule):
         else:
             y_hat = self.forward(x)
 
-        if self.target_type == "log" or self.target_type == "binary":
+        if self.target_type == "binary":
             pred = y_hat.type_as(y)
         else:
             pred = self.sigmoid_activation(y_hat).type_as(y)
@@ -297,8 +292,8 @@ class EbirdTask(pl.LightningModule):
 
         loss = self.criterion(pred, y)
 
-
         if self.opts.data.target.type == "binary":
+            pred_ = self.sigmoid_activation(pred_)
             pred_[pred_ >= 0.5] = 1
             pred_[pred_ < 0.5] = 0
 
@@ -333,7 +328,10 @@ class EbirdTask(pl.LightningModule):
         else:
             y_hat = self.forward(x)
 
-        pred = self.sigmoid_activation(y_hat).type_as(y)
+        if self.target_type == "binary":
+            pred = y_hat.type_as(y)
+        else:
+            pred = self.sigmoid_activation(y_hat).type_as(y)
 
         if self.opts.data.correction_factor.thresh == 'after':
             mask = correction_t
