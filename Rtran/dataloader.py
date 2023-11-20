@@ -30,7 +30,7 @@ def get_unknown_mask_indices(num_labels, mode, max_known=0.5, absent_species=-1,
     if mode == 'train': # all species are there
         random.seed()
         if absent_species == -1:  # 50% of the time when butterflies are there, mask all butterflies
-            if random.random() < 0.5 and species_set is not None:
+            if random.random() < 0.4 and species_set is not None:
                 absent_species = int(np.random.randint(0, 2, 1)[0]) # 0 or 1
                 present_species = 1 - absent_species
                 if absent_species == 0:
@@ -306,7 +306,7 @@ class SDMCoLocatedDataset(VisionDataset):
 class SDMCombinedDataset(VisionDataset):
     def __init__(self, df, data_base_dir, env, env_var_sizes,
                  transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None, mode="train", datatype="refl",
-                 target_type="probs", targets_folder="corrected_targets", targets_folder_2="SatBird_data_v2/USA_summer/butterfly_targets_v1.2", images_folder="images", env_data_folder="environmental",
+                 target_type="probs", targets_folder="corrected_targets", targets_folder_2="SatButterfly_v1/USA/butterfly_targets_v1.2", images_folder="images", env_data_folder="environmental",
                  maximum_known_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
         """
         SatBird + SatButterfly co-located with SatBird + SatButterfly independently from ebird
