@@ -13,7 +13,7 @@ import numpy as np
 
 def get_unknown_mask_indices(num_labels, mode, max_known=0.5, absent_species=-1,
                              species_set=None, predict_family_of_species=-1,
-                             per_species_mask_file="/network/projects/ecosystem-embeddings/SatButterfly_v1/bird_species_family_mapping.json"):
+                             per_species_mask_file="/network/projects/ecosystem-embeddings/SatButterfly_v2/USA/bird_species_family_mapping.json"):
     """
     num_labels: total number of species
     mode: train, val or test
@@ -49,18 +49,20 @@ def get_unknown_mask_indices(num_labels, mode, max_known=0.5, absent_species=-1,
 
                 # what_to_mask = int(np.random.randint(0, mask_max_size, 1)[0])
                 # unk_mask_indices = np.array(list(per_species_mask.values())[what_to_mask])
+                num_known = random.randint(0, int(species_set[present_species] * max_known)) # known: 0, 0.75l -> unknown: l, 0.25l
                 unk_mask_indices = random.sample(list(np.arange(present_species * species_set[absent_species],
                                                                 species_set[present_species] + (
                                                                             present_species * species_set[
                                                                         absent_species]))),
-                                                 int(species_set[present_species] * max_known))
+                                                 int(species_set[present_species] - num_known))
         elif absent_species == 0: #birds unknown
             present_species = 1 - absent_species
+            num_known = random.randint(0, int(species_set[present_species] * max_known))  # known: 0, 0.75l -> unknown: l, 0.25l
             unk_mask_indices = random.sample(list(np.arange(present_species * species_set[absent_species],
                                                             species_set[absent_species] + (
                                                                         present_species * species_set[
                                                                     present_species]))),
-                                             int(species_set[present_species] * max_known))
+                                             int(species_set[present_species] - num_known))
             # if absent = 1,
             # present = 0
             # max_unknown = 0, 0.5*670
@@ -75,20 +77,21 @@ def get_unknown_mask_indices(num_labels, mode, max_known=0.5, absent_species=-1,
         # for testing, everything is unknown
         if absent_species == 1:
             present_species = 1 - absent_species
+            num_known = random.randint(0, int(species_set[present_species] * max_known))  # known: 0, 0.75l -> unknown: l, 0.25l
             unk_mask_indices = random.sample(list(np.arange(present_species * species_set[absent_species],
                                                             species_set[present_species] + (present_species * species_set[absent_species]))),
-                                                            int(species_set[present_species] * max_known))
+                                                            int(species_set[present_species] - num_known))
         elif absent_species == 0:
             present_species = 1 - absent_species
+            num_known = random.randint(0, int(species_set[present_species] * max_known))  # known: 0, 0.75l -> unknown: l, 0.25l
             unk_mask_indices = random.sample(list(np.arange(present_species * species_set[absent_species],
                                                             species_set[absent_species] + (present_species * species_set[present_species]))),
-                                                            int(species_set[present_species] * max_known))
-
+                                                            int(species_set[present_species] - num_known))
         else:
             num_known = int(num_labels * max_known)
             unk_mask_indices = random.sample(range(num_labels), int(num_labels - num_known))
         # print(absent_species, int(species_set[present_species] * max_unknown), len(unk_mask_indices), unk_mask_indices)
-
+        # print(len(unk_mask_indices))
         if predict_family_of_species != -1:
             # to predict butterflies only
             if predict_family_of_species == 1:
@@ -306,7 +309,7 @@ class SDMCoLocatedDataset(VisionDataset):
 class SDMCombinedDataset(VisionDataset):
     def __init__(self, df, data_base_dir, env, env_var_sizes,
                  transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None, mode="train", datatype="refl",
-                 target_type="probs", targets_folder="corrected_targets", targets_folder_2="SatButterfly_v1/USA/butterfly_targets_v1.2", images_folder="images", env_data_folder="environmental",
+                 target_type="probs", targets_folder="corrected_targets", targets_folder_2="SatButterfly_v2/USA/butterfly_targets_v1.2", images_folder="images", env_data_folder="environmental",
                  maximum_known_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1, quantized_mask_bins=1) -> None:
         """
         SatBird + SatButterfly co-located with SatBird + SatButterfly independently from ebird
@@ -418,6 +421,7 @@ class SDMCombinedDataset(VisionDataset):
 
         item_["mask_q"] = mask_q
         item_["mask"] = mask
+        # print(torch.unique(mask))
         # meta data
         item_["hotspot_id"] = hotspot_id
         return item_

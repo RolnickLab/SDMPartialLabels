@@ -39,9 +39,6 @@ experiment:
     freeze: false
     use_weighted_loss: False
     loss_weight: "log" #"log", "nchklists"
-    
-    initialize_seco: False #this is to load SeCo weights
-    initialize_USA: False # this is to initialize experiments for Kenya with weights from USA experiments 
 
 Rtran:
     use: False
@@ -275,7 +272,7 @@ trainer: # These are the parameters passed to the pytorch lightning Trainer obje
   precision: 32 #32
   weights_summary: "top"
   weights_save_path: null
-  num_sanity_val_steps: 2
+  num_sanity_val_steps: 100
   resume_from_checkpoint: null
   profiler: null
   benchmark: False

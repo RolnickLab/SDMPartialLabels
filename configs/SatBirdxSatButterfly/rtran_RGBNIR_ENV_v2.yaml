@@ -68,7 +68,7 @@ optimizer: "AdamW"  #"Adam", "AdamW", "SGD"
 
 losses:
 #scale attribute is just for plotting if the values are very small
-  criterion: "RMSLE" #or MAE or MSE or Focal or RMSLE  (loss to choose for optim )
+  criterion: "CE" #or MAE or MSE or Focal or RMSLE  (loss to choose for optim )
 
 #auto lr will only work if there is only one optimizer
 auto_lr_find: False
@@ -127,25 +127,25 @@ data:
   files:
     base: "/network/projects/ecosystem-embeddings"
     #TODO: trainer depends on the number of train files given, so it has to match val and test always (even if testing)
-    train: ["SatBird_data_v2/USA_summer/train_split.csv", "SatButterfly_v2/USA/butterfly_hotspots_train.csv"] # everything
-#    train: ["SatBird_data_v2/USA_summer/butterfly_hotspots_ebird_train.csv", "SatButterfly_v2/USA/butterfly_hotspots_train.csv"] # all butterflies only
-#    train: ["SatBird_data_v2/USA_summer/summer_hotspots_train.csv"] # birds only
-#    train: ["SatBird_data_v2/USA_summer/butterfly_hotspots_ebird_train.csv"] # butterflies colocated only
+    train: ["SatBird_data_v2/USA_summer/train_split.csv", "SatButterfly_v1/USA/butterfly_hotspots_train.csv"] #1. everything (Combined dataloader)
+#    train: ["SatButterfly_v2/USA/butterfly_hotspots_ebird_train.csv"] #2. colocated birds+butterflies (Colocated datalaoder)
+#    train: ["SatBird_data_v2/USA_summer/train_split.csv"] #3. birds only (with some butterflies colocated) (Colocated dataloader)
+#    train: ["SatButterfly_v2/USA/butterfly_hotspots_ebird_train.csv", "SatButterfly_v1/USA/butterfly_hotspots_train.csv"] #4. all Butterflies (combined dataloader)
 
-    val: ["SatBird_data_v2/USA_summer/valid_split.csv", "SatButterfly_v2/USA/butterfly_hotspots_valid.csv"]
-#    val: ["SatBird_data_v2/USA_summer/butterfly_hotspots_ebird_valid.csv", "SatButterfly_v2/USA/butterfly_hotspots_valid.csv"]
-#    val: ["SatBird_data_v2/USA_summer/summer_hotspots_val.csv"]
-#    val: ["SatBird_data_v2/USA_summer/butterfly_hotspots_ebird_valid.csv"]
+    val: ["SatBird_data_v2/USA_summer/valid_split.csv", "SatButterfly_v1/USA/butterfly_hotspots_valid.csv"]
+#    val: ["SatButterfly_v2/USA/butterfly_hotspots_ebird_valid.csv"]
+#    val: ["SatBird_data_v2/USA_summer/valid_split.csv"]
+#    val: ["SatButterfly_v2/USA/butterfly_hotspots_ebird_valid.csv", "SatButterfly_v1/USA/butterfly_hotspots_valid.csv"]
 
-    test: ["SatBird_data_v2/USA_summer/test_split.csv", "SatButterfly_v2/USA/butterfly_hotspots_test.csv"]
-#    test: ["SatBird_data_v2/USA_summer/butterfly_hotspots_ebird_test.csv", "SatButterfly_v2/USA/butterfly_hotspots_test.csv"]
-#    test: ["SatBird_data_v2/USA_summer/summer_hotspots_test.csv"]
-#    test: ["SatBird_data_v2/USA_summer/butterfly_hotspots_ebird_test.csv"]
+    test: ["SatBird_data_v2/USA_summer/test_split.csv", "SatButterfly_v1/USA/butterfly_hotspots_test.csv"]
+#    test: ["SatButterfly_v2/USA/butterfly_hotspots_ebird_test.csv"]
+#    test: ["SatBird_data_v2/USA_summer/test_split.csv"]
+#    test: ["SatButterfly_v2/USA/butterfly_hotspots_ebird_test.csv", "SatButterfly_v1/USA/butterfly_hotspots_test.csv"]
 
-#    targets_folder: ["SatBird_data_v2/USA_summer/corrected_targets_v2", "SatBird_data_v2/USA_summer/butterfly_targets_v1.2"] #
-    targets_folder: ["SatBird_data_v2/USA_summer/targets", "SatButterfly_v2/USA/targets_v1.2"]
-    images_folder: ["SatBird_data_v2/USA_summer/images", "SatButterfly_v2/USA/images"]
-    env_data_folder: ["SatBird_data_v2/USA_summer/environmental", "SatButterfly_v2/USA/environmental_data"]
+    targets_folder: ["SatBird_data_v2/USA_summer/targets", "SatButterfly_v1/USA/targets_v1.2"] # (1, 4) Combined Dataloader
+#    targets_folder: ["SatBird_data_v2/USA_summer/targets", "SatButterfly_v2/USA/butterfly_targets_v1.2"] # (2) colocated birds+butterflies, (3) birds only
+    images_folder: ["SatBird_data_v2/USA_summer/images", "SatButterfly_v1/USA/images"]
+    env_data_folder: ["SatBird_data_v2/USA_summer/environmental", "SatButterfly_v1/USA/environmental_data"]
     correction_thresh: "SatBird_data_v2/USA_summer/range_maps.pkl" # range maps - threshold = False
 
     rgbnir_means: "SatButterfly_v2/USA/stats/means_rgbnir_SatBirdxSatButterfly.npy"

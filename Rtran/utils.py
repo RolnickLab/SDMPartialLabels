@@ -40,7 +40,7 @@ def load_word2vec_pretrained_weights(word_to_idx, vocab_size, embedding_dim):
 
 
 def tokenize_species():
-    species_file_name = "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/species_list_USA_birds+butterflies.txt"
+    species_file_name = "/network/projects/ecosystem-embeddings/SatButterfly_v2/USA/species_list_USA_birds+butterflies.txt"
 
     with open(species_file_name) as f:
         species_names = [line.rstrip() for line in f]
