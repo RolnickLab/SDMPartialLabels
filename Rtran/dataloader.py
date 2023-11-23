@@ -30,7 +30,7 @@ def get_unknown_mask_indices(num_labels, mode, max_known=0.5, absent_species=-1,
     if mode == 'train': # all species are there
         random.seed()
         if absent_species == -1:  # 50% of the time when butterflies are there, mask all butterflies
-            if random.random() < 0.4 and species_set is not None:
+            if random.random() < 0.5 and species_set is not None:
                 absent_species = int(np.random.randint(0, 2, 1)[0]) # 0 or 1
                 present_species = 1 - absent_species
                 if absent_species == 0:
