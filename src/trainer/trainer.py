@@ -86,9 +86,26 @@ class EbirdTask(pl.LightningModule):
             self.feature_extractor.load_state_dict(swin_state_dict)
             self.feature_extractor.to('cuda:0')
             print("initialized network, freezing weights")
+            # To fine-tune satlas on RGBNIR + ENV
+            finetune_satlas = False
 
-            for param in self.feature_extractor.parameters():
-                param.requires_grad = False
+            if finetune_satlas:
+                if len(self.opts.data.bands) != 3 or len(self.opts.data.env) > 0:
+                    self.bands = self.opts.data.bands + self.opts.data.env
+                    weights = self.feature_extractor.features[0][0].weight.data.clone()
+                    self.feature_extractor.features[0][0] = nn.Conv2d(get_nb_bands(self.bands), 64, kernel_size=(7, 7), stride=(2, 2),
+                                                 padding=(3, 3), bias=False, )
+                    # assume first three channels are rgb
+                    if self.opts.experiment.module.pretrained:
+                        # self.model.conv1.weight.data[:, :orig_channels, :, :] = weights
+                        self.feature_extractor.features[0][0].weight.data = init_first_layer_weights(get_nb_bands(self.bands), weights)
+
+                for param in self.feature_extractor.parameters():
+                    param.requires_grad = True
+            else:
+                for param in self.feature_extractor.parameters():
+                    param.requires_grad = False
+
             self.model = nn.Linear(1000, self.target_size)
 
         elif self.opts.experiment.module.model == "satmae":
@@ -303,7 +320,6 @@ class EbirdTask(pl.LightningModule):
                 value = torch.mean(getattr(self, nname)(y, pred_))
             else:
                 value = getattr(self, nname)(y, pred_)
-                print(nname, getattr(self, nname)(y, pred_))
 
             self.log(nname, value, on_step=True, on_epoch=True)
         self.log("val_loss", loss, on_step=True, on_epoch=True)
@@ -357,7 +373,6 @@ class EbirdTask(pl.LightningModule):
                 value = torch.mean(getattr(self, nname)(y, pred_))
             else:
                 value = getattr(self, nname)(y, pred_)
-                print(nname, getattr(self, nname)(y, pred_))
 
             self.log(nname, value, on_epoch=True)
         self.log("test_loss", loss, on_epoch=True)
