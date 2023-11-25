@@ -266,4 +266,4 @@ class WarmupLinearSchedule(LambdaLR):
 
 
 if __name__ == '__main__':
-    tokenize()
+    tokenize_species()
