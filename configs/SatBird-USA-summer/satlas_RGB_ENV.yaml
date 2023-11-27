@@ -1,8 +1,8 @@
 #where to save checkpoints
-save_path: "baseline_satlas_RGB"
+save_path: "baseline_satlas_RGB_ENV"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "baseline_satlas_RGB"
+load_ckpt_path: "baseline_satlas_RGB_ENV"
 save_preds_path: ""
 log_comet: true
 
@@ -13,9 +13,9 @@ max_epochs: 50
 base_dir: ""
 
 comet:
-  project_name: "camera_baselines" #"ecosystem-duck"
-  tags: ["satlas","summer"]
-  experiment_name: "baseline_satlas_RGB" # specify for training, or use to report test results, TODO: also use to resume training
+  project_name: "camera_ready_neurips_baselines" #"ecosystem-duck"
+  tags: ["satlas","summer", "RGB+ENV", "finetune"]
+  experiment_name: "baseline_satlas_RGB_ENV" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 experiment:
@@ -30,7 +30,7 @@ experiment:
     # resume training from another model (transfer learning), set empty if training from scratch
     resume: '/network/projects/ecosystem-embeddings/trainer_utils/pretrained_weights/satlas-model-v1-lowres.pth'
     # freeze backbone when transfer learning or not
-    freeze: True
+    freeze: False
     #initializes biases of the output layer sothat sigmoid(bias) = mean over the training set for each species
     init_bias: ""
     means_path: ""
@@ -86,8 +86,9 @@ data:
   res: 10 #resolution of the images
 
   #o you want to use environmental data (pedological and bioclimatic (low res) data) #ped" or "bioclim" or both or empty list
-  env: []#["bioclim", "ped"]
-  env_var_sizes: []
+  env: ["bioclim", "ped"]
+  env_var_sizes: [19, 8]
+
 
   #resolution of pedological and bioclimatic data in meters
   ped:
@@ -190,3 +191,4 @@ data:
       val: 2
 
   total_species: 670
+

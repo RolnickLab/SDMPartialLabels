@@ -71,17 +71,19 @@ class EbirdVisionDataset(VisionDataset):
 
         hotspot_id = self.df.iloc[index]['hotspot_id']
 
+        assert self.type != "" or len(self.env) == 0, "input cannot be empty of satellite image or env data"
         # satellite image
-        if self.type == 'img':
-            img_path = os.path.join(self.data_base_dir, self.images_folder + "_visual", hotspot_id + '_visual.tif')
-        else:
-            img_path = os.path.join(self.data_base_dir, self.images_folder, hotspot_id + '.tif')
+        if self.type:
+            if self.type == 'img':
+                img_path = os.path.join(self.data_base_dir, self.images_folder + "_visual", hotspot_id + '_visual.tif')
+            elif self.type == 'refl':
+                img_path = os.path.join(self.data_base_dir, self.images_folder, hotspot_id + '.tif')
 
-        img = load_file(img_path)
-        sats = torch.from_numpy(img).float()
-        item_["sat"] = sats
+            img = load_file(img_path)
+            sats = torch.from_numpy(img).float()
+            item_["sat"] = sats
 
-        assert len(self.env) == len(self.env_var_sizes), "env variables sizes must be equal to the size of env vars specified`"
+        assert len(self.env) == len(self.env_var_sizes), "env variables sizes must be equal to the size of env vars specified"
         # env rasters
         for i, env_var in enumerate(self.env):
             env_npy = os.path.join(self.data_base_dir, self.env_data_folder, hotspot_id + '.npy')
@@ -93,8 +95,16 @@ class EbirdVisionDataset(VisionDataset):
         t = trsfs.Compose(self.transform)
         item_ = t(item_)
 
+        if self.type:
+            item_["input"] = item_["sat"]
+        else:
+            item_["input"] = None
+
         for e in self.env:
-            item_["sat"] = torch.cat([item_["sat"], item_[e]], dim=-3).float()
+            if item_["input"] is None:
+                item_["input"] = item_[e]
+            else:
+                item_["input"] = torch.cat([item_["input"], item_[e]], dim=-3).float()
 
         # target labels
         species = load_file(os.path.join(self.data_base_dir, self.targets_folder, hotspot_id + '.json'))

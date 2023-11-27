@@ -272,7 +272,7 @@ trainer: # These are the parameters passed to the pytorch lightning Trainer obje
   precision: 32 #32
   weights_summary: "top"
   weights_save_path: null
-  num_sanity_val_steps: 100
+  num_sanity_val_steps: 10
   resume_from_checkpoint: null
   profiler: null
   benchmark: False

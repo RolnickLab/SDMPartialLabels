@@ -86,25 +86,25 @@ class EbirdTask(pl.LightningModule):
             self.feature_extractor.load_state_dict(swin_state_dict)
             self.feature_extractor.to('cuda:0')
             print("initialized network, freezing weights")
-            # To fine-tune satlas on RGBNIR + ENV
-            finetune_satlas = False
 
-            if finetune_satlas:
-                if len(self.opts.data.bands) != 3 or len(self.opts.data.env) > 0:
-                    self.bands = self.opts.data.bands + self.opts.data.env
-                    weights = self.feature_extractor.features[0][0].weight.data.clone()
-                    self.feature_extractor.features[0][0] = nn.Conv2d(get_nb_bands(self.bands), 64, kernel_size=(7, 7), stride=(2, 2),
-                                                 padding=(3, 3), bias=False, )
-                    # assume first three channels are rgb
-                    if self.opts.experiment.module.pretrained:
-                        # self.model.conv1.weight.data[:, :orig_channels, :, :] = weights
-                        self.feature_extractor.features[0][0].weight.data = init_first_layer_weights(get_nb_bands(self.bands), weights)
+            if len(self.opts.data.bands) != 3 or len(self.opts.data.env) > 0:
+                self.bands = self.opts.data.bands + self.opts.data.env
+                weights = self.feature_extractor.features[0][0].weight.data.clone()
+                self.feature_extractor.features[0][0] = nn.Conv2d(get_nb_bands(self.bands), 64, kernel_size=(7, 7),
+                                                                  stride=(2, 2),
+                                                                  padding=(3, 3), bias=False, )
+                # assume first three channels are rgb
+                if self.opts.experiment.module.pretrained:
+                    # self.model.conv1.weight.data[:, :orig_channels, :, :] = weights
+                    self.feature_extractor.features[0][0].weight.data = init_first_layer_weights(
+                        get_nb_bands(self.bands), weights)
 
-                for param in self.feature_extractor.parameters():
-                    param.requires_grad = True
-            else:
+            if self.opts.experiment.module.freeze:
                 for param in self.feature_extractor.parameters():
                     param.requires_grad = False
+            else:
+                for param in self.feature_extractor.parameters():
+                    param.requires_grad = True
 
             self.model = nn.Linear(1000, self.target_size)
 
@@ -213,7 +213,7 @@ class EbirdTask(pl.LightningModule):
     def training_step(self, batch: Dict[str, Any], batch_idx: int) -> Tensor:
         # from pdb import set_trace; set_trace()
         """Training step"""
-        x = batch['sat'].squeeze(1)
+        x = batch['input'].squeeze(1)
         y = batch['target']
 
         hotspot_id = batch['hotspot_id']
@@ -274,7 +274,7 @@ class EbirdTask(pl.LightningModule):
     def validation_step(self, batch: Dict[str, Any], batch_idx: int) -> None:
 
         """Validation step """
-        x = batch['sat'].squeeze(1)  # .to(device)
+        x = batch['input'].squeeze(1)  # .to(device)
         y = batch['target']
 
         hotspot_id = batch['hotspot_id']
@@ -327,7 +327,7 @@ class EbirdTask(pl.LightningModule):
     def test_step(self, batch: Dict[str, Any], batch_idx: int) -> None:
         """Test step """
 
-        x = batch['sat'].squeeze(1)
+        x = batch['input'].squeeze(1)
         y = batch['target']
 
         hotspot_id = batch['hotspot_id']
