@@ -23,6 +23,7 @@ from src.trainer.utils import get_target_size, get_nb_bands, get_scheduler, init
     load_from_checkpoint
 from src.transforms.transforms import get_transforms
 from src.models.vit import ViTFinetune
+from src.models.backbones import MultiInputResnet18
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -180,6 +181,10 @@ class EbirdTask(pl.LightningModule):
 
             self.model.fc = nn.Linear(512, self.target_size)
 
+        elif self.opts.experiment.module.model == "resnet18_multi_input":
+            self.model = MultiInputResnet18(img_input_channels=get_nb_bands(self.opts.data.bands),
+                                            env_input_channels=sum(self.opts.data.env_var_sizes),
+                                            target_size=self.target_size)
         else:
             raise ValueError(f"Model type '{self.opts.experiment.module.model}' is not valid")
 
