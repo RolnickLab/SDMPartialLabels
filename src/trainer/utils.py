@@ -124,7 +124,7 @@ def get_nb_bands(bands):
 
 
 def get_target_size(opts, subset=None):
-    if subset is None:
+    if subset is not None:
         subset = get_subset(opts.data.target.subset)
     target_size = len(subset) if subset is not None else opts.data.total_species
     return target_size

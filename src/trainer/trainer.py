@@ -456,6 +456,7 @@ class EbirdDataModule(pl.LightningDataModule):
                 targets_folder=self.targets_folder[index],
                 env_data_folder=self.env_data_folder[index],
                 images_folder=self.images_folder[index],
+                subset=self.subset,
                 res=self.res,
                 use_loc=self.use_loc,
                 num_species=self.num_species
