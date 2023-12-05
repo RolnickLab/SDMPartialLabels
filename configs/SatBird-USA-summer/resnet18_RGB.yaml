@@ -1,8 +1,8 @@
 #where to save checkpoints
-save_path: "SatBirdv2_camera_ready_baseline_resnet18_RGB"
+save_path: "baseline_resnet18_RGB_pretrained_MoCo_frozen_backbone"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "SatBirdv2_camera_ready_baseline_resnet18_RGB"
+load_ckpt_path: "baseline_resnet18_RGB_pretrained_MoCo_frozen_backbone"
 save_preds_path: ""
 log_comet: true
 
@@ -20,8 +20,8 @@ loc:
 
 comet:
   project_name: "camera_ready_neurips_baselines" #"ecosystem-duck"
-  tags: ["resnet18", "RGB", "corrected_targets", "SatBirdv2"]
-  experiment_name: "SatBirdv2_camera_ready_baseline_resnet18_RGB" # specify for training, or use to report test results, TODO: also use to resume training
+  tags: ["resnet18", "RGB", "corrected_targets", "SatBirdv2", "using_pretrained_weights_moco"]
+  experiment_name: "baseline_resnet18_RGB_pretrained_MoCo_frozen_backbone" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 experiment:
@@ -35,9 +35,12 @@ experiment:
     #"linear" or "linear_net" for a 2 layer MLP
     fc: "linear"
     #use pretrained weights ( torchvision )
-    pretrained: True
+    pretrained: False
     # resume training from another model (transfer learning), set empty if training from scratch
-    resume: ""
+    resume: "/network/projects/ecosystem-embeddings/trainer_utils/pretrained_weights/B3_rn18_moco_0099_ckpt.pth"
+    # transfer weights
+    transfer_weights: "MoCo"
+    freeze: True
     #initializes biases of the output layer sothat sigmoid(bias) = mean over the training set for each species
     init_bias: ""
     means_path: ""
@@ -100,13 +103,13 @@ data:
   
   files:
     base: "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer"
-    train: "train_split.csv"
-    val: "valid_split.csv"
-    test: "test_split.csv"
+    train: ["train_split.csv"]
+    val: ["valid_split.csv"]
+    test: ["test_split.csv"]
 
-    targets_folder: "targets"
-    env_data_folder: "environmental"
-    images_folder: "images"
+    targets_folder: ["targets"]
+    env_data_folder: ["environmental"]
+    images_folder: ["images"]
     correction_thresh: "range_maps.pkl" # range maps - threshold = False
 
     rgbnir_means: "stats/means_rgbnir.npy"

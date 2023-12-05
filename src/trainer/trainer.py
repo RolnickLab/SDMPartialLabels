@@ -173,6 +173,24 @@ class EbirdTask(pl.LightningModule):
                         model_dict[key_model] = loaded_dict[key_pretrained]
 
                     self.model.load_state_dict(model_dict)
+                elif self.opts.experiment.module.transfer_weights == "MoCo":
+                    checkpoint = torch.load(self.opts.experiment.module.resume)
+
+                    # rename moco pre-trained keys
+                    state_dict = checkpoint['state_dict']
+                    # print(state_dict.keys())
+                    for k in list(state_dict.keys()):
+                        # retain only encoder up to before the embedding layer
+                        if k.startswith('module.encoder_q') and not k.startswith('module.encoder_q.fc'):
+                            # remove prefix
+                            state_dict[k[len("module.encoder_q."):]] = state_dict[k]
+                        # delete renamed or unused k
+                        del state_dict[k]
+
+                    msg = self.model.load_state_dict(state_dict, strict=False)
+                    assert set(msg.missing_keys) == {"fc.weight", "fc.bias"}
+
+                    print("=> loaded pre-trained model '{}'".format(self.opts.experiment.module.resume))
 
                 if self.freeze_backbone:
                     print("initialized network, freezing weights")
