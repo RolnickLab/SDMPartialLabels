@@ -37,6 +37,8 @@ class RegressionTransformerTask(pl.LightningModule):
         self.image_input_channels += sum(self.config.data.env_var_sizes) if len(self.config.data.env) > 0 else 0
 
         self.model = RTranModel(num_classes=self.num_species,
+                                species_list=os.path.join(self.config.data.files.base,
+                                                          self.config.data.files.species_list),
                                 backbone=self.config.Rtran.backbone, pretrained_backbone=self.config.Rtran.pretrained_backbone,
                                 quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
                                 input_channels=self.image_input_channels, d_hidden=self.config.Rtran.features_size,
@@ -147,14 +149,14 @@ class RegressionTransformerTask(pl.LightningModule):
             y = y * range_maps_correction_data.int()
 
         if self.config.Rtran.mask_eval_metrics or len(self.config.data.species) > 1:
-            if self.config.Rtran.predict_family_of_species == 0:
-                y_pred = y_pred[:, 0:self.config.data.species[0]]
-                y = y[:, 0:self.config.data.species[0]]
-                mask = mask[:, 0:self.config.data.species[0]]
-            elif self.config.Rtran.predict_family_of_species == 1:
-                y_pred = y_pred[:, self.config.data.species[0]:]
-                y = y[:, self.config.data.species[0]:]
-                mask = mask[:, self.config.data.species[0]:]
+            # if self.config.Rtran.predict_family_of_species == 0:
+            #     y_pred = y_pred[:, 0:self.config.data.species[0]]
+            #     y = y[:, 0:self.config.data.species[0]]
+            #     mask = mask[:, 0:self.config.data.species[0]]
+            # elif self.config.Rtran.predict_family_of_species == 1:
+            #     y_pred = y_pred[:, self.config.data.species[0]:]
+            #     y = y[:, self.config.data.species[0]:]
+            #     mask = mask[:, self.config.data.species[0]:]
             self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask)
         else:
             self.log_metrics(mode="val", pred=y_pred, y=y)
@@ -187,14 +189,14 @@ class RegressionTransformerTask(pl.LightningModule):
             y = y * range_maps_correction_data.int()
 
         if self.config.Rtran.mask_eval_metrics or len(self.config.data.species) > 1:
-            if self.config.Rtran.predict_family_of_species == 0:
-                y_pred = y_pred[:, 0:self.config.data.species[0]]
-                y = y[:, 0:self.config.data.species[0]]
-                mask = mask[:, 0:self.config.data.species[0]]
-            elif self.config.Rtran.predict_family_of_species == 1:
-                y_pred = y_pred[:, self.config.data.species[0]:]
-                y = y[:, self.config.data.species[0]:]
-                mask = mask[:, self.config.data.species[0]:]
+            # if self.config.Rtran.predict_family_of_species == 0:
+            #     y_pred = y_pred[:, 0:self.config.data.species[0]]
+            #     y = y[:, 0:self.config.data.species[0]]
+            #     mask = mask[:, 0:self.config.data.species[0]]
+            # elif self.config.Rtran.predict_family_of_species == 1:
+            #     y_pred = y_pred[:, self.config.data.species[0]:]
+            #     y = y[:, self.config.data.species[0]:]
+            #     mask = mask[:, self.config.data.species[0]:]
             self.log_metrics(mode="test", pred=y_pred, y=y, mask=mask)
         else:
             self.log_metrics(mode="test", pred=y_pred, y=y)

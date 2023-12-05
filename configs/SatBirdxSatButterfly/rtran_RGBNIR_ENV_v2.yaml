@@ -157,6 +157,8 @@ data:
     env_means: "SatButterfly_v2/USA/stats/env_means_SatBirdxSatButterfly.npy"
     env_stds: "SatButterfly_v2/USA/stats/env_stds_SatBirdxSatButterfly.npy"
 
+    species_list: "/network/projects/ecosystem-embeddings/SatButterfly_v2/USA/species_list_USA_birds+butterflies.txt"
+
   correction_factor:
      thresh: # to train with RM
 

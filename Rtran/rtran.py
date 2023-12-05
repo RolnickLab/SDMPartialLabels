@@ -10,7 +10,7 @@ from Rtran.models import *
 
 
 class RTranModel(nn.Module):
-    def __init__(self, num_classes, backbone='Resnet18', pretrained_backbone=True, quantized_mask_bins=1, input_channels=3, d_hidden=512, attention_layers=3, heads=4, dropout=0.2, use_pos_encoding=False, scale_embeddings_by_labels=False):
+    def __init__(self, num_classes, species_list, backbone='Resnet18', pretrained_backbone=True, quantized_mask_bins=1, input_channels=3, d_hidden=512, attention_layers=3, heads=4, dropout=0.2, use_pos_encoding=False, scale_embeddings_by_labels=False):
         """
         pos_emb is false by default
         """
@@ -31,7 +31,7 @@ class RTranModel(nn.Module):
 
         # word embeddings
         if self.use_text_species:
-            padded_species, word_to_idx, vocab_size = tokenize_species() # 866, (670, 2)
+            padded_species, word_to_idx, vocab_size = tokenize_species(species_file_name=species_list)  # 866, (670, 2)
             self.embedded_species = torch.tensor(padded_species, dtype=torch.long) # (670, 2)
             # TODO: modify the labels to actually take text labels rather than label numbers
             self.label_embeddings = torch.nn.Embedding(num_embeddings=vocab_size, embedding_dim=self.d_hidden, padding_idx=None)  # LxD
