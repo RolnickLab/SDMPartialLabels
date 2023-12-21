@@ -16,13 +16,14 @@ from torch.nn import BCEWithLogitsLoss
 from torch.utils.data import DataLoader
 from torchvision import models
 
-from src.dataset.dataloader import EbirdVisionDataset, get_subset
+from src.dataset.dataloader import *
 from src.losses.losses import CustomCrossEntropyLoss, WeightedCustomCrossEntropyLoss, RMSLELoss, CustomFocalLoss
 from src.losses.metrics import get_metrics
 from src.trainer.utils import get_target_size, get_nb_bands, get_scheduler, init_first_layer_weights, \
     load_from_checkpoint
 from src.transforms.transforms import get_transforms
 from src.models.vit import ViTFinetune
+# from src.models.vit_multispectral import *
 from src.models.backbones import MultiInputResnet18
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -74,6 +75,31 @@ class EbirdTask(pl.LightningModule):
 
         self.model = self.get_sat_model()
 
+    def label_masking(self, target, index=-1):
+        # 0: 372 unknown, predict songbirds
+        # 1: 298 unknown, predict nonsongbirds
+        if index == -1:
+            return None
+        songbird_indices = [
+            "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/stats/nonsongbird_indices.npy",
+            "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/stats/songbird_indices.npy"]
+        unk_mask_indices = np.load(songbird_indices[index])
+        mask = target.clone()
+
+        unk_mask_indices = torch.Tensor(unk_mask_indices).long().to(device)
+        unk_mask_indices = unk_mask_indices.repeat(mask.size(0), 1)
+
+        mask[mask > 0] = 1
+        # for i in range(mask.size(0)):
+        mask.scatter_(dim=1, index=unk_mask_indices, value=-1)
+
+        out_mask = mask.clone()
+        out_mask[mask == -1] = 0
+        out_mask[mask == 0] = 1
+        out_mask[mask == 1] = 1
+
+        return out_mask
+
     def get_sat_model(self):
         if self.opts.experiment.module.model == "satlas":
             print('using Satlas model')
@@ -123,6 +149,22 @@ class EbirdTask(pl.LightningModule):
             for param in self.feature_extractor.parameters():
                 param.requires_grad = False
             self.model = nn.Linear(in_feat, self.target_size)
+
+        # elif self.opts.experiment.module.model == "satmae_stack":
+        #     print('using SatMAE-Stack model')
+        #     self.model = models_vit_group_channels.__dict__[args.model](
+        #         patch_size=16, img_size=224, in_chans=10,
+        #         channel_groups=[[0, 1, 2, 3], [4, 5, 6, 7], [8, 9]],
+        #         num_classes=self.target_size)
+        #     self.model = load_from_checkpoint(self.opts.experiment.module.resume, self.model).to('cuda')
+
+        # elif self.opts.experiment.module.model == "convnext":
+        #     self.model = torchvision.models.convnext_small(pretrained=self.opts.experiment.module.pretrained)
+        #     self.bands = self.opts.data.bands + self.opts.data.env
+        #     weights = self.model.conv1.weight.data.clone()
+        #     self.model.conv1 = nn.Conv2d(get_nb_bands(self.bands), 64, kernel_size=(7, 7), stride=(2, 2),
+        #                                  padding=(3, 3), bias=False)
+        #     self.model.classifier[2] = nn.Linear(1024, self.target_size)
 
         elif self.opts.experiment.module.model == "resnet18":
 
@@ -330,7 +372,13 @@ class EbirdTask(pl.LightningModule):
 
         pred_ = pred.clone().type_as(y)
 
-        loss = self.criterion(pred, y)
+        mask_label = self.label_masking(y, index=-1)
+        if mask_label is None:
+            loss = self.criterion(pred, y)
+        else:
+            loss = self.criterion(pred, y, mask=mask_label)
+            pred_ = pred_ * mask_label
+            y = y * mask_label
 
         if self.opts.data.target.type == "binary":
             pred_ = self.sigmoid_activation(pred_)
@@ -341,6 +389,10 @@ class EbirdTask(pl.LightningModule):
             nname = "val_" + name
             if name == 'r2':
                 value = torch.mean(getattr(self, nname)(y, pred_))
+            elif name == 'mae' and mask_label != None:
+                value = getattr(self, nname)(y, pred_, mask_label)
+            elif name == 'mse' and mask_label != None:
+                value = getattr(self, nname)(y, pred_, mask_label)
             else:
                 value = getattr(self, nname)(y, pred_)
 
@@ -381,9 +433,15 @@ class EbirdTask(pl.LightningModule):
             y *= mask
             pred = cloned_pred
 
-        loss = self.criterion(pred, y)
-
+        mask_label = self.label_masking(y, index=-1)
         pred_ = pred.clone().type_as(y)
+
+        if mask_label is None:
+            loss = self.criterion(pred, y)
+        else:
+            loss = self.criterion(pred, y, mask=mask_label)
+            pred_ = pred_ * mask_label
+            y = y * mask_label
 
         if self.opts.data.target.type == "binary":
             pred_ = self.sigmoid_activation(pred_)
@@ -394,6 +452,10 @@ class EbirdTask(pl.LightningModule):
             nname = "test_" + name
             if name == 'r2':
                 value = torch.mean(getattr(self, nname)(y, pred_))
+            elif name == 'mae' and mask_label != None:
+                value = getattr(self, nname)(y, pred_, mask_label)
+            elif name == 'mse' and mask_label != None:
+                value = getattr(self, nname)(y, pred_, mask_label)
             else:
                 value = getattr(self, nname)(y, pred_)
 
@@ -406,7 +468,7 @@ class EbirdTask(pl.LightningModule):
                 os.mkdir(preds_path)
             for i, elem in enumerate(pred):
                 np.save(os.path.join(preds_path, batch["hotspot_id"][i] + ".npy"), elem.cpu().detach().numpy())
-        print("saved elems")
+            print("saved elems")
 
     def get_optimizer(self, model, opts):
         if self.opts.optimizer == "Adam":

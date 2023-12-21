@@ -11,6 +11,7 @@ from tqdm import tqdm
 import pystac_client
 import planetary_computer
 import argparse
+import stackstac
 
 planetary_computer.settings.set_subscription_key("api-key")
 # This should be a secret!! ask me for mine
@@ -28,7 +29,9 @@ catalog = pystac_client.Client.open(
 )
 
 # Define the bands we are interested in --> r,g,b,nir and true color image or "visual"
-BANDS = ["B02", "B03", "B04", "B08"]
+# BANDS = ["B02", "B03", "B04", "B08"] # thes ones with 10m resolution
+BANDS = ["B05", "B06", "B07", "B8A", "B11", "B12"] # the ones with 20m resolution
+# BANDS = ["B01", "B09"] # the ones with 60m resolution
 
 time_of_interest = "2022-06-01/2022-07-31" #this is for summer, if winter use "2022-12-01/2023-01-31"
 
@@ -63,7 +66,7 @@ def process_row(row, save_dir):
         collections=["sentinel-2-l2a"],
         intersects=area_of_interest,
         datetime=time_of_interest,
-        query={"eo:cloud_cover": {"lt": 10}},
+        query={"eo:cloud_cover": {"lt": 20}}, # default cloud cover is 10
     )
 
     items = search.get_all_items()
@@ -182,7 +185,7 @@ def main():
     
     # Specify the directory to save the rasters
     WINTER_SAVE_DIRECTORY = "/network/projects/ecosystem-embeddings/ebird_new/rasters_new/winter_rasters/"
-    SUMMER_SAVE_DIRECTORY = "/network/projects/_groups/ecosystem-embeddings/ebird_new/rasters_new/summer_rasters"
+    SUMMER_SAVE_DIRECTORY = "/network/projects/_groups/ecosystem-embeddings/SatBird_data_v2/USA_summer/images_multispectral_20m"
 
     winter_polygons = "/network/projects/ecosystem-embeddings/ebird_new/polygons_winter.csv"
     summer_polygons = "/network/projects/ecosystem-embeddings/ebird_new/polygons_summer.csv"
@@ -215,6 +218,11 @@ def main():
     data = pd.read_csv(polygons_file)
 
     data = data.iloc[index*range: (index+1)*range]
+
+    # ignore previously downloaded images if any.
+    previously_downloaded_hotspots = [file.split('.')[0] for file in os.listdir(SUMMER_SAVE_DIRECTORY)]
+    data = data[~data['hotspot_it_id'].isin(previously_downloaded_hotspots)]
+
     data_df = gpd.GeoDataFrame(data)
 
     # data_df = data_df[:50]

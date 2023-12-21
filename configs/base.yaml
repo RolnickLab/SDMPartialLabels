@@ -67,12 +67,8 @@ variables: &default_vars
     ped_std: &ped_std []
     bioclim_means: &bioclim_means []
     bioclim_std: &bioclim_std []
-
-    rgbnir_means: &rgbnir_means []
-    rgbnir_std: &rgbnir_std []
-
-    visual_means: &visual_means []
-    visual_stds: &visual_stds []
+    sat_means: &sat_means []
+    sat_stds: &sat_stds []
 
 data:
   loaders:
@@ -100,7 +96,7 @@ data:
       res: 1000
 
   files:
-    base: "USA_summer"
+    base: "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer"
     train: "train_split.csv"
     val: "valid_split.csv"
     test: "test_split.csv"
@@ -110,11 +106,8 @@ data:
     images_folder: "images"
     correction_thresh: "range_maps.pkl" # range maps - threshold = False
 
-    rgbnir_means: "stats/means_rgbnir.npy"
-    rgbnir_stds: "stats/stds_rgbnir.npy"
-
-    rgb_means: "stats/means_images_visual.npy"
-    rgb_stds: "stats/stds_images_visual.npy"
+    sat_means: "stats/means_images.npy"
+    sat_stds: "stats/stds_images.npy"
 
     env_means: "stats/env_means.npy"
     env_stds: "stats/env_stds.npy"
@@ -154,7 +147,7 @@ data:
       ignore: False
       maxchan: false
       subset: ["sat"]
-      custom: [*rgbnir_means, *rgbnir_std]
+      custom: [*sat_means, *sat_stds]
 
     - name: normalize
       normalize_by_255: False

@@ -134,6 +134,85 @@ def compute_means_stds_images_visual(root_dir, train_csv, img_folder="images_vis
     return means.tolist(), stds.tolist()
 
 
+def compute_means_stds_multispectral_sat_images(root_dir, train_csv, img_bands, img_folder='images', output_file_means="stats/means_summer_rgbnir.npy",
+                              output_file_std="stats/stds_summer_rgbnir.npy"):
+    """
+    computes normalization statistics (means, stds) on training data, for RGBNIR refl channels
+    """
+    stats_df = pd.DataFrame(columns=["hotspot_id"] + img_bands)
+    output_file_means_path = os.path.join(root_dir, output_file_means)
+    if os.path.exists(output_file_means_path):
+        means = np.load(output_file_means_path)
+    else:
+        for folder_index, train_csv_file in enumerate(train_csv):
+            df = pd.read_csv(os.path.join(root_dir, train_csv_file))
+            for i, row in tqdm(df.iterrows()):
+                hs = row["hotspot_id"]
+                arrs = []
+                if {"B2", "B3", "B4", "B8"}.issubset(set(img_bands)):
+                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}_10m.tif"))
+                    # print(arr.shape)
+                    arr = crop_center(arr, 64, 64)
+                    arrs.append(arr)
+                if {"B5", "B6", "B7", "B8A", "B11", "B12"}.issubset(set(img_bands)):
+                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}_20m.tif"))
+                    # print(arr.shape)
+                    arr = crop_center(arr, 64, 64)
+                    arrs.append(arr)
+                if {"r", "g", "b"}.issubset(set(img_bands)):
+                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}_visual.tif"))
+                    arr = crop_center(arr, 64, 64)
+                    arrs.append(arr)
+                cropped = np.dstack(arrs)
+                # print(cropped.shape)
+                means = np.mean(np.mean(cropped, axis=0), axis=0)
+                new_row = {'hotspot_id': hs}
+                for mean_i in range(len(img_bands)):
+                    new_row[img_bands[mean_i]] = means[mean_i]
+                stats_df = stats_df.append(new_row, ignore_index=True)
+        means = np.array(stats_df[img_bands].mean(axis=0))
+        np.save(output_file_means_path, means)
+        del stats_df
+
+    print("Sat Image means: ", means)
+
+    output_file_stds_path = os.path.join(root_dir, output_file_std)
+    if os.path.exists(output_file_stds_path):
+        stds = np.load(output_file_stds_path, allow_pickle=True, fix_imports=True, encoding='latin1')
+    else:
+        stats_df = pd.DataFrame(columns=["hotspot_id"] + img_bands)
+        for folder_index, train_csv_file in enumerate(train_csv):
+            df = pd.read_csv(os.path.join(root_dir, train_csv_file))
+            for i, row in tqdm(df.iterrows()):
+                hs = row["hotspot_id"]
+                arrs = []
+                if {"B2", "B3", "B4", "B8"}.issubset(set(img_bands)):
+                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}_10m.tif"))
+                    arr = crop_center(arr, 64, 64)
+                    arrs.append(arr)
+                if {"B5", "B6", "B7", "B8A", "B11", "B12"}.issubset(set(img_bands)):
+                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}_20m.tif"))
+                    arr = crop_center(arr, 64, 64)
+                    arrs.append(arr)
+                if {"r", "g", "b"}.issubset(set(img_bands)):
+                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}_visual.tif"))
+                    arr = crop_center(arr, 64, 64)
+                    arrs.append(arr)
+                cropped = np.dstack(arrs)
+                std = ((cropped - means) ** 2 / (64 * 64)).sum(axis=0).sum(axis=0)
+                new_row = {'hotspot_id': hs}
+                for mean_i in range(len(img_bands)):
+                    new_row[img_bands[mean_i]] = std[mean_i]
+                stats_df = stats_df.append(new_row, ignore_index=True)
+        stds = np.sqrt(np.array(stats_df[img_bands].mean(axis=0)))
+        np.save(output_file_stds_path, stds)
+        del stats_df
+
+    print("Images Sat stds: ", stds)
+
+    return means.tolist(), stds.tolist()
+
+
 def compute_means_stds_env_vars_point_values(root_dir, train_csv):
     """
     computes normalization statistics (means, stds) on training data, for environmental variables

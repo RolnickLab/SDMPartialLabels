@@ -3,7 +3,8 @@ import os
 from typing import Any, Callable, Dict, Optional
 import numpy as np
 import torch
-from torchvision import transforms as trsfs
+from torchvision import transforms
+import tifffile as tiff
 
 from src.dataset.geo import VisionDataset
 from src.dataset.utils import get_subset, load_file, encode_loc
@@ -66,24 +67,45 @@ class EbirdVisionDataset(VisionDataset):
     def __len__(self):
         return self.total_images
 
+    def _load_spectral_bands(self, hotspot_id):
+        # crop the image using above defined transform
+        transform = transforms.CenterCrop((64, 64))
+        sats = []
+        if {"B2", "B3", "B4", "B8"}.issubset(set(self.bands)):
+            img_path = os.path.join(self.data_base_dir, self.images_folder, hotspot_id + '_10m.tif')
+            img = tiff.imread(img_path)
+            img = np.reshape(img, (img.shape[2], img.shape[0], img.shape[1])).astype(float)
+            img = transform(torch.from_numpy(img))
+            sats.append(img.float())
+        if {"B5", "B6", "B7", "B8A", "B11", "B12"}.issubset(set(self.bands)):
+            img_path = os.path.join(self.data_base_dir, self.images_folder, hotspot_id + '_20m.tif')
+            img = tiff.imread(img_path)
+            img = np.reshape(img, (img.shape[2], img.shape[0], img.shape[1])).astype(float)
+            img = transform(torch.from_numpy(img))
+            sats.append(img.float())
+        if {"r", "g", "b"}.issubset(set(self.bands)):
+            img_path = os.path.join(self.data_base_dir, self.images_folder, hotspot_id + '_visual.tif')
+            img = tiff.imread(img_path)
+            img = np.reshape(img, (img.shape[2], img.shape[0], img.shape[1])).astype(float)
+            img = transform(torch.from_numpy(img))
+            sats.append(img.float())
+
+        sats = torch.cat(sats, dim=0)
+
+        return sats
+
     def __getitem__(self, index: int) -> Dict[str, Any]:
         item_ = {}
 
         hotspot_id = self.df.iloc[index]['hotspot_id']
 
+        band_groups = []
         assert self.type != "" or len(self.env) == 0, "input cannot be empty of satellite image or env data"
         # satellite image
-        if self.type:
-            if self.type == 'img':
-                img_path = os.path.join(self.data_base_dir, self.images_folder + "_visual", hotspot_id + '_visual.tif')
-            elif self.type == 'refl':
-                img_path = os.path.join(self.data_base_dir, self.images_folder, hotspot_id + '.tif')
+        item_["sat"] = self._load_spectral_bands(hotspot_id=hotspot_id)
 
-            img = load_file(img_path)
-            sats = torch.from_numpy(img).float()
-            item_["sat"] = sats
+        assert len(self.env) == len(self.env_var_sizes), "# of env variables must be equal to the size of env vars "
 
-        assert len(self.env) == len(self.env_var_sizes), "env variables sizes must be equal to the size of env vars specified"
         # env rasters
         for i, env_var in enumerate(self.env):
             env_npy = os.path.join(self.data_base_dir, self.env_data_folder, hotspot_id + '.npy')
@@ -92,7 +114,7 @@ class EbirdVisionDataset(VisionDataset):
             e_i = self.env_var_sizes[i] + s_i
             item_[env_var] = torch.from_numpy(env_data[s_i:e_i, :, :])
 
-        t = trsfs.Compose(self.transform)
+        t = transforms.Compose(self.transform)
         item_ = t(item_)
 
         if self.type:
@@ -124,23 +146,10 @@ class EbirdVisionDataset(VisionDataset):
             targ[targ > 0] = 1
             item_["target"] = torch.Tensor(targ)
 
-        elif self.target == "log":
-            if not self.subset is None:
-                item_["target"] = np.array(species["probs"])[self.subset]
-            else:
-                item_["target"] = species["probs"]
-
         else:
             raise NameError("type of target not supported, should be probs or binary")
 
         item_["num_complete_checklists"] = species["num_complete_checklists"]
-
-        if self.use_loc:
-            if self.loc_type == "latlon":
-                lon, lat = torch.Tensor([item_["lon"]]), torch.Tensor([item_["lat"]])
-                loc = torch.cat((lon, lat)).unsqueeze(0)
-                loc = encode_loc(loc)
-                item_["loc"] = loc
 
         item_["hotspot_id"] = hotspot_id
 

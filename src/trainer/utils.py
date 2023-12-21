@@ -112,7 +112,7 @@ def get_nb_bands(bands):
     """
     n = 0
     for b in bands:
-        if b in ["r", "g", "b", "nir", "landuse"]:
+        if b in ["r", "g", "b", "nir", "landuse", "B2", "B3", "B4", "B8", "B5", "B6", "B7", "B8A", "B11", "B12"]:
             n += 1
         elif b == "ped":
             n += 8
