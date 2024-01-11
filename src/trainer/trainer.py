@@ -23,7 +23,7 @@ from src.trainer.utils import get_target_size, get_nb_bands, get_scheduler, init
     load_from_checkpoint
 from src.transforms.transforms import get_transforms
 from src.models.vit import ViTFinetune
-# from src.models.vit_multispectral import *
+from src.models.vit_multispectral import *
 from src.models.backbones import MultiInputResnet18
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -150,21 +150,21 @@ class EbirdTask(pl.LightningModule):
                 param.requires_grad = False
             self.model = nn.Linear(in_feat, self.target_size)
 
-        # elif self.opts.experiment.module.model == "satmae_stack":
-        #     print('using SatMAE-Stack model')
-        #     self.model = models_vit_group_channels.__dict__[args.model](
-        #         patch_size=16, img_size=224, in_chans=10,
-        #         channel_groups=[[0, 1, 2, 3], [4, 5, 6, 7], [8, 9]],
-        #         num_classes=self.target_size)
-        #     self.model = load_from_checkpoint(self.opts.experiment.module.resume, self.model).to('cuda')
+        elif self.opts.experiment.module.model == "satmae_stack":
+            print('using SatMAE-Stack model')
+            self.model = GroupChannelsVisionTransformer(
+                patch_size=8, img_size=64, in_chans=10,
+                channel_groups=[[0, 1, 2, 3], [4, 5, 6, 7], [8, 9]],
+                num_classes=self.target_size,
+                embed_dim=768, num_heads=12)
+            self.model = load_from_checkpoint(self.opts.experiment.module.resume, self.model).to('cuda')
 
-        # elif self.opts.experiment.module.model == "convnext":
-        #     self.model = torchvision.models.convnext_small(pretrained=self.opts.experiment.module.pretrained)
-        #     self.bands = self.opts.data.bands + self.opts.data.env
-        #     weights = self.model.conv1.weight.data.clone()
-        #     self.model.conv1 = nn.Conv2d(get_nb_bands(self.bands), 64, kernel_size=(7, 7), stride=(2, 2),
-        #                                  padding=(3, 3), bias=False)
-        #     self.model.classifier[2] = nn.Linear(1024, self.target_size)
+        elif self.opts.experiment.module.model == "convnext":
+            self.model = torchvision.models.convnext_small(pretrained=self.opts.experiment.module.pretrained)
+            self.bands = self.opts.data.bands + self.opts.data.env
+            in_channels = get_nb_bands(self.bands)
+            self.model.features[0][0] = nn.Conv2d(in_channels, 96, kernel_size=(4, 4), stride=(4, 4))
+            self.model.classifier[2] = nn.Linear(768, self.target_size)
 
         elif self.opts.experiment.module.model == "resnet18":
 

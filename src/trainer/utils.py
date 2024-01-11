@@ -185,7 +185,29 @@ def load_from_checkpoint(path, model):
 
         model.load_state_dict(model_dict)
 
+    elif 'vit' in path:
+        checkpoint = torch.load(path)
+        checkpoint_model = checkpoint['model']
+        print('vit base keys', checkpoint_model.keys())
+        # print(checkpoint_model['channel_cls_embed'])
+        # print(checkpoint_model['channel_embed'])
 
+        state_dict = model.state_dict()
+        print('model keys', state_dict.keys())
+
+        loaded_dict = checkpoint_model
+        model_dict = model.state_dict()
+
+        # loaded_dict['norm.weight'] = loaded_dict['fc_norm.weight']
+        # loaded_dict['norm.bias'] = loaded_dict['fc_norm.bias']
+
+        for key_model in model_dict.keys():
+            if 'fc' in key_model or 'head' in key_model or 'pos_embed':
+                model_dict[key_model] = model_dict[key_model]
+            else:
+                model_dict[key_model] = loaded_dict[key_model]
+
+        model.load_state_dict(model_dict)
 
     else:
         ckpt = torch.load(path)
