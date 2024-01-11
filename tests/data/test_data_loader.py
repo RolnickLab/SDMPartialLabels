@@ -4,7 +4,7 @@ import pandas as pd
 import torch
 import pytest
 
-from Rtran.dataloader import SDMVisionMaskedDataset
+from Rtran.dataloader import SDMMaskedDataset
 from src.utils.config_utils import load_opts
 
 
@@ -31,7 +31,7 @@ def test_data_loader(config, dataframe) -> None:
     test that data loader has correct shapes
     """
 
-    dataset = SDMVisionMaskedDataset(df=dataframe[0:100], data_base_dir=config.data.files.base, env=config.data.env,
+    dataset = SDMMaskedDataset(df=dataframe[0:100], data_base_dir=config.data.files.base, env=config.data.env,
         env_var_sizes=config.data.env_var_sizes, num_species=config.data.total_species)
 
     image_input_channels = len(config.data.bands)
@@ -48,7 +48,7 @@ def test_masked_data_loader(config, dataframe):
     test the creation of masks
     """
 
-    dataset = SDMVisionMaskedDataset(df=dataframe[0:100], data_base_dir=config.data.files.base, env=config.data.env,
+    dataset = SDMMaskedDataset(df=dataframe[0:100], data_base_dir=config.data.files.base, env=config.data.env,
         env_var_sizes=config.data.env_var_sizes, num_species=config.data.total_species)
 
     # for training, mask can include 3 values (unknown -1, negative 0, known 1)
@@ -57,7 +57,7 @@ def test_masked_data_loader(config, dataframe):
     assert list(minibatch["mask"].size()) == [config.data.total_species]
 
     for mode in ["val", "test"]:
-        dataset = SDMVisionMaskedDataset(df=dataframe[0:100], data_base_dir=config.data.files.base, env=config.data.env,
+        dataset = SDMMaskedDataset(df=dataframe[0:100], data_base_dir=config.data.files.base, env=config.data.env,
             mode=mode, env_var_sizes=config.data.env_var_sizes, num_species=config.data.total_species)
 
         # for validation/testing, mask should include (unknown)
