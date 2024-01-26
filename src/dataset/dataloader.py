@@ -16,7 +16,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 class EbirdVisionDataset(VisionDataset):
 
     def __init__(self,
-                 df_paths,
+                 df,
                  data_base_dir,
                  bands,
                  env,
@@ -32,7 +32,9 @@ class EbirdVisionDataset(VisionDataset):
                  use_loc=False,
                  res=[],
                  loc_type=None,
-                 num_species=684) -> None:
+                 num_species=684,
+                 species_set=None,
+                 predict_family_of_species=-1) -> None:
         """
         df_paths: dataframe with paths to data for each hotspot
         data_base_dir: base directory for data
@@ -46,9 +48,9 @@ class EbirdVisionDataset(VisionDataset):
         """
 
         super().__init__()
-        self.df = df_paths
+        self.df = df
         self.data_base_dir = data_base_dir
-        self.total_images = len(df_paths)
+        self.total_images = len(df)
         self.transform = transforms
         self.bands = bands
         self.env = env
@@ -64,6 +66,7 @@ class EbirdVisionDataset(VisionDataset):
         self.loc_type = loc_type
         self.res = res
         self.num_species = num_species
+        self.predict_family_of_species = predict_family_of_species
 
     def __len__(self):
         return self.total_images
@@ -156,7 +159,16 @@ class EbirdVisionDataset(VisionDataset):
         item_["num_complete_checklists"] = species["num_complete_checklists"]
 
         item_["hotspot_id"] = hotspot_id
-        item_["mask"] = None
+
+        if self.predict_family_of_species != -1:
+            songbird_indices = [
+                "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/stats/songbird_indices.npy",
+                "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/stats/nonsongbird_indices.npy"]
+            unk_mask_indices = np.load(songbird_indices[self.predict_family_of_species])
+            target_mask = item_["target"].clone()
+            target_mask[target_mask >= 0] = 0
+            target_mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=1)
+            item_["mask"] = target_mask
 
         return item_
 
@@ -165,7 +177,7 @@ class SDMCombinedDataset(VisionDataset):
     def __init__(self, df, data_base_dir, bands, env, env_var_sizes,
                  transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,  mode="train", datatype="refl",
                  target="probs", targets_folder="corrected_targets", targets_folder_2="SatButterfly_v2/USA/butterfly_targets_v1.2", images_folder="images", env_data_folder="environmental",
-                 num_species=670, subset=None, species_set=None) -> None:
+                 subset=None,  num_species=670, species_set=None, predict_family_of_species=-1) -> None:
         """
         SatBird + SatButterfly co-located with SatBird + SatButterfly independently from ebird
         df_paths: dataframe with paths (image, image_visual, targets, env_data)to data for each hotspot
@@ -194,7 +206,7 @@ class SDMCombinedDataset(VisionDataset):
         self.env_data_folder = env_data_folder
         self.num_species = num_species
         self.species_set = species_set
-
+        self.predict_family_of_species = predict_family_of_species
     def __len__(self):
         return len(self.df)
 
@@ -278,5 +290,16 @@ class SDMCombinedDataset(VisionDataset):
 
         item_["mask"] = mask
         item_["hotspot_id"] = hotspot_id
+
+        if self.predict_family_of_species != -1:
+            target_mask = item_["target"].clone()
+            target_mask[target_mask >= 0] = 0
+            if self.predict_family_of_species == 0: # predict birds
+                unk_mask_indices = np.arange(0, self.species_set[0])
+            else:
+                unk_mask_indices = np.arange(self.species_set[0], self.species_set[0] + self.species_set[1]) # predict butterflies
+
+            target_mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=1)
+            item_["mask"] = target_mask
 
         return item_

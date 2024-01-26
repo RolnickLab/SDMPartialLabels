@@ -133,29 +133,39 @@ class CustomTop30(Metric):
 class MaskedMSE(Metric):
     def __init__(self):
         super().__init__()
+        self.add_state("squared_error", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("num_samples", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor=None):
         squared_diffs = (preds - target) ** 2
-        self.masked_squared_diffs = squared_diffs * mask
-        self.non_zero_sum = mask.sum()
+        self.squared_error += squared_diffs.sum()
+        if mask is None:
+            self.num_samples += (preds.size(0) * preds.size(1))
+        else:
+            self.num_samples += (mask.sum())
 
     def compute(self):
-        mse = self.masked_squared_diffs.sum() / self.non_zero_sum
+        mse = self.squared_error / self.num_samples
         return mse
 
 
 class MaskedMAE(Metric):
     def __init__(self):
         super().__init__()
+        self.add_state("abs_error", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("num_samples", default=torch.tensor(0), dist_reduce_fx="sum")
 
     def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor=None):
-        squared_diffs = torch.abs(preds - target)
+        diffs = torch.abs(preds - target)
         # Apply the mask
-        self.masked_abs_diffs = squared_diffs * mask
-        self.non_zero_sum = mask.sum()
+        self.abs_error += diffs.sum()
+        if mask is None:
+            self.num_samples += (preds.size(0) * preds.size(1))
+        else:
+            self.num_samples += (mask.sum())
 
     def compute(self):
-        mae = self.masked_abs_diffs.sum() / self.non_zero_sum
+        mae = self.abs_error / self.num_samples
         return mae
 
 
@@ -184,22 +194,16 @@ class CustomMultiLabelAcc(Metric):
         return self.correct.float() / self.total
 
 
-def get_metric(metric, masked=False):
+def get_metric(metric):
     """Returns the transform function associated to a
     transform_item listed in opts.data.transforms ; transform_item is
     an addict.Dict
     """
 
     if metric.name == "mae" and not metric.ignore is True:
-        if not masked:
-            return torchmetrics.MeanAbsoluteError()
-        else:
-            return MaskedMAE()
+        return MaskedMAE()
     elif metric.name == "mse" and not metric.ignore is True:
-        if not masked:
-            return torchmetrics.MeanSquaredError()
-        else:
-            return MaskedMSE()
+        return MaskedMSE()
     elif metric.name == "topk" and not metric.ignore is True:
         return CustomTopK()
     elif metric.name == "top10" and not metric.ignore is True:
@@ -224,6 +228,6 @@ def get_metric(metric, masked=False):
 def get_metrics(config):
     metrics = []
     for m in config.losses.metrics:
-        metrics.append((m.name, get_metric(m, config.Rtran.mask_eval_metrics), m.scale))
+        metrics.append((m.name, get_metric(m), m.scale))
     metrics = [(a, b, c) for (a, b, c) in metrics if b is not None]
     return metrics

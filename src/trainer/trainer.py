@@ -74,33 +74,6 @@ class EbirdTask(pl.LightningModule):
 
         self.model = self.get_sat_model()
 
-    def label_masking(self, target, index=-1, mask=None):
-        # 0: 372 unknown, predict songbirds
-        # 1: 298 unknown, predict nonsongbirds
-        if index == -1:
-            return None
-        if mask is not None:
-            return mask
-        songbird_indices = [
-            "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/stats/nonsongbird_indices.npy",
-            "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/stats/songbird_indices.npy"]
-        unk_mask_indices = np.load(songbird_indices[index])
-        mask = target.clone()
-
-        unk_mask_indices = torch.Tensor(unk_mask_indices).long().to(device)
-        unk_mask_indices = unk_mask_indices.repeat(mask.size(0), 1)
-
-        mask[mask > 0] = 1
-        # for i in range(mask.size(0)):
-        mask.scatter_(dim=1, index=unk_mask_indices, value=-1)
-
-        out_mask = mask.clone()
-        out_mask[mask == -1] = 0
-        out_mask[mask == 0] = 1
-        out_mask[mask == 1] = 1
-
-        return out_mask
-
     def get_sat_model(self):
         if self.opts.experiment.module.model == "satlas":
             print('using Satlas model')
@@ -281,8 +254,10 @@ class EbirdTask(pl.LightningModule):
         """Training step"""
         x = batch['input'].squeeze(1)
         y = batch['target']
-        mask = batch["mask"]
-
+        if self.target_size > 670:
+            mask_label = batch["mask"].long()
+        else:
+            mask_label = None
         hotspot_id = batch['hotspot_id']
 
         if self.opts.experiment.module.model == "satlas" or self.opts.experiment.module.model == "satmae":
@@ -319,7 +294,7 @@ class EbirdTask(pl.LightningModule):
 
             loss = self.criterion(pred, y, new_weights)
         else:
-            loss = self.criterion(pred, y, mask=mask)
+            loss = self.criterion(pred, y, mask=mask_label)
 
         pred_ = pred.clone().type_as(y)
         if self.opts.data.target.type == "binary":
@@ -343,8 +318,10 @@ class EbirdTask(pl.LightningModule):
         """Validation step """
         x = batch['input'].squeeze(1)  # .to(device)
         y = batch['target']
-        mask = batch["mask"].long()
-
+        if self.target_size > 670:
+            mask_label = batch["mask"].long()
+        else:
+            mask_label = None
         hotspot_id = batch['hotspot_id']
 
         if self.opts.data.correction_factor.thresh:
@@ -375,7 +352,6 @@ class EbirdTask(pl.LightningModule):
 
         pred_ = pred.clone().type_as(y)
 
-        mask_label = self.label_masking(y, index=-1, mask=mask)
         if mask_label is None:
             loss = self.criterion(pred, y)
         else:
@@ -393,9 +369,9 @@ class EbirdTask(pl.LightningModule):
             if name == 'r2':
                 value = torch.mean(getattr(self, nname)(y, pred_))
             elif name == 'mae' and mask_label != None:
-                value = getattr(self, nname)(y, pred_, mask_label)
+                value = getattr(self, nname)(y, pred_, mask=mask_label)
             elif name == 'mse' and mask_label != None:
-                value = getattr(self, nname)(y, pred_, mask_label)
+                value = getattr(self, nname)(y, pred_, mask=mask_label)
             else:
                 value = getattr(self, nname)(y, pred_)
 
@@ -407,7 +383,10 @@ class EbirdTask(pl.LightningModule):
 
         x = batch['input'].squeeze(1)
         y = batch['target']
-        mask = batch["mask"].long()
+        if self.target_size > 670:
+            mask_label = batch["mask"].long()
+        else:
+            mask_label = None
 
         hotspot_id = batch['hotspot_id']
         if self.opts.data.correction_factor.thresh:
@@ -437,7 +416,6 @@ class EbirdTask(pl.LightningModule):
             y *= mask
             pred = cloned_pred
 
-        mask_label = self.label_masking(y, index=-1, mask=mask)
         pred_ = pred.clone().type_as(y)
 
         if mask_label is None:
@@ -457,9 +435,9 @@ class EbirdTask(pl.LightningModule):
             if name == 'r2':
                 value = torch.mean(getattr(self, nname)(y, pred_))
             elif name == 'mae' and mask_label != None:
-                value = getattr(self, nname)(y, pred_, mask_label)
+                value = getattr(self, nname)(y, pred_, mask=mask_label)
             elif name == 'mse' and mask_label != None:
-                value = getattr(self, nname)(y, pred_, mask_label)
+                value = getattr(self, nname)(y, pred_, mask=mask_label)
             else:
                 value = getattr(self, nname)(y, pred_)
 
@@ -509,6 +487,7 @@ class EbirdDataModule(pl.LightningDataModule):
         self.batch_size = self.opts.data.loaders.batch_size
         self.num_workers = self.opts.data.loaders.num_workers
         self.data_base_dir = self.opts.data.files.base
+
         self.targets_folder = self.opts.data.files.targets_folder
         self.env_data_folder = self.opts.data.files.env_data_folder
         self.images_folder = self.opts.data.files.images_folder
@@ -519,8 +498,12 @@ class EbirdDataModule(pl.LightningDataModule):
         self.target = self.opts.data.target.type
         self.subset = self.opts.data.target.subset
         self.res = self.opts.data.multiscale
-        self.use_loc = self.opts.loc.use
         self.num_species = self.opts.data.total_species
+        self.species_set = self.opts.data.species
+        try:
+            self.predict_family_of_species = self.opts.data.target.predict_family_of_species
+        except:
+            self.predict_family_of_species = -1
 
         self.df_train = pd.read_csv(os.path.join(self.data_base_dir, self.opts.data.files.train[0]))
         if len(self.opts.data.files.train) > 1:
@@ -539,15 +522,15 @@ class EbirdDataModule(pl.LightningDataModule):
                 self.df_test = pd.concat(
                     [self.df_test, pd.read_csv(os.path.join(self.data_base_dir, df_file_name))], axis=0)
 
-        if len(self.opts.data.files.train) > 1:
+        if len(self.species_set) > 1:
             self.dataloader_to_use = "SDMCombinedDataset"
         else:
-            self.dataloader_to_use = "SDMMaskedDataset"
+            self.dataloader_to_use = "EbirdVisionDataset"
 
     def setup(self, stage: Optional[str] = None) -> None:
         """create the train/test/val splits and prepare the transforms for the multires"""
         self.all_train_dataset = globals()[self.dataloader_to_use](
-            df= self.df_train,
+            df=self.df_train,
             data_base_dir=self.data_base_dir,
             bands=self.bands,
             env=self.env,
@@ -561,7 +544,8 @@ class EbirdDataModule(pl.LightningDataModule):
             images_folder=self.images_folder,
             subset=self.subset,
             num_species=self.num_species,
-            species_set=self.opts.data.species)
+            species_set=self.species_set,
+            predict_family_of_species=self.predict_family_of_species)
 
         self.all_val_dataset = globals()[self.dataloader_to_use](
             df=self.df_val,
@@ -578,7 +562,8 @@ class EbirdDataModule(pl.LightningDataModule):
             env_data_folder=self.env_data_folder,
             subset=self.subset,
             num_species=self.num_species,
-            species_set=self.opts.data.species)
+            species_set=self.species_set,
+            predict_family_of_species=self.predict_family_of_species)
 
         self.all_test_dataset = globals()[self.dataloader_to_use](
             df=self.df_test,
@@ -595,7 +580,8 @@ class EbirdDataModule(pl.LightningDataModule):
             images_folder=self.images_folder,
             subset=self.subset,
             num_species=self.num_species,
-            species_set=self.opts.data.species)
+            species_set=self.species_set,
+            predict_family_of_species=self.predict_family_of_species)
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Returns the actual dataloader"""
