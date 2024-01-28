@@ -56,7 +56,7 @@ class CustomTopK(Metric):
             if ki == 0:
                 pass
             else:
-                count = torch.tensor(len([k for k in i_pred if k in i_targ]))
+                count = torch.tensor(len([k for v, k in zip(v_pred, i_pred) if k in i_targ and v > 0]))
                 self.correct += count / ki
                 self.total += 1
 
@@ -85,7 +85,7 @@ class CustomTop10(Metric):
             if ki == 0:
                 pass
             else:
-                count = torch.tensor(len([k for k in i_pred if k in i_targ]))
+                count = torch.tensor(len([k for v, k in zip(v_pred, i_pred) if k in i_targ and v > 0]))
                 if ki >= 10:
                     self.correct += count / 10
                 else:
@@ -117,7 +117,7 @@ class CustomTop30(Metric):
             if ki == 0:
                 pass
             else:
-                count = torch.tensor(len([k for k in i_pred if k in i_targ]))
+                count = torch.tensor(len([k for v, k in zip(v_pred, i_pred) if k in i_targ and v > 0]))
                 if ki >= 30:
                     self.correct += count / 30
                 else:

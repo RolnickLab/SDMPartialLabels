@@ -323,6 +323,9 @@ class EbirdTask(pl.LightningModule):
         else:
             mask_label = None
         hotspot_id = batch['hotspot_id']
+        # print(mask_label[0])
+        # print(y[0])
+        # print(hotspot_id[0])
 
         if self.opts.data.correction_factor.thresh:
             correction_t = (self.correction_t_data.reset_index().set_index('hotspot_id').drop(columns=["index"]).loc[
@@ -358,6 +361,10 @@ class EbirdTask(pl.LightningModule):
             loss = self.criterion(pred, y, mask=mask_label)
             pred_ = pred_ * mask_label
             y = y * mask_label
+            # print(y[0])
+            # print(pred_[0])
+            # print(mask_label[0])
+            # exit(0)
 
         if self.opts.data.target.type == "binary":
             pred_ = self.sigmoid_activation(pred_)

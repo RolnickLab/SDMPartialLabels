@@ -274,26 +274,28 @@ class SDMCombinedDataset(VisionDataset):
             species_to_exclude = 0
 
         species["probs"] = species["probs"] + species_2["probs"]
+        # print(species["probs"])
+        # exit(0)
 
         item_["target"] = species["probs"]
         item_["target"] = torch.Tensor(item_["target"])
         mask = item_["target"].clone()
         mask[mask >= 0] = 1
+        mask[mask < 0] = 0
 
         # constructing mask for R-tran
-        if species_to_exclude == 0: # birds missing
-            unk_mask_indices = np.arange(0, self.species_set[0])
-            mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=0)
-        elif species_to_exclude == 1: # butterflies missing
-            unk_mask_indices = np.arange(self.species_set[0], self.species_set[0] + self.species_set[1])
-            mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=0)
+        # if species_to_exclude == 0: # birds missing
+        #     unk_mask_indices = np.arange(0, self.species_set[0])
+        #     mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=0)
+        # elif species_to_exclude == 1: # butterflies missing
+        #     unk_mask_indices = np.arange(self.species_set[0], self.species_set[0] + self.species_set[1])
+        #     mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=0)
 
         item_["mask"] = mask
         item_["hotspot_id"] = hotspot_id
 
         if self.predict_family_of_species != -1:
-            target_mask = item_["target"].clone()
-            target_mask[target_mask >= 0] = 0
+            target_mask = torch.zeros_like(item_["target"])
             if self.predict_family_of_species == 0: # predict birds
                 unk_mask_indices = np.arange(0, self.species_set[0])
             else:
