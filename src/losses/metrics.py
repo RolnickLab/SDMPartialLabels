@@ -1,4 +1,5 @@
 # Src code for all metrics used
+import numpy as np
 import torch
 import torch.nn as nn
 import torchmetrics
@@ -57,6 +58,32 @@ class CustomTopK(Metric):
                 pass
             else:
                 count = torch.tensor(len([k for v, k in zip(v_pred, i_pred) if k in i_targ and v > 0]))
+                self.correct += count / ki
+                self.total += 1
+
+    def compute(self):
+        return self.correct.float()/self.total
+
+
+class CustomTopK_bounded(Metric):
+    def __init__(self):
+        super().__init__()
+        self.add_state("correct", default=torch.tensor(0).float(), dist_reduce_fx="sum")
+        self.add_state("total", default=torch.tensor(0).float(), dist_reduce_fx="sum")
+
+    def update(self, target: torch.Tensor, preds: torch.Tensor, mask=None):
+
+        assert preds.shape == target.shape
+        non_zero_counts = torch.count_nonzero(target, dim=1)
+        for i, elem in enumerate(target):
+            ki = non_zero_counts[i]
+            v_pred, i_pred = torch.topk(preds[i], k=ki)
+            v_targ, i_targ = torch.topk(elem, k=ki)
+            if ki == 0:
+                pass
+            else:
+                count = torch.tensor(
+                    len([k for v, k in zip(v_pred, i_pred) if k in i_targ and torch.abs(v - elem[k]) <= 0.5]))
                 self.correct += count / ki
                 self.total += 1
 
@@ -149,6 +176,28 @@ class MaskedMSE(Metric):
         return mse
 
 
+class NonZeroMSE(Metric):
+    def __init__(self):
+        super().__init__()
+        self.add_state("squared_error", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("num_samples", default=torch.tensor(0), dist_reduce_fx="sum")
+
+    def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor=None):
+        # squared_diffs = (preds - target) ** 2
+        nonzero_indices = target > 0
+        preds = preds[nonzero_indices]
+        target = target[nonzero_indices]
+        squared_diffs = (preds - target) ** 2
+        self.squared_error += squared_diffs.sum()
+        if mask is None:
+            self.num_samples += (preds.size(0))
+        else:
+            self.num_samples += (mask[nonzero_indices].sum())
+
+    def compute(self):
+        mse = self.squared_error / self.num_samples
+        return mse
+
 class MaskedMAE(Metric):
     def __init__(self):
         super().__init__()
@@ -163,6 +212,29 @@ class MaskedMAE(Metric):
             self.num_samples += (preds.size(0) * preds.size(1))
         else:
             self.num_samples += (mask.sum())
+
+    def compute(self):
+        mae = self.abs_error / self.num_samples
+        return mae
+
+
+class NonZeroMAE(Metric):
+    def __init__(self):
+        super().__init__()
+        self.add_state("abs_error", default=torch.tensor(0.0), dist_reduce_fx="sum")
+        self.add_state("num_samples", default=torch.tensor(0), dist_reduce_fx="sum")
+
+    def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor=None):
+        nonzero_indices = target > 0
+        preds = preds[nonzero_indices]
+        target = target[nonzero_indices]
+        diffs = torch.abs(preds - target)
+        # Apply the mask
+        self.abs_error += diffs.sum()
+        if mask is None:
+            self.num_samples += (preds.size(0))
+        else:
+            self.num_samples += (mask[nonzero_indices].sum())
 
     def compute(self):
         mae = self.abs_error / self.num_samples
@@ -204,8 +276,14 @@ def get_metric(metric):
         return MaskedMAE()
     elif metric.name == "mse" and not metric.ignore is True:
         return MaskedMSE()
+    elif metric.name == "nonzero_mae" and not metric.ignore is True:
+        return NonZeroMAE()
+    elif metric.name == "nonzero_mse" and not metric.ignore is True:
+        return NonZeroMSE()
     elif metric.name == "topk" and not metric.ignore is True:
         return CustomTopK()
+    elif metric.name == "topk2" and not metric.ignore is True:
+        return CustomTopK_bounded()
     elif metric.name == "top10" and not metric.ignore is True:
         return CustomTop10()
     elif metric.name == "top30" and not metric.ignore is True:

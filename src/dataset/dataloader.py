@@ -162,8 +162,8 @@ class EbirdVisionDataset(VisionDataset):
 
         if self.predict_family_of_species != -1:
             songbird_indices = [
-                "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/stats/songbird_indices.npy",
-                "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/stats/nonsongbird_indices.npy"]
+                "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/stats/nonsongbird_indices.npy",
+                "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/stats/songbird_indices.npy"]
             unk_mask_indices = np.load(songbird_indices[self.predict_family_of_species])
             target_mask = item_["target"].clone()
             target_mask[target_mask >= 0] = 0

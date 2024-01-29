@@ -214,10 +214,19 @@ losses:
     - name: mae
       ignore: False
       scale: 10
+    - name: nonzero_mae
+      ignore: False
+      scale: 10
     - name: mse
       ignore: False
       scale: 10
+    - name: nonzero_mse
+      ignore: False
+      scale: 10
     - name: topk
+      ignore: False
+      scale: 1
+    - name: topk2
       ignore: False
       scale: 1
     - name: r2

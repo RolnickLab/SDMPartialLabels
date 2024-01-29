@@ -26,13 +26,13 @@ hydra_config_path = Path(__file__).resolve().parent / "configs/hydra.yaml"
 
 def load_existing_checkpoint(task, base_dir, checkpint_path, save_preds_path):
     print("Loading existing checkpoint")
-    try:
-        task = task.load_from_checkpoint(os.path.join(base_dir, checkpint_path),
-                                         save_preds_path=save_preds_path)
+    # try:
+    #     task = task.load_from_checkpoint(os.path.join(base_dir, checkpint_path),
+    #                                      save_preds_path=save_preds_path)
 
     # to prevent older models from failing, because there are new keys in conf
-    except:
-        task.load_state_dict(torch.load(os.path.join(base_dir, checkpint_path))['state_dict'])
+    # except:
+    task.load_state_dict(torch.load(os.path.join(base_dir, checkpint_path))['state_dict'])
 
     return task
 

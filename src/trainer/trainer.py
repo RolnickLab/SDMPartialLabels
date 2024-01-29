@@ -318,7 +318,7 @@ class EbirdTask(pl.LightningModule):
         """Validation step """
         x = batch['input'].squeeze(1)  # .to(device)
         y = batch['target']
-        if self.target_size > 670:
+        if self.target_size > 670 or self.opts.data.target.predict_family_of_species is not None:
             mask_label = batch["mask"].long()
         else:
             mask_label = None
@@ -377,7 +377,11 @@ class EbirdTask(pl.LightningModule):
                 value = torch.mean(getattr(self, nname)(y, pred_))
             elif name == 'mae' and mask_label != None:
                 value = getattr(self, nname)(y, pred_, mask=mask_label)
+            elif name == 'nonzero_mae' and mask_label != None:
+                value = getattr(self, nname)(y, pred_, mask=mask_label)
             elif name == 'mse' and mask_label != None:
+                value = getattr(self, nname)(y, pred_, mask=mask_label)
+            elif name == 'nonzero_mse' and mask_label != None:
                 value = getattr(self, nname)(y, pred_, mask=mask_label)
             else:
                 value = getattr(self, nname)(y, pred_)
@@ -390,7 +394,7 @@ class EbirdTask(pl.LightningModule):
 
         x = batch['input'].squeeze(1)
         y = batch['target']
-        if self.target_size > 670:
+        if self.target_size > 670 or self.opts.data.target.predict_family_of_species is not None:
             mask_label = batch["mask"].long()
         else:
             mask_label = None
@@ -437,13 +441,18 @@ class EbirdTask(pl.LightningModule):
             pred_[pred_ >= 0.5] = 1
             pred_[pred_ < 0.5] = 0
 
+        self.metrics = get_metrics(self.opts)
         for (name, _, scale) in self.metrics:
             nname = "test_" + name
             if name == 'r2':
                 value = torch.mean(getattr(self, nname)(y, pred_))
             elif name == 'mae' and mask_label != None:
                 value = getattr(self, nname)(y, pred_, mask=mask_label)
+            elif name == 'nonzero_mae' and mask_label != None:
+                value = getattr(self, nname)(y, pred_, mask=mask_label)
             elif name == 'mse' and mask_label != None:
+                value = getattr(self, nname)(y, pred_, mask=mask_label)
+            elif name == 'nonzero_mse' and mask_label != None:
                 value = getattr(self, nname)(y, pred_, mask=mask_label)
             else:
                 value = getattr(self, nname)(y, pred_)

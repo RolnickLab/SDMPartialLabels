@@ -127,6 +127,7 @@ data:
     # choose subset of birds : "ducks" for trying on species [37] or [2] for cooper's hawk (non passerine) "songbirds" (307 species) or None (full set 684 species) "not_songbirds"
     subset:
 
+    predict_family_of_species: 1
   #normalization: None
   transforms:
     - name: matchres
