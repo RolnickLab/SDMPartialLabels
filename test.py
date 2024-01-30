@@ -140,7 +140,6 @@ def main(opts):
             test_results = test_task(task)
             save_test_results_to_csv(results=test_results[0],
                                      root_dir=os.path.join(config.base_dir, os.path.dirname(config.load_ckpt_path)))
-
         else:
             # get the number of experiments based on folders given
             n_runs = len(os.listdir(os.path.join(config.base_dir, config.load_ckpt_path)))
@@ -151,6 +150,7 @@ def main(opts):
                 # get path of the best checkpoint (not last)
                 files = os.listdir(os.path.join(config.base_dir, run_id_path))
                 best_checkpoint_file_name = [file for file in files if 'last' not in file and file.endswith('.ckpt')][0]
+                print(best_checkpoint_file_name)
                 checkpoint_path_per_run_id = os.path.join(run_id_path, best_checkpoint_file_name)
                 # load the best checkpoint for the given run
                 task = load_existing_checkpoint(task=task, base_dir=config.base_dir,

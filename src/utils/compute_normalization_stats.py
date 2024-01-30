@@ -160,7 +160,7 @@ def compute_means_stds_multispectral_sat_images(root_dir, train_csv, img_bands, 
                     arr = crop_center(arr, 64, 64)
                     arrs.append(arr)
                 if {"r", "g", "b"}.issubset(set(img_bands)):
-                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}_visual.tif"))
+                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index] + "_visual", f"{hs}_visual.tif"))
                     arr = crop_center(arr, 64, 64)
                     arrs.append(arr)
                 cropped = np.dstack(arrs)
@@ -195,7 +195,7 @@ def compute_means_stds_multispectral_sat_images(root_dir, train_csv, img_bands, 
                     arr = crop_center(arr, 64, 64)
                     arrs.append(arr)
                 if {"r", "g", "b"}.issubset(set(img_bands)):
-                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}_visual.tif"))
+                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index] + "_visual", f"{hs}_visual.tif"))
                     arr = crop_center(arr, 64, 64)
                     arrs.append(arr)
                 cropped = np.dstack(arrs)

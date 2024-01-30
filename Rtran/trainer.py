@@ -45,6 +45,9 @@ class RegressionTransformerTask(pl.LightningModule):
                                 use_pos_encoding=self.config.Rtran.use_positional_encoding,
                                 scale_embeddings_by_labels=self.config.Rtran.scale_embeddings_by_labels)
 
+        if self.config.experiment.module.resume:
+            self.load_rtran_weights()
+
         self.sigmoid_activation = nn.Sigmoid()
         # self.load_resnet18_weights()
         # if using range maps (RM)
@@ -75,6 +78,21 @@ class RegressionTransformerTask(pl.LightningModule):
                     continue
                 print("loaded.. ", key_model, key_pretrained)
                 model_dict[key_model] = loaded_dict[key_pretrained]
+
+        self.model.load_state_dict(model_dict)
+
+    def load_rtran_weights(self):
+        ckpt = torch.load(self.config.experiment.module.resume)
+        loaded_dict = ckpt['state_dict']
+        model_dict = self.model.state_dict()
+
+        # load state dict keys
+        for key_model, key_pretrained in zip(model_dict.keys(), loaded_dict.keys()):
+            # ignore first layer weights(use imagenet ones)
+            if "output_linear" in key_model or "label_embeddings" in key_model:
+                continue
+            print("loaded.. ", key_model, key_pretrained)
+            model_dict[key_model] = loaded_dict[key_pretrained]
 
         self.model.load_state_dict(model_dict)
 
@@ -249,9 +267,13 @@ class RegressionTransformerTask(pl.LightningModule):
             elif name == 'r2':
                 value = torch.mean(getattr(self, nname)(y, pred))
             elif name == 'mae' and mask != None:
-                value = getattr(self, nname)(y, pred, mask)
+                value = getattr(self, nname)(y, pred, mask=mask)
+            elif name == 'nonzero_mae' and mask != None:
+                value = getattr(self, nname)(y, pred, mask=mask)
             elif name == 'mse' and mask != None:
-                value = getattr(self, nname)(y, pred, mask)
+                value = getattr(self, nname)(y, pred, mask=mask)
+            elif name == 'nonzero_mse' and mask != None:
+                value = getattr(self, nname)(y, pred, mask=mask)
             else:
                 value = getattr(self, nname)(y, pred)
 
