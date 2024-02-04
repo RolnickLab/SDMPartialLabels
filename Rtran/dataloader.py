@@ -330,7 +330,8 @@ class SDMCombinedDataset(VisionDataset):
 
         item_["mask_q"] = mask_q
         item_["mask"] = mask
-        # print(torch.unique(mask))
+        # print("probs: ", species["probs"])
+        # print("mask: " ,torch.unique(mask))
         # meta data
         item_["hotspot_id"] = hotspot_id
         return item_

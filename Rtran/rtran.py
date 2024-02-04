@@ -113,7 +113,7 @@ class RTranModel(nn.Module):
             label_feat_vec = custom_replace_n(mask_q).long()
         else:
             label_feat_vec = custom_replace(mask, 0, 1, 2).long()
-        # print(label_feat_vec.unique())
+        print("label feat vec: " , label_feat_vec.unique())
         # if labels is not None:
         #     regression_labels = self.regression_embedding(labels)
         #     init_label_embeddings += (state_embeddings * regression_labels.unsqueeze(-1))

@@ -24,14 +24,14 @@ def multi_species_masking(species_set, num_labels, max_known):
                                          species_set[present_species] + (
                                                      present_species * species_set[present_species]))
     else:
-        # if random.random() < 0.6: # mask songbirds vs. nonsongbirds with this probability
-        #     set_to_mask = int(np.random.randint(0, 2, 1)[0])
-        #     unk_mask_indices = np.load(songbird_indices[set_to_mask])
-        # else:
-        # absent_species = int(np.random.randint(0, mask_max_size, 1)[0])
-        # unk_mask_indices = np.array(list(per_species_mask.values())[absent_species])
-        num_known = random.randint(0, int(num_labels * max_known))  # known: 0, 0.75l -> unknown: l, 0.25l
-        unk_mask_indices = random.sample(range(num_labels), int(num_labels - num_known))
+        if random.random() < 0.5: # mask songbirds vs. nonsongbirds with this probability
+            set_to_mask = int(np.random.randint(0, 2, 1)[0])
+            unk_mask_indices = np.load(songbird_indices[set_to_mask])
+        else:
+            # absent_species = int(np.random.randint(0, mask_max_size, 1)[0])
+            # unk_mask_indices = np.array(list(per_species_mask.values())[absent_species])
+            num_known = random.randint(0, int(num_labels * max_known))  # known: 0, 0.75l -> unknown: l, 0.25l
+            unk_mask_indices = random.sample(range(num_labels), int(num_labels - num_known))
 
     return unk_mask_indices
 

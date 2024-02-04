@@ -7,7 +7,7 @@ import torch
 from torch import nn
 import numpy as np
 from torch.optim.lr_scheduler import LambdaLR
-from gensim.models import KeyedVectors
+# from gensim.models import KeyedVectors
 
 
 def load_word2vec_pretrained_weights(word_to_idx, vocab_size, embedding_dim):
