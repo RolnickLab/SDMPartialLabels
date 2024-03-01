@@ -24,7 +24,7 @@ def multi_species_masking(species_set, num_labels, max_known):
                                          species_set[present_species] + (
                                                      present_species * species_set[present_species]))
     else:
-        if random.random() < 0.5: # mask songbirds vs. nonsongbirds with this probability
+        if species_set is None and random.random() < 0.5: # mask songbirds vs. nonsongbirds with this probability
             set_to_mask = int(np.random.randint(0, 2, 1)[0])
             unk_mask_indices = np.load(songbird_indices[set_to_mask])
         else:

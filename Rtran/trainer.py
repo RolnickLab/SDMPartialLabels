@@ -128,6 +128,8 @@ class RegressionTransformerTask(pl.LightningModule):
         #TODO: not efficient
         elif len(mask.unique()) > 3:
             unknown_mask = maksed_loss_custom_replace(mask, 0, 1, 1, 1)
+        elif len(mask.unique()) == 3:
+            unknown_mask = custom_replace(mask, 0, 1, 1)
         else:
             unknown_mask = None
 

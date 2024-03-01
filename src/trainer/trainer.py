@@ -318,7 +318,7 @@ class EbirdTask(pl.LightningModule):
         """Validation step """
         x = batch['input'].squeeze(1)  # .to(device)
         y = batch['target']
-        if self.target_size > 670 or self.opts.data.target.predict_family_of_species is not None:
+        if self.target_size > 670 or self.opts.data.target.predict_family_of_species >= 0:
             mask_label = batch["mask"].long()
         else:
             mask_label = None
@@ -394,7 +394,7 @@ class EbirdTask(pl.LightningModule):
 
         x = batch['input'].squeeze(1)
         y = batch['target']
-        if self.target_size > 670 or self.opts.data.target.predict_family_of_species is not None:
+        if self.target_size > 670 or self.opts.data.target.predict_family_of_species >= 0:
             mask_label = batch["mask"].long()
         else:
             mask_label = None

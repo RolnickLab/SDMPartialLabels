@@ -207,6 +207,7 @@ class SDMCoLocatedDataset(VisionDataset):
             mask[mask > 0] = 1
             mask_q = mask
 
+        mask[mask > 0] = 1
         item_["mask_q"] = mask_q
         item_["mask"] = mask
         # meta data
@@ -318,7 +319,6 @@ class SDMCombinedDataset(VisionDataset):
                                                     absent_species=species_to_exclude, species_set=self.species_set, predict_family_of_species=self.predict_family_of_species)
         mask = item_["target"].clone()
 
-        mask[mask > 0] = 1
         mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
 
         if self.quantized_mask_bins > 1:
@@ -328,10 +328,10 @@ class SDMCombinedDataset(VisionDataset):
             mask[mask > 0] = 1
             mask_q = mask
 
+        mask[mask > 0] = 1
+
         item_["mask_q"] = mask_q
         item_["mask"] = mask
-        # print("probs: ", species["probs"])
-        # print("mask: " ,torch.unique(mask))
         # meta data
         item_["hotspot_id"] = hotspot_id
         return item_
