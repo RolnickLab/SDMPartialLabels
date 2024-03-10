@@ -7,7 +7,7 @@ Dataset Raw and final, with all intermediate files is in: `/network/projects/eco
 * DARWIN CORE ARCHIVE includes all the observations around the world. Download was done in May 2023.
 * Data exists in `Darwin/0177350-230224095556074/occurrence.txt`, file has been reformatted to csv and saved in `SatButterfly_dataset/occurrence_.csv`
 * Filter observations to consider only observations in the USA starting the year 2010 or later: `SatButterfly_dataset/occ_usa.csv`
-* Filter out observations outside the continental USA following [this](https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.html): `cb_2018_us_nation_5m/cb_2018_us_nation_5m.shp`, resulting in `SatButterfly_dataset/occ_usa_geo_filtered.csv`. This also excludes locations in Alaska and Hawaii.
+* Filter out observations outside the continental USA following [this](https://www.census.gov/geographies/mapping-files/time-series/geo/carto-boundary-file.html): `SatButterfly_dataset/cb_2018_us_nation_5m/cb_2018_us_nation_5m.shp`, resulting in `SatButterfly_dataset/occ_usa_geo_filtered.csv`. This also excludes locations in Alaska and Hawaii.
 * Then, we prepare two versions of the dataset explained below.
 
 ## Unifying species between SatButterfly-v1 and SatButterfly-v2:
@@ -47,9 +47,10 @@ Following SatBird, we use the polygons file to extract environmental rasters, us
 - `species/species_list_updated_172species.csv`: species list aligned with SatButterfly-v2 with species observed >= 100 times
 
 #### Final data used for training:
-- `butterfly_hotspots_train.csv`
-- `butterfly_hotspots_valid.csv`
-- `butterfly_hotspots_test.csv`
+in `/network/projects/ecosystem-embeddings/SatButterfly_dataset/SatButterfly_v1/USA`:
+- `train_split.csv`
+- `valid_split.csv`
+- `test_split.csv`
 - butterfly_targets_v1.2/
 - environmental/
 - images/
@@ -75,7 +76,8 @@ ebutterfly targets are aggregated per hotspot, over the years 2010 to 2023.
 - `species/species_list_updated_172species.csv`: species list aligned with SatButterfly-v2 with species observed >= 100 times
 
 #### Final data used for training:
-- `butterfly_hotspots_ebird_train.csv`
-- `butterfly_hotspots_ebird_valid.csv`
-- `butterfly_hotspots_ebird_test.csv`
+in `/network/projects/ecosystem-embeddings/SatButterfly_dataset/SatButterfly_v2/USA`
+- `train_split.csv`
+- `valid_split.csv`
+- `test_split.csv`
 - butterfly_targets_v1.2/

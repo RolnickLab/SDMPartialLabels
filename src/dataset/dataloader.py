@@ -266,16 +266,12 @@ class SDMCombinedDataset(VisionDataset):
                 species_2 = load_file(os.path.join(self.data_base_dir, self.targets_folder_2, hotspot_id + '.json'))
             else:
                 species_2 = {"probs": [-2] * self.species_set[int(1 - folder_index)]}
-                species_to_exclude = 1
         else:
             species_2 = load_file(
                 os.path.join(self.data_base_dir, self.targets_folder[folder_index], hotspot_id + '.json'))
             species = {"probs": [-2] * self.species_set[int(1 - folder_index)]}
-            species_to_exclude = 0
 
         species["probs"] = species["probs"] + species_2["probs"]
-        # print(species["probs"])
-        # exit(0)
 
         item_["target"] = species["probs"]
         item_["target"] = torch.Tensor(item_["target"])
@@ -283,22 +279,15 @@ class SDMCombinedDataset(VisionDataset):
         mask[mask >= 0] = 1
         mask[mask < 0] = 0
 
-        # constructing mask for R-tran
-        # if species_to_exclude == 0: # birds missing
-        #     unk_mask_indices = np.arange(0, self.species_set[0])
-        #     mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=0)
-        # elif species_to_exclude == 1: # butterflies missing
-        #     unk_mask_indices = np.arange(self.species_set[0], self.species_set[0] + self.species_set[1])
-        #     mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=0)
-
         item_["mask"] = mask
         item_["hotspot_id"] = hotspot_id
 
+        # for evaluation
         if self.predict_family_of_species != -1:
             target_mask = torch.zeros_like(item_["target"])
             if self.predict_family_of_species == 0: # predict birds
                 unk_mask_indices = np.arange(0, self.species_set[0])
-            else:
+            else: # predict butterflies
                 unk_mask_indices = np.arange(self.species_set[0], self.species_set[0] + self.species_set[1]) # predict butterflies
 
             target_mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=1)

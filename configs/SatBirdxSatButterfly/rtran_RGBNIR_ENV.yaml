@@ -1,8 +1,8 @@
 #where to save checkpoints
-save_path: "baseline_joint_rtran_resnet18_RGBNIR_ENV_4"
+save_path: "experiments/baseline_joint_rtran_resnet18_RGBNIR_ENV"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "baseline_joint_rtran_resnet18_RGBNIR_ENV_4"
+load_ckpt_path: "experiments/baseline_joint_rtran_resnet18_RGBNIR_ENV"
 save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
 log_comet: true
 
@@ -13,9 +13,9 @@ max_epochs: 50
 base_dir: ""
 
 comet:
-  project_name: "new_baselines"
-  tags: ["rtran", "ebutterfly_less_species(100)", "wEbird_range_maps", "ebutterfly+ebirdcolocated", "0.5_structured_masking", "normalization", "unknown0.5", "resnet18", "CE", "att3", "head4", "dropout2", "allaug", "LR0.00009sched", "AdamW", "weight_decay0.01", "pretrainedFalse", "RGBNIR_ENV"]
-  experiment_name: "baseline_joint_rtran_resnet18_RGBNIR_ENV_4" # specify for training, or use to report test results, TODO: also use to resume training
+  project_name: "workshop_paper"
+  tags: ["rtran", "172butterfly_species", "ebutterfly+ebirdcolocated+independentbutterfly", "0.4_structured_masking", "normalization", "known0.9", "resnet18", "att3", "head4", "dropout0.2", "allaug", "LR0.00009sched", "AdamW", "weight_decay0.01", "pretrainedTrue", "RGBNIR_ENV"]
+  experiment_name: "baseline_joint_rtran_resnet18_RGB_ENV" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 experiment:
@@ -29,7 +29,7 @@ experiment:
     #"linear" or "linear_net" for a 2 layer MLP
     fc: "linear"
     #use pretrained weights ( torchvision )
-    pretrained: True
+    pretrained: False
     # resume training from another model (transfer learning), set empty if training from scratch
     resume: ""
     freeze: False
@@ -49,15 +49,15 @@ Rtran:
     # mask known labels out of the loss (true or false)
     masked_loss: False
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
-    quantized_mask_bins: 1
+    quantized_mask_bins: 4
     # use positional encoding
-    use_positional_encoding: False
+    use_positional_encoding: True
     # use the actual regression labels as input to the model and multiply with the embeddings (true or false)
     scale_embeddings_by_labels: False
     # max ratio of unknown labels during training
-    train_unknown_ratio: 0.5
+    train_known_ratio: 0.75
     # what known ratios do we consider when testing
-    eval_unknown_ratio: 1.0 # [1.0, 0.9, 0.8, 0.5]
+    eval_known_ratio: 0.0 # [1.0, 0.9, 0.8, 0.5]
     # should the known values be masked out of the reported metrics or no
     mask_eval_metrics: True
     # eval family of birds (0), or family of butterflies (1)
@@ -93,11 +93,8 @@ variables: &default_vars
     bioclim_means: &bioclim_means []
     bioclim_std: &bioclim_std []
 
-    rgbnir_means: &rgbnir_means []
-    rgbnir_std: &rgbnir_std []
-
-    visual_means: &visual_means []
-    visual_stds: &visual_stds []
+    sat_means: &sat_means []
+    sat_stds: &sat_stds []
 
 data:
   loaders:
@@ -125,28 +122,39 @@ data:
       res: 1000
 
   files:
-    base: "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer"
-    train: ["summer_hotspots_train.csv"]
-    val: ["summer_hotspots_val.csv"] # "butterfly_hotspots_ebird_valid.csv"
-    test: ["summer_hotspots_test.csv"] #"butterfly_hotspots_ebird_test.csv"
+    base: "/network/projects/ecosystem-embeddings"
+    #TODO: trainer depends on the number of train files given, so it has to match val and test always (even if testing)
+    train: ["SatBird_data_v2/USA_summer/train_split.csv", "SatButterfly_dataset/SatButterfly_v1/USA/butterfly_hotspots_train.csv"] #1. everything (Combined dataloader)
+#    train: ["SatButterfly_dataset/SatButterfly_v2/USA/train_split.csv"] #2. colocated birds+butterflies (Colocated datalaoder)
+#    train: ["SatBird_data_v2/USA_summer/train_split.csv"] #3. birds only (with some butterflies colocated) (Colocated dataloader)
+#    train: ["SatButterfly_dataset/SatButterfly_v2/USA/train_split.csv", "SatButterfly_dataset/SatButterfly_v1/USA/train_split.csv"] #4. all Butterflies (combined dataloader)
 
-    targets_folder: ["corrected_targets", "butterfly_targets_2"]
-    env_data_folder: ["environmental_bounded_2"]
-    images_folder: ["images"]
+    val: ["SatBird_data_v2/USA_summer/valid_split.csv", "SatButterfly_dataset/SatButterfly_v1/USA/valid_split.csv"]
+#    val: ["SatButterfly_dataset/SatButterfly_v2/USA/valid_split.csv"]
+#    val: ["SatBird_data_v2/USA_summer/valid_split.csv"]
+#    val: ["SatButterfly_dataset/SatButterfly_v2/USA/valid_split.csv", "SatButterfly_dataset/SatButterfly_v1/USA/valid_split.csv"]
 
-    correction_thresh: "range_maps.pkl" # range maps - threshold = False
+    test: ["SatBird_data_v2/USA_summer/test_split.csv", "SatButterfly_dataset/SatButterfly_v1/USA/test_split.csv"]
+#    test: ["SatButterfly_dataset/SatButterfly_v2/USA/test_split.csv"]
+#    test: ["SatBird_data_v2/USA_summer/test_split.csv"]
+#    test: ["SatButterfly_dataset/SatButterfly_v2/USA/test_split.csv", "SatButterfly_dataset/SatButterfly_v1/USA/test_split.csv"]
 
-    rgbnir_means: "stats/means_rgbnir.npy"
-    rgbnir_stds: "stats/stds_rgbnir.npy"
+    targets_folder: ["SatBird_data_v2/USA_summer/targets", "SatButterfly_dataset/SatButterfly_v1/USA/targets_v1.2"] # (1, 4) Combined Dataloader
+#    targets_folder: ["SatBird_data_v2/USA_summer/targets", "SatButterfly_dataset/SatButterfly_v2/USA/butterfly_targets_v1.2"] # (2) colocated birds+butterflies, (3) birds only
+    images_folder: ["SatBird_data_v2/USA_summer/images", "SatButterfly_dataset/SatButterfly_v1/USA/images"]
+    env_data_folder: ["SatBird_data_v2/USA_summer/environmental", "SatButterfly_dataset/SatButterfly_v1/USA/environmental_data"]
+    correction_thresh: "SatBird_data_v2/USA_summer/range_maps.pkl" # range maps - threshold = False
 
-    rgb_means: "stats/means_images_visual.npy"
-    rgb_stds: "stats/stds_images_visual.npy"
+    sat_means: "SatButterfly_v2/USA/stats/means_rgb_SatBirdxSatButterfly.npy"
+    sat_stds: "SatButterfly_v2/USA/stats/stds_rgb_SatBirdxSatButterfly.npy"
 
-    env_means: "stats/env_means.npy"
-    env_stds: "stats/env_stds.npy"
+    env_means: "SatButterfly_v2/USA/stats/env_means_SatBirdxSatButterfly.npy"
+    env_stds: "SatButterfly_v2/USA/stats/env_stds_SatBirdxSatButterfly.npy"
+
+    species_list: "/network/projects/ecosystem-embeddings/SatButterfly_v2/USA/species_list_USA_birds+butterflies.txt"
 
   correction_factor:
-     thresh: "after" # to train with RM
+     thresh: # to train with RM
 
   target:
     type: "probs"  #binary for classification targets  or "probs" for regression (default should be "probs")
@@ -176,17 +184,20 @@ data:
       ignore: "val"
       p: 0.5
     - name: normalize
+      normalize_by_255: False
       ignore: False
       maxchan: false
       subset: ["sat"]
-      custom: [*rgbnir_means, *rgbnir_std]
+      custom: [*sat_means, *sat_stds]
 
     - name: normalize
+      normalize_by_255: False
       ignore: False
       maxchan: false
       subset: ["bioclim"]
       custom: [*bioclim_means, *bioclim_std]
     - name: normalize
+      normalize_by_255: False
       ignore: False
       maxchan: false
       subset: ["ped"]

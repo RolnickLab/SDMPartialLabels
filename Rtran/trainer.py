@@ -17,7 +17,6 @@ from src.transforms.transforms import get_transforms
 from src.losses.metrics import get_metrics
 from src.losses.losses import RMSLELoss, CustomFocalLoss, CustomCrossEntropyLoss, BCE
 from Rtran.rtran import RTranModel
-from Rtran.utils import *
 
 
 class RegressionTransformerTask(pl.LightningModule):
@@ -42,8 +41,7 @@ class RegressionTransformerTask(pl.LightningModule):
                                 backbone=self.config.Rtran.backbone, pretrained_backbone=self.config.Rtran.pretrained_backbone,
                                 quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
                                 input_channels=self.image_input_channels, d_hidden=self.config.Rtran.features_size,
-                                use_pos_encoding=self.config.Rtran.use_positional_encoding,
-                                scale_embeddings_by_labels=self.config.Rtran.scale_embeddings_by_labels)
+                                use_pos_encoding=self.config.Rtran.use_positional_encoding)
 
         if self.config.experiment.module.resume:
             self.load_rtran_weights()
@@ -110,7 +108,7 @@ class RegressionTransformerTask(pl.LightningModule):
         else:
             y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
 
-        # if using range maps
+        # if using range maps for SatBird
         if self.config.data.correction_factor.thresh:
             range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').drop(
                                         columns=["index"]))
@@ -123,16 +121,21 @@ class RegressionTransformerTask(pl.LightningModule):
             y_pred = y_pred * range_maps_correction_data.int()
             y = y * range_maps_correction_data.int()
 
-        if self.config.Rtran.masked_loss:         # to train on unknown labels only
-            unknown_mask = custom_replace(mask, 1, 0, 0)
-        #TODO: not efficient
-        elif len(mask.unique()) > 3:
-            unknown_mask = maksed_loss_custom_replace(mask, 0, 1, 1, 1)
-        elif len(mask.unique()) == 3:
-            unknown_mask = custom_replace(mask, 0, 1, 1)
+        print(mask.unique())
+        if self.config.Rtran.masked_loss: # to consider unknown labels only for the loss
+            unknown_mask = mask.clone()
+            unknown_mask[mask != -1] = 0
+            unknown_mask[mask == -1] = 1
+        elif -2 in mask:# to mask out species with no targets from the loss
+            unknown_mask = mask.clone()
+            unknown_mask[mask == -2] = 0
+            unknown_mask[mask == -1] = 1
         else:
             unknown_mask = None
-
+        # try:
+        #     print(unknown_mask.unique())
+        # except:
+        #     print(unknown_mask)
         loss = self.criterion(y_pred, y, mask=unknown_mask)
         if batch_idx % 50 == 0:
             self.log("train_loss", loss, on_epoch=True)
@@ -157,7 +160,7 @@ class RegressionTransformerTask(pl.LightningModule):
         else:
             y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
 
-        # if using range maps
+        # if using range maps for SatBird
         if self.config.data.correction_factor.thresh:
             range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').drop(
                                         columns=["index"]))
@@ -169,14 +172,6 @@ class RegressionTransformerTask(pl.LightningModule):
             y = y * range_maps_correction_data.int()
 
         if self.config.Rtran.mask_eval_metrics or len(self.config.data.species) > 1:
-            # if self.config.Rtran.predict_family_of_species == 0:
-            #     y_pred = y_pred[:, 0:self.config.data.species[0]]
-            #     y = y[:, 0:self.config.data.species[0]]
-            #     mask = mask[:, 0:self.config.data.species[0]]
-            # elif self.config.Rtran.predict_family_of_species == 1:
-            #     y_pred = y_pred[:, self.config.data.species[0]:]
-            #     y = y[:, self.config.data.species[0]:]
-            #     mask = mask[:, self.config.data.species[0]:]
             self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask)
         else:
             self.log_metrics(mode="val", pred=y_pred, y=y)
@@ -197,7 +192,7 @@ class RegressionTransformerTask(pl.LightningModule):
         else:
             y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
 
-        # if using range maps
+        # if using range maps for SatBird
         if self.config.data.correction_factor.thresh:
             range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').drop(
                                         columns=["index"]))
@@ -209,14 +204,6 @@ class RegressionTransformerTask(pl.LightningModule):
             y = y * range_maps_correction_data.int()
 
         if self.config.Rtran.mask_eval_metrics or len(self.config.data.species) > 1:
-            # if self.config.Rtran.predict_family_of_species == 0:
-            #     y_pred = y_pred[:, 0:self.config.data.species[0]]
-            #     y = y[:, 0:self.config.data.species[0]]
-            #     mask = mask[:, 0:self.config.data.species[0]]
-            # elif self.config.Rtran.predict_family_of_species == 1:
-            #     y_pred = y_pred[:, self.config.data.species[0]:]
-            #     y = y[:, self.config.data.species[0]:]
-            #     mask = mask[:, self.config.data.species[0]:]
             self.log_metrics(mode="test", pred=y_pred, y=y, mask=mask)
         else:
             self.log_metrics(mode="test", pred=y_pred, y=y)
@@ -285,16 +272,15 @@ class RegressionTransformerTask(pl.LightningModule):
         """
         log metrics through logger
         """
-        unknown_mask = mask
+        unknown_mask = None
         if mask is not None:
+            unknown_mask = mask.clone()
             if self.config.Rtran.mask_eval_metrics:
-                if len(mask.unique()) > 3:
-                    unknown_mask = maksed_loss_custom_replace(mask, 0, 1, 0, 0)
-                else:
-                    unknown_mask = custom_replace(mask, 1, 0, 0)
-
-            unknown_mask[unknown_mask == -2] = 0
-            unknown_mask[unknown_mask == -1] = 1
+                unknown_mask[mask == -1] = 1
+                unknown_mask[mask != -1] = 0
+            else:
+                unknown_mask[mask == -1] = 1
+                unknown_mask[mask == -2] = 0
 
             loss = self.criterion(pred, y, mask=unknown_mask)
 
@@ -309,7 +295,7 @@ class RegressionTransformerTask(pl.LightningModule):
             pred[pred >= 0.5] = 1
             pred[pred < 0.5] = 0
 
-        self.__log_metric(mode, pred, y, unknown_mask)
+        self.__log_metric(mode, pred, y, mask=unknown_mask)
         self.log(str(mode) + "_loss", loss, on_epoch=True)
 
 
@@ -330,17 +316,20 @@ class SDMDataModule(pl.LightningDataModule):
         self.images_folder = self.config.data.files.images_folder
         self.target_type = self.config.data.target.type
 
+        # combining multiple train files
         self.df_train = pd.read_csv(os.path.join(self.data_base_dir, self.config.data.files.train[0]))
         if len(self.config.data.files.train) > 1:
             for df_file_name in self.config.data.files.train[1:]:
                 self.df_train = pd.concat([self.df_train, pd.read_csv(os.path.join(self.data_base_dir, df_file_name))], axis=0)
 
+        # combining multiple validation files
         self.df_val = pd.read_csv(os.path.join(self.data_base_dir, self.config.data.files.val[0]))
         if len(self.config.data.files.val) > 1:
             for df_file_name in self.config.data.files.val[1:]:
                 self.df_val = pd.concat(
                     [self.df_val, pd.read_csv(os.path.join(self.data_base_dir, df_file_name))], axis=0)
 
+        # combining multiple testing files
         self.df_test = pd.read_csv(os.path.join(self.data_base_dir, self.config.data.files.test[0]))
         if len(self.config.data.files.test) > 1:
             for df_file_name in self.config.data.files.test[1:]:
@@ -355,15 +344,18 @@ class SDMDataModule(pl.LightningDataModule):
         self.predict_family = self.config.Rtran.predict_family_of_species
         self.num_species = self.config.data.total_species
 
+        # if we are detecting more than 1 family of sepceis (birds and butterflies)
         if len(self.config.data.species) > 1:
             self.dataloader_to_use = "SDMCoLocatedDataset"
+            # if we are combining SatBird + SatButterfly_v1 + SatButterly_v2
             if len(self.config.data.files.train) > 1:
                 self.dataloader_to_use = "SDMCombinedDataset"
         else:
+            # if we are using either SatBird or SatButterly at a time
             self.dataloader_to_use = "SDMMaskedDataset"
 
     def setup(self, stage: Optional[str] = None) -> None:
-        """create the train/test/val splits and prepare the transforms for the multires"""
+        """create the train/test/val splits"""
         self.all_train_dataset = globals()[self.dataloader_to_use](
             df=self.df_train,
             data_base_dir=self.data_base_dir,
