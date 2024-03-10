@@ -1,8 +1,9 @@
+# This is the final config file for Resnet18 SatBird+SatButterfly reported in the workshop paper
 #where to save checkpoints
-save_path: "experiments/baseline_1And3_resnet18_RGB_ENV"
+save_path: "experiments/baseline_joint_resnet18_RGB_ENV"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "experiments/baseline_1And3_resnet18_RGB_ENV"
+load_ckpt_path: "experiments/baseline_joint_resnet18_RGB_ENV"
 save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
 log_comet: true
 
@@ -14,8 +15,8 @@ base_dir: ""
 
 comet:
   project_name: "workshop_paper"
-  tags: ["resnet18", "ebutterfly+ebird_alldata_noncolocated", "pretrainedFalse", "RGB_ENV"]
-  experiment_name: "baseline_1And3_resnet18_RGB_ENV" # specify for training, or use to report test results, TODO: also use to resume training
+  tags: ["resnet18", "ebutterfly+ebird_alldata", "pretrainedFalse", "RGB_ENV"]
+  experiment_name: "baseline_joint_resnet18_RGB_ENV" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 experiment:
@@ -38,6 +39,8 @@ experiment:
     means_path: ""
     lr: 0.0001
 
+# eval family of birds (0), or family of butterflies (1) | in SatBird only, eval family of non-songbirds (0), or songbirds (1)
+predict_family_of_species: -1
 
 optimizer: "AdamW"  #"Adam", "AdamW", "SGD"
 
@@ -98,12 +101,9 @@ data:
 
   files:
     base: "/network/projects/ecosystem-embeddings"
-#    train: ["SatBird_data_v2/USA_summer/train_split_noncolocated_hotspots.csv", "SatButterfly_v1/USA/butterfly_hotspots_train.csv"]
-    train: [ "SatButterfly_v2/USA/butterfly_hotspots_ebird_train.csv"]
-#    val: ["SatBird_data_v2/USA_summer/valid_split_noncolocated_hotspots.csv", "SatButterfly_v1/USA/butterfly_hotspots_valid.csv"] # "butterfly_hotspots_ebird_valid.csv"
-    val: [ "SatButterfly_v2/USA/butterfly_hotspots_ebird_valid.csv"]
-#    test: ["SatBird_data_v2/USA_summer/test_split_noncolocated_hotspots.csv", "SatButterfly_v1/USA/butterfly_hotspots_test.csv"] #"butterfly_hotspots_ebird_test.csv"
-    test: [ "SatButterfly_v2/USA/butterfly_hotspots_ebird_all.csv" ]
+    train: ["SatBird_data_v2/USA_summer/train_split.csv", "SatButterfly_v1/USA/butterfly_hotspots_train.csv"]
+    val: ["SatBird_data_v2/USA_summer/valid_split.csv", "SatButterfly_v1/USA/butterfly_hotspots_valid.csv"] # "butterfly_hotspots_ebird_valid.csv"
+    test: ["SatBird_data_v2/USA_summer/test_split.csv", "SatButterfly_v1/USA/butterfly_hotspots_test.csv"] #"butterfly_hotspots_ebird_test.csv"
 
     targets_folder: ["SatBird_data_v2/USA_summer/targets", "SatButterfly_v1/USA/targets_v1.2"]
     env_data_folder: ["SatBird_data_v2/USA_summer/environmental", "SatButterfly_v1/USA/environmental_data"]
@@ -111,11 +111,11 @@ data:
 
     correction_thresh: "range_maps.pkl" # range maps - threshold = False
 
-    sat_means: "SatButterfly_v2/USA/stats/means_rgb_SatBirdxSatButterfly_notcolocated.npy"
-    sat_stds: "SatButterfly_v2/USA/stats/stds_rgb_SatBirdxSatButterfly_notcolocated.npy"
+    sat_means: "SatButterfly_v2/USA/stats/means_rgb_SatBirdxSatButterfly.npy"
+    sat_stds: "SatButterfly_v2/USA/stats/stds_rgb_SatBirdxSatButterfly.npy"
 
-    env_means: "SatButterfly_v2/USA/stats/env_means_SatBirdxSatButterfly_notcolocated.npy"
-    env_stds: "SatButterfly_v2/USA/stats/env_stds_SatBirdxSatButterfly_notcolocated.npy"
+    env_means: "SatButterfly_v2/USA/stats/env_means_SatBirdxSatButterfly.npy"
+    env_stds: "SatButterfly_v2/USA/stats/env_stds_SatBirdxSatButterfly.npy"
 
   correction_factor:
      thresh: # to train with RM
@@ -125,8 +125,6 @@ data:
 
     # choose subset of birds : "ducks" for trying on species [37] or [2] for cooper's hawk (non passerine) "songbirds" (307 species) or None (full set 684 species) "not_songbirds"
     subset:
-
-    predict_family_of_species: 0
 
   #normalization: None
   transforms:

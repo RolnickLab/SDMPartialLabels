@@ -40,6 +40,9 @@ experiment:
     use_weighted_loss: False
     loss_weight: "log" #"log", "nchklists"
 
+# Should be -1 during training, During testing, eval family of birds (0), or family of butterflies (1) | in SatBird only, eval family of non-songbirds (0), or songbirds (1)
+predict_family_of_species: -1
+
 Rtran:
     use: False
     # Resnet18 or Resnet50
@@ -143,7 +146,7 @@ data:
     type: "probs"  #binary or probs
     # choose subset of birds : "ducks" for trying on species [37] or "songbirds" (307 species) or None (full set 684 species)
     subset:
- 
+
   #normalization: None
   transforms:
     - name: matchres

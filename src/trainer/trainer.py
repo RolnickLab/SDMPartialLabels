@@ -318,7 +318,7 @@ class EbirdTask(pl.LightningModule):
         """Validation step """
         x = batch['input'].squeeze(1)  # .to(device)
         y = batch['target']
-        if self.target_size > 670 or self.opts.data.target.predict_family_of_species >= 0:
+        if self.target_size > 670 or self.opts.predict_family_of_species >= 0:
             mask_label = batch["mask"].long()
         else:
             mask_label = None
@@ -391,7 +391,7 @@ class EbirdTask(pl.LightningModule):
 
         x = batch['input'].squeeze(1)
         y = batch['target']
-        if self.target_size > 670 or self.opts.data.target.predict_family_of_species >= 0:
+        if self.target_size > 670 or self.opts.predict_family_of_species >= 0:
             mask_label = batch["mask"].long()
         else:
             mask_label = None
@@ -513,10 +513,7 @@ class EbirdDataModule(pl.LightningDataModule):
         self.res = self.opts.data.multiscale
         self.num_species = self.opts.data.total_species
         self.species_set = self.opts.data.species
-        try:
-            self.predict_family_of_species = self.opts.data.target.predict_family_of_species
-        except:
-            self.predict_family_of_species = -1
+        self.predict_family_of_species = self.opts.predict_family_of_species
 
         self.df_train = pd.read_csv(os.path.join(self.data_base_dir, self.opts.data.files.train[0]))
         if len(self.opts.data.files.train) > 1:

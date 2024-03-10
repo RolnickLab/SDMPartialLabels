@@ -38,6 +38,9 @@ experiment:
     means_path: ""
     lr: 0.0001
 
+# Should be -1 during training, During testing, eval family of birds (0), or family of butterflies (1) | in SatBird only, eval family of non-songbirds (0), or songbirds (1)
+predict_family_of_species: -1
+
 use_rtran: False
 
 optimizer: "Adam"  #"Adam"

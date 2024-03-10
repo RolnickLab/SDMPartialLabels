@@ -56,11 +56,11 @@ class EbirdVisionDataset(VisionDataset):
         self.env = env
         self.env_var_sizes = env_var_sizes
         self.mode = mode
-        self.type = datatype
+        self.sat_type = datatype
         self.target = target
-        self.targets_folder = targets_folder
-        self.env_data_folder = env_data_folder
-        self.images_folder = images_folder
+        self.targets_folder = targets_folder[0]
+        self.env_data_folder = env_data_folder[0]
+        self.images_folder = images_folder[0]
         self.subset = get_subset(subset, num_species)
         self.use_loc = use_loc
         self.loc_type = loc_type
@@ -103,12 +103,20 @@ class EbirdVisionDataset(VisionDataset):
 
         hotspot_id = self.df.iloc[index]['hotspot_id']
 
-        band_groups = []
-        assert self.type != "" or len(self.env) == 0, "input cannot be empty of satellite image or env data"
-        # satellite image
-        if len(set(self.bands)) > 0:
+        assert self.sat_type != "" or len(self.env) == 0, "input cannot be empty of satellite image or env data"
+        # satellite image; this supports loading multispectral image of SatBird saved in one folder
+        if len(set(self.bands)) > 0 and "multispectral" in self.images_folder:
             item_["sat"] = self._load_spectral_bands(hotspot_id=hotspot_id)
+        else:
+            # or loading RGBNIR, or visual independently
+            if self.sat_type == 'img':
+                img_path = os.path.join(self.data_base_dir, self.images_folder,
+                                        hotspot_id + '_visual.tif')
+            else:
+                img_path = os.path.join(self.data_base_dir, self.images_folder, hotspot_id + '.tif')
 
+            img = load_file(img_path)
+            item_["sat"] = torch.from_numpy(img).float()
         assert len(self.env) == len(self.env_var_sizes), "# of env variables must be equal to the size of env vars "
 
         # env rasters
@@ -124,7 +132,7 @@ class EbirdVisionDataset(VisionDataset):
         t = transforms.Compose(self.transform)
         item_ = t(item_)
 
-        if self.type:
+        if self.sat_type:
             item_["input"] = item_["sat"]
         else:
             item_["input"] = None
@@ -162,8 +170,8 @@ class EbirdVisionDataset(VisionDataset):
 
         if self.predict_family_of_species != -1:
             songbird_indices = [
-                "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/stats/nonsongbird_indices.npy",
-                "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/stats/songbird_indices.npy"]
+                os.path.join(self.data_base_dir, "stats/nonsongbird_indices.npy"),
+                os.path.join(self.data_base_dir, "stats/songbird_indices.npy")]
             unk_mask_indices = np.load(songbird_indices[self.predict_family_of_species])
             target_mask = item_["target"].clone()
             target_mask[target_mask >= 0] = 0

@@ -1,3 +1,4 @@
+# This is the final config file for RTran SatBird reported in the workshop paper
 #where to save checkpoints
 save_path: "experiments/baseline_rtran_SatBird_resnet18_RGB_ENV_3"
 
@@ -60,9 +61,9 @@ Rtran:
     eval_known_ratio: 0.0 #[0.0, 0.1, 0.2, 0.5]
     # should the known values be masked out of the reported metrics or no
     mask_eval_metrics: True
-    # During testing, eval family of non-songbirds (0), or songbirds (1)
-    predict_family_of_species: -1
 
+# During testing, eval family of non-songbirds (0), or songbirds (1)
+predict_family_of_species: -1
 
 optimizer: "AdamW"  #"Adam", "AdamW", "SGD"
 

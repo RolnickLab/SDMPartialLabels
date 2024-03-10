@@ -60,9 +60,9 @@ Rtran:
     eval_known_ratio: 0.0 # [1.0, 0.9, 0.8, 0.5]
     # should the known values be masked out of the reported metrics or no
     mask_eval_metrics: True
-    # eval family of birds (0), or family of butterflies (1)
-    predict_family_of_species: -1
 
+# eval family of birds (0), or family of butterflies (1)
+predict_family_of_species: -1
 
 optimizer: "AdamW"  #"Adam", "AdamW", "SGD"
 

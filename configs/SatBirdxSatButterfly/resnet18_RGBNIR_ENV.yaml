@@ -38,7 +38,8 @@ experiment:
     means_path: ""
     lr: 0.0001
 
-
+# During testing, (0) eval family of birds (0: 670), or (1) family of butterflies (670:)
+predict_family_of_species: -1
 optimizer: "AdamW"  #"Adam", "AdamW", "SGD"
 
 losses:
@@ -122,8 +123,7 @@ data:
 
     # choose subset of birds : "ducks" for trying on species [37] or [2] for cooper's hawk (non passerine) "songbirds" (307 species) or None (full set 684 species) "not_songbirds"
     subset:
-    # (0) eval family of birds (0: 670), or (1) family of butterflies (670:) | (0) songbirds , or 1 (non-songbirds)
-    predict_family_of_species: -1
+
   #normalization: None
   transforms:
     - name: matchres

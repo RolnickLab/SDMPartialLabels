@@ -1,3 +1,4 @@
+# This is the final config file for Resnet18 SatBird reported in the workshop paper
 #where to save checkpoints
 save_path: "experiments/baseline_SatBird_resnet18_RGB_ENV"
 
@@ -44,6 +45,8 @@ experiment:
     means_path: ""
     lr: 0.0001
 
+# During testing, eval family of non-songbirds (0), or songbirds (1)
+predict_family_of_species: -1
 
 optimizer: "Adam"  #"Adam", "AdamW", "SGD"
 
@@ -107,9 +110,9 @@ data:
     val: ["valid_split.csv"]
     test: ["test_split.csv"]
 
-    targets_folder: "targets"
-    env_data_folder: "environmental"
-    images_folder: "images_visual"
+    targets_folder: ["targets"]
+    env_data_folder: ["environmental"]
+    images_folder: ["images_visual"]
     correction_thresh: "range_maps.pkl" # range maps - threshold = False
 
     sat_means: "stats/means_images_visual.npy"
@@ -127,7 +130,6 @@ data:
     # choose subset of birds : "ducks" for trying on species [37] or [2] for cooper's hawk (non passerine) "songbirds" (307 species) or None (full set 684 species) "not_songbirds"
     subset:
 
-    predict_family_of_species: 1
   #normalization: None
   transforms:
     - name: matchres
