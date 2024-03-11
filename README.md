@@ -1,6 +1,6 @@
 # SatBird Dataset and Benchmarks
 
-[Update - March 2024] This repo also includes SatButterfly and RTran, for the paper: PREDICTING SPECIES OCCURRENCE PATTERNS FROM PARTIAL OBSERVATONS in Tackling Climate Change with Machine Learning workshop at ICLR 2024. Source code for RTran is under `RTran/`, while data preparation for SatButterfly is under `data_processing/ebutterfly_data_preparation`.
+[Update - March 2024] This repo also includes code for SatButterfly and RTran, for the paper: PREDICTING SPECIES OCCURRENCE PATTERNS FROM PARTIAL OBSERVATONS in Tackling Climate Change with Machine Learning workshop at ICLR 2024. Source code for RTran is under `RTran/`, while data preparation for SatButterfly is under `data_processing/ebutterfly_data_preparation`.
 
 This repository provides the code required to create the dataset and reproduce the benchmark of:
 

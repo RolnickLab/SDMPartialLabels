@@ -28,10 +28,15 @@ catalog = pystac_client.Client.open(
     # modifier=planetary_computer.sign_inplace, --> this is depricated ??
 )
 
-# Define the bands we are interested in --> r,g,b,nir and true color image or "visual"
-# BANDS = ["B02", "B03", "B04", "B08"] # thes ones with 10m resolution
-BANDS = ["B05", "B06", "B07", "B8A", "B11", "B12"] # the ones with 20m resolution
-# BANDS = ["B01", "B09"] # the ones with 60m resolution
+# Define the bands we are interested in
+# The ones with 10m resolution: RGBNIR (what we used in SatBird paper)
+# BANDS = ["B02", "B03", "B04", "B08"]
+# The ones with 20m resolution (Vegetation classification red edge) : attempts for using all spectral bands in experiments
+BANDS = ["B05", "B06", "B07", "B8A", "B11", "B12"]
+# the ones with 60m resolution (Coastal aerosol, Water vapor): attempts for using all spectral bands in experiments
+# BANDS = ["B01", "B09"]
+# True color image RGB (what we used in SatBird paper and RTran paper)
+# BANDS = ["visual"]
 
 time_of_interest = "2022-06-01/2022-07-31" #this is for summer, if winter use "2022-12-01/2023-01-31"
 

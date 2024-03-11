@@ -6,6 +6,12 @@ import random
 def multi_species_masking(species_set, num_labels, max_known):
     """
     function for handling species masking when all species set is available in a data sample
+    Parameters:
+        species set [List]: a list of species sizes [bird species, butterfly species]
+        num_labels: Total number of labels
+        max_known: probability ratio (between 0 and 1) for known labels
+    Returns:
+        unk_mask_indices [List]: list of unknown indices
     """
     songbird_indices = ["/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/stats/nonsongbird_indices.npy",
      "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/stats/songbird_indices.npy"]
@@ -79,7 +85,7 @@ def get_unknown_mask_indices(num_labels, mode, max_known=0.5, absent_species=-1,
     mode: train, val or test
     max_known: number of known values at max
     absent species: if not -1, birds are absent (0), butterflies are absent (1)
-    species set: a list of [bird species, butterfly species]
+    species set: a list of species sizes [bird species, butterfly species]
     predict family of species: (only if not training) mask out either birds or butterflies
     """
 

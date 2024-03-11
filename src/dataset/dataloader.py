@@ -32,7 +32,7 @@ class EbirdVisionDataset(VisionDataset):
                  use_loc=False,
                  res=[],
                  loc_type=None,
-                 num_species=684,
+                 num_species=670,
                  species_set=None,
                  predict_family_of_species=-1) -> None:
         """

@@ -126,16 +126,13 @@ class RegressionTransformerTask(pl.LightningModule):
             unknown_mask = mask.clone()
             unknown_mask[mask != -1] = 0
             unknown_mask[mask == -1] = 1
-        elif -2 in mask:# to mask out species with no targets from the loss
+        elif -2 in mask: # to mask out species with no targets from the loss
             unknown_mask = mask.clone()
             unknown_mask[mask == -2] = 0
             unknown_mask[mask == -1] = 1
         else:
             unknown_mask = None
-        # try:
-        #     print(unknown_mask.unique())
-        # except:
-        #     print(unknown_mask)
+
         loss = self.criterion(y_pred, y, mask=unknown_mask)
         if batch_idx % 50 == 0:
             self.log("train_loss", loss, on_epoch=True)
