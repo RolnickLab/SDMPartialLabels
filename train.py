@@ -52,7 +52,7 @@ def main(opts):
         )
 
     if len(config.data.bands) > 0 and not config.data.transforms[4].normalize_by_255:
-        config.variables.sat_means, config.variables.sat_stds = compute_means_stds_multispectral_sat_images(
+        config.variables.sat_means, config.variables.sat_stds = compute_means_stds_sat_images(
             root_dir=config.data.files.base,
             train_csv=config.data.files.train,
             img_bands=OmegaConf.to_object(config.data.bands),

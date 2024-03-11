@@ -112,7 +112,7 @@ data:
 
     targets_folder: ["targets"]
     env_data_folder: ["environmental"]
-    images_folder: ["images_visual"]
+    images_folder: ["images"]
     correction_thresh: "range_maps.pkl" # range maps - threshold = False
 
     sat_means: "stats/means_images_visual.npy"

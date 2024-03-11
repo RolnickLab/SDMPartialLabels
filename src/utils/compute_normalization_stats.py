@@ -134,7 +134,7 @@ def compute_means_stds_images_visual(root_dir, train_csv, img_folder="images_vis
     return means.tolist(), stds.tolist()
 
 
-def compute_means_stds_multispectral_sat_images(root_dir, train_csv, img_bands, img_folder='images', output_file_means="stats/means_summer_rgbnir.npy",
+def compute_means_stds_sat_images(root_dir, train_csv, img_bands, img_folder='images', output_file_means="stats/means_summer_rgbnir.npy",
                               output_file_std="stats/stds_summer_rgbnir.npy"):
     """
     computes normalization statistics (means, stds) on training data, for RGBNIR refl channels
@@ -161,6 +161,10 @@ def compute_means_stds_multispectral_sat_images(root_dir, train_csv, img_bands, 
                     arrs.append(arr)
                 if {"r", "g", "b"}.issubset(set(img_bands)):
                     arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index] + "_visual", f"{hs}_visual.tif"))
+                    arr = crop_center(arr, 64, 64)
+                    arrs.append(arr)
+                if {"r", "g", "b", "nir"}.issubset(set(img_bands)):
+                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}.tif"))
                     arr = crop_center(arr, 64, 64)
                     arrs.append(arr)
                 cropped = np.dstack(arrs)
@@ -196,6 +200,10 @@ def compute_means_stds_multispectral_sat_images(root_dir, train_csv, img_bands, 
                     arrs.append(arr)
                 if {"r", "g", "b"}.issubset(set(img_bands)):
                     arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index] + "_visual", f"{hs}_visual.tif"))
+                    arr = crop_center(arr, 64, 64)
+                    arrs.append(arr)
+                if {"r", "g", "b", "nir"}.issubset(set(img_bands)):
+                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}.tif"))
                     arr = crop_center(arr, 64, 64)
                     arrs.append(arr)
                 cropped = np.dstack(arrs)

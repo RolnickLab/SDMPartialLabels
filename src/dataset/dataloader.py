@@ -110,7 +110,7 @@ class EbirdVisionDataset(VisionDataset):
         else:
             # or loading RGBNIR, or visual independently
             if self.sat_type == 'img':
-                img_path = os.path.join(self.data_base_dir, self.images_folder,
+                img_path = os.path.join(self.data_base_dir, self.images_folder + '_visual',
                                         hotspot_id + '_visual.tif')
             else:
                 img_path = os.path.join(self.data_base_dir, self.images_folder, hotspot_id + '.tif')
