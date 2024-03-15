@@ -11,14 +11,14 @@ Dataset Raw and final, with all intermediate files is in: `/network/projects/eco
 * Then, we prepare two versions of the dataset explained below.
 
 ## Unifying species between SatButterfly-v1 and SatButterfly-v2:
-Species observed were different between SatButterfly-v1 and SatButterfly-v2. So, after clustering and preparing final hotspots, and before preparing final targets, we took the intersection of the 2 species lists and ended up with a unified species list for butterflies. We also filtered out species with frequency less than 100, resulting in 172 species.
+Species observed were different between SatButterfly-v1 and SatButterfly-v2. So, after clustering and preparing final hotspots, and before preparing final targets, we took the intersection of the 2 species lists and ended up with a unified species list for butterflies. We also filtered out species with less than 100 occurrences, resulting in 172 species.
 
 Final species list contains: species that have appeared at least 100 times across the dataset, and appeared in both versions of the dataset
 
 - `intersection_species_list.txt`: 601 species
-- `intersection_species_list_frequency_ge100.txt`: 172 species
+- `intersection_species_list_occurrences_ge100.txt`: 172 species (final for our experiments)
 - `union_species_list.txt`: all species that occur in both versions
-- `union_species_list_frequency_ge100.txt`: all species that occur in both versions, with frequenecy >= 100
+- `union_species_list_occurrences_ge100.txt`: all species that occur in both versions, with >= 100 occurrences
 
 # Data preparation:
 ## SatButterfly-v1:
@@ -27,7 +27,7 @@ Notebook `prepare_ebutterfly_independent_from_ebird.ipynb` includes all steps to
 - We ended-up with 7608 hotspots, also split using DBSCAN, following SatBird, resulting in: ('valid', 1147), ('test', 1145), ('train', 5316),
 
 #### Targets:
-ebutterfly checklists are aggregated per hotspot over the years 2010 to 2023. Butterfly targets have 2 versions, all butterfly's 601 species or 172 species (that have frequency >= 100).
+ebutterfly checklists are aggregated per hotspot over the years 2010 to 2023. Butterfly targets have 2 versions, all butterfly's 601 species or 172 species (that have >= 100 occurrences).
 - butterfly_targets_v1.1 : 601 species
 - butterfly_targets_v1.2 : 172 species (used in our final experiments)
 
@@ -42,7 +42,7 @@ Following SatBird, we use the polygons file to extract environmental rasters, us
 
 #### Species:
 - `species/full_species_list.csv`: full species list
-- `species/species_list_frequency_ge100.csv`: species list with observed >= 100 times
+- `species/species_list_occurrences_ge100.csv`: species list with observed >= 100 times
 - `species/species_list_updated_601species.csv`: species list aligned with SatButterfly-v2
 - `species/species_list_updated_172species.csv`: species list aligned with SatButterfly-v2 with species observed >= 100 times
 
@@ -71,7 +71,7 @@ ebutterfly targets are aggregated per hotspot, over the years 2010 to 2023.
 
 #### Species:
 - `species/full_species_list.csv`: full species list
-- `species/species_list_frequency_ge100.csv`: species list with observed >= 100 times
+- `species/species_list_occurrences_ge100.csv`: species list with observed >= 100 times
 - `species/species_list_updated_601species.csv`: species list aligned with SatButterfly-v2
 - `species/species_list_updated_172species.csv`: species list aligned with SatButterfly-v2 with species observed >= 100 times
 
