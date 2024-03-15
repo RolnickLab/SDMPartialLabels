@@ -80,8 +80,44 @@ def find_zero_occurance_species(root_dir, summer_species='USA_summer/species_fre
     np.save(os.path.join(root_dir, outfile), missing_species)
 
 
+def classify_ebird_species(root_dir, species_file_name, original_checklist_file_name):
+    # classify ebird species names into songbirds and non-songbirds
+    ebird_species = open(os.path.join(root_dir, species_file_name)).read().split("\n")[:-1]
+    ABA_checklist = pd.read_csv(os.path.join(root_dir, original_checklist_file_name))
+
+    # everything below (and including) Masked Tityra is a songbird, everything before is not
+    row_threshold = ABA_checklist.index[ABA_checklist['name_1'] == "Masked Tityra"][0]
+
+    # I had to do these manually from checklist 8.0.8 as they don't exist in 8.12
+    missing_dict = {"Accipiter gentilis": 0, "Cistothorus platensis": 1, "Empidonax occidentalis": 1, "Leucolia violiceps": 0}
+    songbird_classification = []
+
+    for ebird_sp in ebird_species:
+        row_found = ABA_checklist.index[ABA_checklist['name_3'] == ebird_sp]
+        if len(row_found) > 0:
+            row_index = row_found[0]
+            if row_index >= row_threshold:
+                songbird_classification.append(1)
+            else:
+                songbird_classification.append(0)
+        else:
+            songbird_classification.append(missing_dict[ebird_sp])
+
+    songbird_classification = np.array(songbird_classification)
+
+    d = {'species_name': ebird_species, 'songbird_classification': songbird_classification}
+    new_df = pd.DataFrame(data=d)
+    new_df.to_csv(os.path.join(root_dir, "species_list_with_songbird_classification.csv"))
+
+    np.save(os.path.join(root_dir, "songbird_indices.npy"), np.where(songbird_classification == 1)[0])
+    np.save(os.path.join(root_dir, "nonsongbird_indices.npy"), np.where(songbird_classification == 0)[0])
+
+
 if __name__ == "__main__":
     root_dir = "/network/projects/ecosystem-embeddings/SatBird_data_v2"
     species_freq_file_name = "species_frequencies_updated.npy"
     # compute_species_frequencies(root_dir, species_freq_file_name)
-    find_zero_occurance_species(root_dir)
+    # find_zero_occurance_species(root_dir)
+    classify_ebird_species(root_dir="../../species_data/",
+                        species_file_name="species_list_USA.txt",
+                        original_checklist_file_name="ABA_Checklist-8.12_mod.csv")

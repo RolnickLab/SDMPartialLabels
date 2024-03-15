@@ -51,20 +51,14 @@ def main(opts):
             output_file_std=config.data.files.env_stds
         )
 
-    if config.data.datatype == "refl":
-        config.variables.rgbnir_means, config.variables.rgbnir_std = compute_means_stds_images(
+    if len(config.data.bands) > 0 and not config.data.transforms[4].normalize_by_255:
+        config.variables.sat_means, config.variables.sat_stds = compute_means_stds_sat_images(
             root_dir=config.data.files.base,
             train_csv=config.data.files.train,
+            img_bands=OmegaConf.to_object(config.data.bands),
             img_folder=config.data.files.images_folder,
-            output_file_means=config.data.files.rgbnir_means,
-            output_file_std=config.data.files.rgbnir_stds)
-    elif config.data.datatype == "img" and not config.data.transforms[4].normalize_by_255:
-        config.variables.visual_means, config.variables.visual_stds = compute_means_stds_images_visual(
-            root_dir=config.data.files.base,
-            train_csv=config.data.files.train,
-            img_folder=config.data.files.images_folder,
-            output_file_means=config.data.files.rgb_means,
-            output_file_std=config.data.files.rgb_stds)
+            output_file_means=config.data.files.sat_means,
+            output_file_std=config.data.files.sat_stds)
 
     # set global seed
     pl.seed_everything(global_seed)

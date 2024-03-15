@@ -17,7 +17,6 @@ from src.transforms.transforms import get_transforms
 from src.losses.metrics import get_metrics
 from src.losses.losses import RMSLELoss, CustomFocalLoss, CustomCrossEntropyLoss, BCE
 from Rtran.rtran import RTranModel
-from Rtran.utils import *
 
 
 class RegressionTransformerTask(pl.LightningModule):
@@ -37,11 +36,15 @@ class RegressionTransformerTask(pl.LightningModule):
         self.image_input_channels += sum(self.config.data.env_var_sizes) if len(self.config.data.env) > 0 else 0
 
         self.model = RTranModel(num_classes=self.num_species,
+                                species_list=os.path.join(self.config.data.files.base,
+                                                          self.config.data.files.species_list),
                                 backbone=self.config.Rtran.backbone, pretrained_backbone=self.config.Rtran.pretrained_backbone,
                                 quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
                                 input_channels=self.image_input_channels, d_hidden=self.config.Rtran.features_size,
-                                use_pos_encoding=self.config.Rtran.use_positional_encoding,
-                                scale_embeddings_by_labels=self.config.Rtran.scale_embeddings_by_labels)
+                                use_pos_encoding=self.config.Rtran.use_positional_encoding)
+
+        if self.config.experiment.module.resume:
+            self.load_rtran_weights()
 
         self.sigmoid_activation = nn.Sigmoid()
         # self.load_resnet18_weights()
@@ -76,6 +79,21 @@ class RegressionTransformerTask(pl.LightningModule):
 
         self.model.load_state_dict(model_dict)
 
+    def load_rtran_weights(self):
+        ckpt = torch.load(self.config.experiment.module.resume)
+        loaded_dict = ckpt['state_dict']
+        model_dict = self.model.state_dict()
+
+        # load state dict keys
+        for key_model, key_pretrained in zip(model_dict.keys(), loaded_dict.keys()):
+            # ignore first layer weights(use imagenet ones)
+            if "output_linear" in key_model or "label_embeddings" in key_model:
+                continue
+            print("loaded.. ", key_model, key_pretrained)
+            model_dict[key_model] = loaded_dict[key_pretrained]
+
+        self.model.load_state_dict(model_dict)
+
     def training_step(
             self, batch: Dict[str, Any], batch_idx: int):
 
@@ -90,7 +108,7 @@ class RegressionTransformerTask(pl.LightningModule):
         else:
             y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
 
-        # if using range maps
+        # if using range maps for SatBird
         if self.config.data.correction_factor.thresh:
             range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').drop(
                                         columns=["index"]))
@@ -103,11 +121,15 @@ class RegressionTransformerTask(pl.LightningModule):
             y_pred = y_pred * range_maps_correction_data.int()
             y = y * range_maps_correction_data.int()
 
-        if self.config.Rtran.masked_loss:         # to train on unknown labels only
-            unknown_mask = custom_replace(mask, 1, 0, 0)
-        #TODO: not efficient
-        elif len(mask.unique()) > 3:
-            unknown_mask = maksed_loss_custom_replace(mask, 0, 1, 1, 1)
+        print(mask.unique())
+        if self.config.Rtran.masked_loss: # to consider unknown labels only for the loss
+            unknown_mask = mask.clone()
+            unknown_mask[mask != -1] = 0
+            unknown_mask[mask == -1] = 1
+        elif -2 in mask: # to mask out species with no targets from the loss
+            unknown_mask = mask.clone()
+            unknown_mask[mask == -2] = 0
+            unknown_mask[mask == -1] = 1
         else:
             unknown_mask = None
 
@@ -135,7 +157,7 @@ class RegressionTransformerTask(pl.LightningModule):
         else:
             y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
 
-        # if using range maps
+        # if using range maps for SatBird
         if self.config.data.correction_factor.thresh:
             range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').drop(
                                         columns=["index"]))
@@ -167,7 +189,7 @@ class RegressionTransformerTask(pl.LightningModule):
         else:
             y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
 
-        # if using range maps
+        # if using range maps for SatBird
         if self.config.data.correction_factor.thresh:
             range_maps_correction_data = (self.RM_correction_data.reset_index().set_index('hotspot_id').drop(
                                         columns=["index"]))
@@ -231,9 +253,13 @@ class RegressionTransformerTask(pl.LightningModule):
             elif name == 'r2':
                 value = torch.mean(getattr(self, nname)(y, pred))
             elif name == 'mae' and mask != None:
-                value = getattr(self, nname)(y, pred, mask)
+                value = getattr(self, nname)(y, pred, mask=mask)
+            elif name == 'nonzero_mae' and mask != None:
+                value = getattr(self, nname)(y, pred, mask=mask)
             elif name == 'mse' and mask != None:
-                value = getattr(self, nname)(y, pred, mask)
+                value = getattr(self, nname)(y, pred, mask=mask)
+            elif name == 'nonzero_mse' and mask != None:
+                value = getattr(self, nname)(y, pred, mask=mask)
             else:
                 value = getattr(self, nname)(y, pred)
 
@@ -243,16 +269,15 @@ class RegressionTransformerTask(pl.LightningModule):
         """
         log metrics through logger
         """
-        unknown_mask = mask
+        unknown_mask = None
         if mask is not None:
+            unknown_mask = mask.clone()
             if self.config.Rtran.mask_eval_metrics:
-                if len(mask.unique()) > 3:
-                    unknown_mask = maksed_loss_custom_replace(mask, 0, 1, 0, 0)
-                else:
-                    unknown_mask = custom_replace(mask, 1, 0, 0)
-
-            unknown_mask[unknown_mask == -2] = 0
-            unknown_mask[unknown_mask == -1] = 1
+                unknown_mask[mask == -1] = 1
+                unknown_mask[mask != -1] = 0
+            else:
+                unknown_mask[mask == -1] = 1
+                unknown_mask[mask == -2] = 0
 
             loss = self.criterion(pred, y, mask=unknown_mask)
 
@@ -267,7 +292,7 @@ class RegressionTransformerTask(pl.LightningModule):
             pred[pred >= 0.5] = 1
             pred[pred < 0.5] = 0
 
-        self.__log_metric(mode, pred, y, unknown_mask)
+        self.__log_metric(mode, pred, y, mask=unknown_mask)
         self.log(str(mode) + "_loss", loss, on_epoch=True)
 
 
@@ -288,17 +313,20 @@ class SDMDataModule(pl.LightningDataModule):
         self.images_folder = self.config.data.files.images_folder
         self.target_type = self.config.data.target.type
 
+        # combining multiple train files
         self.df_train = pd.read_csv(os.path.join(self.data_base_dir, self.config.data.files.train[0]))
         if len(self.config.data.files.train) > 1:
             for df_file_name in self.config.data.files.train[1:]:
                 self.df_train = pd.concat([self.df_train, pd.read_csv(os.path.join(self.data_base_dir, df_file_name))], axis=0)
 
+        # combining multiple validation files
         self.df_val = pd.read_csv(os.path.join(self.data_base_dir, self.config.data.files.val[0]))
         if len(self.config.data.files.val) > 1:
             for df_file_name in self.config.data.files.val[1:]:
                 self.df_val = pd.concat(
                     [self.df_val, pd.read_csv(os.path.join(self.data_base_dir, df_file_name))], axis=0)
 
+        # combining multiple testing files
         self.df_test = pd.read_csv(os.path.join(self.data_base_dir, self.config.data.files.test[0]))
         if len(self.config.data.files.test) > 1:
             for df_file_name in self.config.data.files.test[1:]:
@@ -313,15 +341,18 @@ class SDMDataModule(pl.LightningDataModule):
         self.predict_family = self.config.Rtran.predict_family_of_species
         self.num_species = self.config.data.total_species
 
+        # if we are detecting more than 1 family of sepceis (birds and butterflies)
         if len(self.config.data.species) > 1:
             self.dataloader_to_use = "SDMCoLocatedDataset"
+            # if we are combining SatBird + SatButterfly_v1 + SatButterly_v2
             if len(self.config.data.files.train) > 1:
                 self.dataloader_to_use = "SDMCombinedDataset"
         else:
+            # if we are using either SatBird or SatButterly at a time
             self.dataloader_to_use = "SDMMaskedDataset"
 
     def setup(self, stage: Optional[str] = None) -> None:
-        """create the train/test/val splits and prepare the transforms for the multires"""
+        """create the train/test/val splits"""
         self.all_train_dataset = globals()[self.dataloader_to_use](
             df=self.df_train,
             data_base_dir=self.data_base_dir,

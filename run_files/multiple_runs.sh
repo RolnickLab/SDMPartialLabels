@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=ebird_baseline
-#SBATCH --output=job_output_ctran.txt
-#SBATCH --error=job_error_ctran.txt
+#SBATCH --output=job_output_joint_resnet18.txt
+#SBATCH --error=job_error_joint_restnet18.txt
 #SBATCH --ntasks=1
 #SBATCH --time=23:59:00
 #SBATCH --mem-per-cpu=60Gb
@@ -21,4 +21,4 @@ export COMET_API_KEY=$COMET_API_KEY
 export HYDRA_FULL_ERROR=1
 
 # run training script
-python train.py args.config=configs/SatBird-USA-summer/ctran_RGBNIR_ENV.yaml args.run_id=$SLURM_ARRAY_TASK_ID
+python train.py args.config=configs/SatBirdxSatButterfly/resnet18_RGBNIR_ENV.yaml args.run_id=$SLURM_ARRAY_TASK_ID

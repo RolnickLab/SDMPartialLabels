@@ -132,7 +132,7 @@ def get_img_bands(band_npy):
     return npy_data
 
 
-def get_subset(subset, num_species=684):
+def get_subset(subset, num_species=670):
     """
     subset can be the filename instead
     """

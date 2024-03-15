@@ -39,9 +39,9 @@ experiment:
     freeze: false
     use_weighted_loss: False
     loss_weight: "log" #"log", "nchklists"
-    
-    initialize_seco: False #this is to load SeCo weights
-    initialize_USA: False # this is to initialize experiments for Kenya with weights from USA experiments 
+
+# Should be -1 during training, During testing, eval family of birds (0), or family of butterflies (1) | in SatBird only, eval family of non-songbirds (0), or songbirds (1)
+predict_family_of_species: -1
 
 Rtran:
     use: False
@@ -146,7 +146,7 @@ data:
     type: "probs"  #binary or probs
     # choose subset of birds : "ducks" for trying on species [37] or "songbirds" (307 species) or None (full set 684 species)
     subset:
- 
+
   #normalization: None
   transforms:
     - name: matchres
@@ -217,10 +217,19 @@ losses:
     - name: mae
       ignore: False
       scale: 10
+    - name: nonzero_mae
+      ignore: False
+      scale: 10
     - name: mse
       ignore: False
       scale: 10
+    - name: nonzero_mse
+      ignore: False
+      scale: 10
     - name: topk
+      ignore: False
+      scale: 1
+    - name: topk2
       ignore: False
       scale: 1
     - name: r2
@@ -275,7 +284,7 @@ trainer: # These are the parameters passed to the pytorch lightning Trainer obje
   precision: 32 #32
   weights_summary: "top"
   weights_save_path: null
-  num_sanity_val_steps: 2
+  num_sanity_val_steps: 10
   resume_from_checkpoint: null
   profiler: null
   benchmark: False

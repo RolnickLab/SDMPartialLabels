@@ -1,7 +1,6 @@
 from omegaconf import OmegaConf, DictConfig
 from pathlib import Path
 from os.path import expandvars
-from src.dataset.utils import set_data_paths
 from typing import cast
 
 

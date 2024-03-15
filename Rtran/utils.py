@@ -7,7 +7,7 @@ import torch
 from torch import nn
 import numpy as np
 from torch.optim.lr_scheduler import LambdaLR
-from gensim.models import KeyedVectors
+# from gensim.models import KeyedVectors
 
 
 def load_word2vec_pretrained_weights(word_to_idx, vocab_size, embedding_dim):
@@ -39,9 +39,7 @@ def load_word2vec_pretrained_weights(word_to_idx, vocab_size, embedding_dim):
     return embedding_matrix
 
 
-def tokenize_species():
-    species_file_name = "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/species_list.txt"
-
+def tokenize_species(species_file_name):
     with open(species_file_name) as f:
         species_names = [line.rstrip() for line in f]
 
@@ -266,4 +264,4 @@ class WarmupLinearSchedule(LambdaLR):
 
 
 if __name__ == '__main__':
-    tokenize()
+    tokenize_species()

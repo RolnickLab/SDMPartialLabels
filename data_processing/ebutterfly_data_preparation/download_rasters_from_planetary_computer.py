@@ -27,7 +27,7 @@ catalog = pystac_client.Client.open(
     # modifier=planetary_computer.sign_inplace, --> this is depricated ??
 )
 
-# Define the bands we are interested in --> r,g,b,nir and true color image
+# Define the bands we are interested in ["B02", "B03", "B04", "B08"] --> r,g,b,nir and ["visual"] for true color image
 BANDS = ["B02", "B03", "B04", "B08"]
 
 time_of_interest = "2022-01-01/2022-12-31"
