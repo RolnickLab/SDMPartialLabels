@@ -98,7 +98,10 @@ class SDMMaskedDataset(VisionDataset):
             item_["target"][item_["target"] > 0] = 1
 
         # constructing mask for R-tran
-        unk_mask_indices = get_unknown_mask_indices(num_labels=self.num_species, mode=self.mode, max_known=self.maximum_known_labels_ratio, predict_family_of_species=self.predict_family_of_species)
+        unk_mask_indices = get_unknown_mask_indices(num_labels=self.num_species, mode=self.mode,
+                                                    max_known=self.maximum_known_labels_ratio,
+                                                    predict_family_of_species=self.predict_family_of_species,
+                                                    data_base_dir=self.data_base_dir)
         mask = item_["target"].clone()
         mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
 
@@ -214,8 +217,10 @@ class SDMCoLocatedDataset(VisionDataset):
         item_["target"] = torch.Tensor(item_["target"])
 
         # constructing mask for R-tran
-        unk_mask_indices = get_unknown_mask_indices(num_labels=self.num_species, mode=self.mode, max_known=self.maximum_known_labels_ratio,
-                                                    absent_species=species_2_to_exclude, species_set=self.species_set, predict_family_of_species=self.predict_family_of_species)
+        unk_mask_indices = get_unknown_mask_indices(num_labels=self.num_species, mode=self.mode,
+                                                    max_known=self.maximum_known_labels_ratio, absent_species=species_2_to_exclude,
+                                                    species_set=self.species_set, predict_family_of_species=self.predict_family_of_species,
+                                                    data_base_dir=self.data_base_dir)
         mask = item_["target"].clone()
         mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
 
@@ -346,8 +351,11 @@ class SDMCombinedDataset(VisionDataset):
         item_["target"] = torch.Tensor(item_["target"])
 
         # constructing mask for R-tran
-        unk_mask_indices = get_unknown_mask_indices(num_labels=self.num_species, mode=self.mode, max_known=self.maximum_known_labels_ratio,
-                                                    absent_species=species_to_exclude, species_set=self.species_set, predict_family_of_species=self.predict_family_of_species)
+        unk_mask_indices = get_unknown_mask_indices(num_labels=self.num_species, mode=self.mode,
+                                                    max_known=self.maximum_known_labels_ratio,
+                                                    absent_species=species_to_exclude, species_set=self.species_set,
+                                                    predict_family_of_species=self.predict_family_of_species,
+                                                    data_base_dir=self.data_base_dir)
         mask = item_["target"].clone()
 
         mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
