@@ -1,8 +1,8 @@
 #where to save checkpoints
-save_path: "baseline_convnext_RGBNIR_ENV"
+save_path: "experiments/baseline_SatBird_resnet18_RGB_ENV_songbird"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "baseline_convnext_RGBNIR_ENV"
+load_ckpt_path: "experiments/baseline_SatBird_resnet18_RGB_ENV_songbird"
 save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
 log_comet: true
 
@@ -11,17 +11,11 @@ overfit_batches: 0.0
 max_epochs: 50
 # base directory
 base_dir: ""
-#use geographical information
-loc:
-  use: False
-  #if True :concatenate location features with satellite image features, else location features are mappe to same imension as satellite features and the features are multiplie
-  loc_type: "latlon"   #latlon or state
-  concat: True
 
 comet:
-  project_name: "camera_ready_neurips_baselines"
-  tags: ["convnext", "RGBNIR_ENV", "corrected_targets", "EnvNormalization"]
-  experiment_name: "baseline_convnext_RGBNIR_ENV" # specify for training, or use to report test results, TODO: also use to resume training
+  project_name: "workshop_paper"
+  tags: ["resnet18", "RGB_ENV", "corrected_targets", "EnvNormalization", "songbirds"]
+  experiment_name: "baseline_SatBird_resnet18_RGB_ENV_songbird" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 experiment:
@@ -31,7 +25,7 @@ experiment:
   seed: 42
   module:
     #choose model : "resnet18" "resnet50" "inceptionv3" "linear" (just a linear model)
-    model: "convnext"
+    model: "resnet18"
     #"linear" or "linear_net" for a 2 layer MLP
     fc: "linear"
     #use pretrained weights ( torchvision )
@@ -73,6 +67,7 @@ variables: &default_vars
     ped_std: &ped_std []
     bioclim_means: &bioclim_means []
     bioclim_std: &bioclim_std []
+
     sat_means: &sat_means []
     sat_stds: &sat_stds []
 
@@ -82,11 +77,11 @@ data:
     batch_size: 128
   #What kind of satellite input ? "refl" for "raw" reflectance values or 
   #"img" for 0-255 values (only supported for "rgb" and "nir" bands)
-  datatype: "refl"
+  datatype: "img"
   multiscale : [64]
   
-  bands: ["B2", "B3", "B4", "B8"]  #any subset of ["r", "g", "b", "nir"] if working with "refl" data or ["rgb", "nir"] if using "img"
-
+  bands: ["r","g","b"]  #any subset of ["r", "g", "b", "nir"] if working with "refl" data or ["rgb", "nir"] if using "img"
+  
   res: 10 #resolution of the images
 
   #o you want to use environmental data (pedological and bioclimatic (low res) data) #ped" or "bioclim" or both or empty list
@@ -109,11 +104,11 @@ data:
 
     targets_folder: ["targets"]
     env_data_folder: ["environmental"]
-    images_folder: ["images_multispectral"]
+    images_folder: ["images"]
     correction_thresh: "range_maps.pkl" # range maps - threshold = False
 
-    sat_means: "stats/means_rgbnir_new.npy"
-    sat_stds: "stats/stds_rgbnir_new.npy"
+    sat_means: "stats/means_images_visual.npy"
+    sat_stds: "stats/stds_images_visual.npy"
 
     env_means: "stats/env_means.npy"
     env_stds: "stats/env_stds.npy"
@@ -125,7 +120,7 @@ data:
     type: "probs"  #binary for classification targets  or "probs" for regression (default should be "probs")
 
     # choose subset of birds : "ducks" for trying on species [37] or [2] for cooper's hawk (non passerine) "songbirds" (307 species) or None (full set 684 species) "not_songbirds"
-    subset:
+    subset: "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/stats/songbird_indices.npy"
 
   #normalization: None
   transforms:
