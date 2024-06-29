@@ -4,9 +4,9 @@ import os
 import torch
 from torch.utils.data import DataLoader
 from torchvision import transforms as trsfs
-
+import pandas as pd
 from src.dataset.geo import VisionDataset
-from src.dataset.utils import load_file, get_subset
+from src.dataset.utils import load_file
 from Rtran.label_masking import get_unknown_mask_indices
 
 
@@ -387,9 +387,24 @@ class SDMCombinedDataset(VisionDataset):
 
 
 class sPlotDataloader(DataLoader):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, worldclim_filename, soilgrids_filename, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.worldclim_data = pd.read_csv(worldclim_filename)
+        self.soilgrids_data = pd.read_csv(soilgrids_filename)
 
-    def __getitem__(self, index: int) -> Dict[str, Any]:
-        item_ = []
-        return item_
+        # Ensuring both datasets have the same length by trimming the longer one
+        min_len = min(len(self.worldclim_data), len(self.soilgrids_data))
+        self.data1 = self.worldclim_data.head(min_len)
+        self.data2 = self.soilgrids_data.head(min_len)
+
+    def __len__(self):
+        """ Returns the total number of items in the dataset. """
+        return len(self.soilgrids_data)
+
+    def __getitem__(self, index):
+        """ Returns the items from both files at the given index. """
+        item1 = self.worldclim_data.iloc[index]
+        item2 = self.soilgrids_data.iloc[index]
+        return item1, item2
+
+
