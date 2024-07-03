@@ -1,22 +1,71 @@
-from typing import Any, Callable, Dict, Optional
+import abc
 import os
+from typing import Any, Callable, Dict, Optional
 
-import torch
-from torch.utils.data import DataLoader
-from torchvision import transforms as trsfs
+import numpy as np
 import pandas as pd
-from src.dataset.geo import VisionDataset
-from src.dataset.utils import load_file
+import torch
+from torch.utils.data import DataLoader, Dataset
+from torchvision import transforms as trsfs
+
 from Rtran.label_masking import get_unknown_mask_indices
+from Rtran.utils import json_load, load_geotiff, load_geotiff_visual
+
+
+class VisionDataset(Dataset[Dict[str, Any]], abc.ABC):
+    """Abstract base class for datasets lacking geospatial information.
+    This base class is designed for datasets with pre-defined image chips.
+    """
+
+    @abc.abstractmethod
+    def __getitem__(self, index: int) -> Dict[str, Any]:
+        """Return an index within the dataset.
+        Args:
+            index: index to return
+        Returns:
+            data and labels at that index
+        Raises:
+            IndexError: if index is out of range of the dataset
+        """
+
+    @abc.abstractmethod
+    def __len__(self) -> int:
+        """Return the length of the dataset.
+        Returns:
+            length of the dataset
+        """
+
+    def __str__(self) -> str:
+        """Return the informal string representation of the object.
+        Returns:
+            informal string representation
+        """
+        return f"""\
+{self.__class__.__name__} Dataset
+    type: VisionDataset
+    size: {len(self)}"""
 
 
 class SDMMaskedDataset(VisionDataset):
-    def __init__(self, df, data_base_dir, env, env_var_sizes,
-                 transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None, mode="train", datatype="refl",
-                 target_type="probs", targets_folder="corrected_targets", images_folder="images",
-                 env_data_folder="environmental",
-                 maximum_known_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1,
-                 quantized_mask_bins=1) -> None:
+    def __init__(
+        self,
+        df,
+        data_base_dir,
+        env,
+        env_var_sizes,
+        transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+        mode="train",
+        datatype="refl",
+        target_type="probs",
+        targets_folder="corrected_targets",
+        images_folder="images",
+        env_data_folder="environmental",
+        maximum_known_labels_ratio=0.5,
+        num_species=670,
+        species_set=None,
+        predict_family=-1,
+        quantized_mask_bins=1,
+    ) -> None:
         """
         this dataloader handles dataset with masks for RTran model, handling a single dataset at a time (SatBird or SatButterly)
         Parameters:
@@ -60,23 +109,37 @@ class SDMMaskedDataset(VisionDataset):
     def __getitem__(self, index: int) -> Dict[str, Any]:
         item_ = {}
 
-        hotspot_id = self.df.iloc[index]['hotspot_id']
+        hotspot_id = self.df.iloc[index]["hotspot_id"]
 
         # loading satellite image
-        if self.data_type == 'img':
-            img_path = os.path.join(self.data_base_dir, self.img_folder[0] + "_visual", hotspot_id + '_visual.tif')
+        if self.data_type == "img":
+            img_path = os.path.join(
+                self.data_base_dir,
+                self.img_folder[0] + "_visual",
+                hotspot_id + "_visual.tif",
+            )
         else:
-            img_path = os.path.join(self.data_base_dir, self.img_folder[0], hotspot_id + '.tif')
+            img_path = os.path.join(
+                self.data_base_dir, self.img_folder[0], hotspot_id + ".tif"
+            )
 
-        img = load_file(img_path)
+        if "visual" in str(img_path):
+            img = load_geotiff_visual(img_path)
+        else:
+            img = load_geotiff(img_path)
+
         sats = torch.from_numpy(img).float()
         item_["sat"] = sats
 
-        assert len(self.env) == len(self.env_var_sizes), "# of env variables must be equal to the size of env vars "
+        assert len(self.env) == len(
+            self.env_var_sizes
+        ), "# of env variables must be equal to the size of env vars "
         # loading environmental rasters, if any
         for i, env_var in enumerate(self.env):
-            env_npy = os.path.join(self.data_base_dir, self.env_data_folder[0], hotspot_id + '.npy')
-            env_data = load_file(env_npy)
+            env_npy = os.path.join(
+                self.data_base_dir, self.env_data_folder[0], hotspot_id + ".npy"
+            )
+            env_data = np.load(env_npy)
             s_i = i * self.env_var_sizes[i - 1]
             e_i = self.env_var_sizes[i] + s_i
             item_[env_var] = torch.from_numpy(env_data[s_i:e_i, :, :])
@@ -92,7 +155,11 @@ class SDMMaskedDataset(VisionDataset):
 
         item_["sat"] = item_["sat"].squeeze(0)
         # constructing targets
-        species = load_file(os.path.join(self.data_base_dir, self.targets_folder[0], hotspot_id + '.json'))
+        species = json_load(
+            os.path.join(
+                self.data_base_dir, self.targets_folder[0], hotspot_id + ".json"
+            )
+        )
 
         item_["target"] = species["probs"]
         item_["target"] = torch.Tensor(item_["target"])
@@ -100,10 +167,13 @@ class SDMMaskedDataset(VisionDataset):
             item_["target"][item_["target"] > 0] = 1
 
         # constructing mask for R-tran
-        unk_mask_indices = get_unknown_mask_indices(num_labels=self.num_species, mode=self.mode,
-                                                    max_known=self.maximum_known_labels_ratio,
-                                                    predict_family_of_species=self.predict_family_of_species,
-                                                    data_base_dir=self.data_base_dir)
+        unk_mask_indices = get_unknown_mask_indices(
+            num_labels=self.num_species,
+            mode=self.mode,
+            max_known=self.maximum_known_labels_ratio,
+            predict_family_of_species=self.predict_family_of_species,
+            data_base_dir=self.data_base_dir,
+        )
         mask = item_["target"].clone()
         mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
 
@@ -123,12 +193,25 @@ class SDMMaskedDataset(VisionDataset):
 
 
 class SDMCoLocatedDataset(VisionDataset):
-    def __init__(self, df, data_base_dir, env, env_var_sizes,
-                 transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None, mode="train", datatype="refl",
-                 target_type="probs", targets_folder="corrected_targets", images_folder="images",
-                 env_data_folder="environmental",
-                 maximum_known_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1,
-                 quantized_mask_bins=1) -> None:
+    def __init__(
+        self,
+        df,
+        data_base_dir,
+        env,
+        env_var_sizes,
+        transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+        mode="train",
+        datatype="refl",
+        target_type="probs",
+        targets_folder="corrected_targets",
+        images_folder="images",
+        env_data_folder="environmental",
+        maximum_known_labels_ratio=0.5,
+        num_species=670,
+        species_set=None,
+        predict_family=-1,
+        quantized_mask_bins=1,
+    ) -> None:
         """
         this dataloader handles dataset SatBird + SatButterfly_v2( co-located with some of SatBird positions)
         Parameters:
@@ -174,23 +257,36 @@ class SDMCoLocatedDataset(VisionDataset):
     def __getitem__(self, index: int) -> Dict[str, Any]:
         item_ = {}
 
-        hotspot_id = self.df.iloc[index]['hotspot_id']
+        hotspot_id = self.df.iloc[index]["hotspot_id"]
 
         # loading satellite image
-        if self.data_type == 'img':
-            img_path = os.path.join(self.data_base_dir, self.img_folder[0] + "_visual", hotspot_id + '_visual.tif')
+        if self.data_type == "img":
+            img_path = os.path.join(
+                self.data_base_dir,
+                self.img_folder[0] + "_visual",
+                hotspot_id + "_visual.tif",
+            )
         else:
-            img_path = os.path.join(self.data_base_dir, self.img_folder[0], hotspot_id + '.tif')
+            img_path = os.path.join(
+                self.data_base_dir, self.img_folder[0], hotspot_id + ".tif"
+            )
 
-        img = load_file(img_path)
+        if "visual" in str(img_path):
+            img = load_geotiff_visual(img_path)
+        else:
+            img = load_geotiff(img_path)
         sats = torch.from_numpy(img).float()
         item_["sat"] = sats
 
-        assert len(self.env) == len(self.env_var_sizes), "# of env variables must be equal to the size of env vars "
+        assert len(self.env) == len(
+            self.env_var_sizes
+        ), "# of env variables must be equal to the size of env vars "
         # loading environmental rasters, if any
         for i, env_var in enumerate(self.env):
-            env_npy = os.path.join(self.data_base_dir, self.env_data_folder[0], hotspot_id + '.npy')
-            env_data = load_file(env_npy)
+            env_npy = os.path.join(
+                self.data_base_dir, self.env_data_folder[0], hotspot_id + ".npy"
+            )
+            env_data = np.load(env_npy)
             s_i = i * self.env_var_sizes[i - 1]
             e_i = self.env_var_sizes[i] + s_i
             item_[env_var] = torch.from_numpy(env_data[s_i:e_i, :, :])
@@ -207,9 +303,21 @@ class SDMCoLocatedDataset(VisionDataset):
         item_["sat"] = item_["sat"].squeeze(0)
         # constructing targets
         species_2_to_exclude = -1
-        species = load_file(os.path.join(self.data_base_dir, self.targets_folder[0], hotspot_id + '.json'))
-        if os.path.exists(os.path.join(self.data_base_dir, self.targets_folder[1], hotspot_id + '.json')):
-            species_2 = load_file(os.path.join(self.data_base_dir, self.targets_folder[1], hotspot_id + '.json'))
+        species = json_load(
+            os.path.join(
+                self.data_base_dir, self.targets_folder[0], hotspot_id + ".json"
+            )
+        )
+        if os.path.exists(
+            os.path.join(
+                self.data_base_dir, self.targets_folder[1], hotspot_id + ".json"
+            )
+        ):
+            species_2 = json_load(
+                os.path.join(
+                    self.data_base_dir, self.targets_folder[1], hotspot_id + ".json"
+                )
+            )
         else:
             species_2 = {}
             species_2["probs"] = [-2] * self.species_set[1]
@@ -221,12 +329,15 @@ class SDMCoLocatedDataset(VisionDataset):
         item_["target"] = torch.Tensor(item_["target"])
 
         # constructing mask for R-tran
-        unk_mask_indices = get_unknown_mask_indices(num_labels=self.num_species, mode=self.mode,
-                                                    max_known=self.maximum_known_labels_ratio,
-                                                    absent_species=species_2_to_exclude,
-                                                    species_set=self.species_set,
-                                                    predict_family_of_species=self.predict_family_of_species,
-                                                    data_base_dir=self.data_base_dir)
+        unk_mask_indices = get_unknown_mask_indices(
+            num_labels=self.num_species,
+            mode=self.mode,
+            max_known=self.maximum_known_labels_ratio,
+            absent_species=species_2_to_exclude,
+            species_set=self.species_set,
+            predict_family_of_species=self.predict_family_of_species,
+            data_base_dir=self.data_base_dir,
+        )
         mask = item_["target"].clone()
         mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
 
@@ -247,13 +358,26 @@ class SDMCoLocatedDataset(VisionDataset):
 
 
 class SDMCombinedDataset(VisionDataset):
-    def __init__(self, df, data_base_dir, env, env_var_sizes,
-                 transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None, mode="train", datatype="refl",
-                 target_type="probs", targets_folder="corrected_targets",
-                 targets_folder_2="SatButterfly_dataset/SatButterfly_v2/USA/butterfly_targets_v1.2",
-                 images_folder="images", env_data_folder="environmental",
-                 maximum_known_labels_ratio=0.5, num_species=670, species_set=None, predict_family=-1,
-                 quantized_mask_bins=1) -> None:
+    def __init__(
+        self,
+        df,
+        data_base_dir,
+        env,
+        env_var_sizes,
+        transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+        mode="train",
+        datatype="refl",
+        target_type="probs",
+        targets_folder="corrected_targets",
+        targets_folder_2="SatButterfly_dataset/SatButterfly_v2/USA/butterfly_targets_v1.2",
+        images_folder="images",
+        env_data_folder="environmental",
+        maximum_known_labels_ratio=0.5,
+        num_species=670,
+        species_set=None,
+        predict_family=-1,
+        quantized_mask_bins=1,
+    ) -> None:
         """
         this dataloader handles all datasets together SatBird + SatButterfly_v1+ SatButterfly_v2( co-located with some of SatBird positions)
         Parameters:
@@ -301,28 +425,43 @@ class SDMCombinedDataset(VisionDataset):
     def __getitem__(self, index: int) -> Dict[str, Any]:
         item_ = {}
 
-        hotspot_id = self.df.iloc[index]['hotspot_id']
+        hotspot_id = self.df.iloc[index]["hotspot_id"]
         folder_index = 0
         # to differentiate between SatBird hotspots, or butterfly-only hotspots (SatButterfly-v1) (starting with "BL")
         if hotspot_id.startswith("BL"):
             folder_index = 1
         # loading satellite image
-        if self.data_type == 'img':
-            img_path = os.path.join(self.data_base_dir, self.img_folder[folder_index] + "_visual",
-                                    hotspot_id + '_visual.tif')
+        if self.data_type == "img":
+            img_path = os.path.join(
+                self.data_base_dir,
+                self.img_folder[folder_index] + "_visual",
+                hotspot_id + "_visual.tif",
+            )
         else:
-            img_path = os.path.join(self.data_base_dir, self.img_folder[folder_index], hotspot_id + '.tif')
+            img_path = os.path.join(
+                self.data_base_dir, self.img_folder[folder_index], hotspot_id + ".tif"
+            )
 
-        img = load_file(img_path)
+        if "visual" in str(img_path):
+            img = load_geotiff_visual(img_path)
+        else:
+            img = load_geotiff(img_path)
+
         sats = torch.from_numpy(img).float()
         item_["sat"] = sats
 
-        assert len(self.env) == len(self.env_var_sizes), "# of env variables must be equal to the size of env vars "
+        assert len(self.env) == len(
+            self.env_var_sizes
+        ), "# of env variables must be equal to the size of env vars "
 
         # loading environmental rasters, if any
         for i, env_var in enumerate(self.env):
-            env_npy = os.path.join(self.data_base_dir, self.env_data_folder[folder_index], hotspot_id + '.npy')
-            env_data = load_file(env_npy)
+            env_npy = os.path.join(
+                self.data_base_dir,
+                self.env_data_folder[folder_index],
+                hotspot_id + ".npy",
+            )
+            env_data = np.load(env_npy)
             s_i = i * self.env_var_sizes[i - 1]
             e_i = self.env_var_sizes[i] + s_i
             item_[env_var] = torch.from_numpy(env_data[s_i:e_i, :, :])
@@ -340,18 +479,38 @@ class SDMCombinedDataset(VisionDataset):
         # constructing targets
         species_to_exclude = -1
 
-        if folder_index == 0:  # SatBird hotspot (which may or may not have butterfly targets)
-            species = load_file(
-                os.path.join(self.data_base_dir, self.targets_folder[folder_index], hotspot_id + '.json'))
+        if (
+            folder_index == 0
+        ):  # SatBird hotspot (which may or may not have butterfly targets)
+            species = json_load(
+                os.path.join(
+                    self.data_base_dir,
+                    self.targets_folder[folder_index],
+                    hotspot_id + ".json",
+                )
+            )
 
-            if os.path.exists(os.path.join(self.data_base_dir, self.targets_folder_2, hotspot_id + '.json')):
-                species_2 = load_file(os.path.join(self.data_base_dir, self.targets_folder_2, hotspot_id + '.json'))
+            if os.path.exists(
+                os.path.join(
+                    self.data_base_dir, self.targets_folder_2, hotspot_id + ".json"
+                )
+            ):
+                species_2 = json_load(
+                    os.path.join(
+                        self.data_base_dir, self.targets_folder_2, hotspot_id + ".json"
+                    )
+                )
             else:
                 species_2 = {"probs": [-2] * self.species_set[int(1 - folder_index)]}
                 species_to_exclude = 1
         else:  # A butterfly-only hotspot
-            species_2 = load_file(
-                os.path.join(self.data_base_dir, self.targets_folder[folder_index], hotspot_id + '.json'))
+            species_2 = json_load(
+                os.path.join(
+                    self.data_base_dir,
+                    self.targets_folder[folder_index],
+                    hotspot_id + ".json",
+                )
+            )
             species = {"probs": [-2] * self.species_set[int(1 - folder_index)]}
             species_to_exclude = 0
 
@@ -361,11 +520,15 @@ class SDMCombinedDataset(VisionDataset):
         item_["target"] = torch.Tensor(item_["target"])
 
         # constructing mask for R-tran
-        unk_mask_indices = get_unknown_mask_indices(num_labels=self.num_species, mode=self.mode,
-                                                    max_known=self.maximum_known_labels_ratio,
-                                                    absent_species=species_to_exclude, species_set=self.species_set,
-                                                    predict_family_of_species=self.predict_family_of_species,
-                                                    data_base_dir=self.data_base_dir)
+        unk_mask_indices = get_unknown_mask_indices(
+            num_labels=self.num_species,
+            mode=self.mode,
+            max_known=self.maximum_known_labels_ratio,
+            absent_species=species_to_exclude,
+            species_set=self.species_set,
+            predict_family_of_species=self.predict_family_of_species,
+            data_base_dir=self.data_base_dir,
+        )
         mask = item_["target"].clone()
 
         mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
@@ -398,13 +561,11 @@ class sPlotDataloader(DataLoader):
         self.data2 = self.soilgrids_data.head(min_len)
 
     def __len__(self):
-        """ Returns the total number of items in the dataset. """
+        """Returns the total number of items in the dataset."""
         return len(self.soilgrids_data)
 
     def __getitem__(self, index):
-        """ Returns the items from both files at the given index. """
+        """Returns the items from both files at the given index."""
         item1 = self.worldclim_data.iloc[index]
         item2 = self.soilgrids_data.iloc[index]
         return item1, item2
-
-

@@ -1,10 +1,12 @@
 """
 utility file for computing normalization means and stds for training
 """
+
 import os
-import tifffile
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+import tifffile
 from pandas import DataFrame
 from tqdm import tqdm
 
@@ -13,11 +15,16 @@ def crop_center(img, cropx, cropy):
     y, x, c = img.shape
     startx = x // 2 - cropx // 2
     starty = y // 2 - cropy // 2
-    return img[starty:starty + cropy, startx:startx + cropx, :]
+    return img[starty : starty + cropy, startx : startx + cropx, :]
 
 
-def compute_means_stds_images(root_dir, train_csv, img_folder='images', output_file_means="stats/means_summer_rgbnir.npy",
-                              output_file_std="stats/stds_summer_rgbnir.npy"):
+def compute_means_stds_images(
+    root_dir,
+    train_csv,
+    img_folder="images",
+    output_file_means="stats/means_summer_rgbnir.npy",
+    output_file_std="stats/stds_summer_rgbnir.npy",
+):
     """
     computes normalization statistics (means, stds) on training data, for RGBNIR refl channels
     """
@@ -31,10 +38,18 @@ def compute_means_stds_images(root_dir, train_csv, img_folder='images', output_f
             df = pd.read_csv(os.path.join(root_dir, train_csv_file))
             for i, row in tqdm(df.iterrows()):
                 hs = row["hotspot_id"]
-                arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}.tif"))
+                arr = tifffile.imread(
+                    os.path.join(root_dir, img_folder[folder_index], f"{hs}.tif")
+                )
                 cropped = crop_center(arr, 64, 64)
                 means = np.mean(np.mean(cropped, axis=0), axis=0)
-                new_row = {'hotspot_id': hs, 'r': means[2], 'g': means[1], 'b': means[0], 'nir': means[3]}
+                new_row = {
+                    "hotspot_id": hs,
+                    "r": means[2],
+                    "g": means[1],
+                    "b": means[0],
+                    "nir": means[3],
+                }
                 stats_df = stats_df.append(new_row, ignore_index=True)
 
         mean_r = stats_df["r"].mean()
@@ -50,17 +65,32 @@ def compute_means_stds_images(root_dir, train_csv, img_folder='images', output_f
 
     output_file_stds_path = os.path.join(root_dir, output_file_std)
     if os.path.exists(output_file_stds_path):
-        stds = np.load(output_file_stds_path, allow_pickle=True, fix_imports=True, encoding='latin1')
+        stds = np.load(
+            output_file_stds_path,
+            allow_pickle=True,
+            fix_imports=True,
+            encoding="latin1",
+        )
     else:
-        stats_df = pd.DataFrame(columns=["hotspot_id", "r_std", "g_std", "b_std", "nir_std"])
+        stats_df = pd.DataFrame(
+            columns=["hotspot_id", "r_std", "g_std", "b_std", "nir_std"]
+        )
         for folder_index, train_csv_file in enumerate(train_csv):
             df = pd.read_csv(os.path.join(root_dir, train_csv_file))
             for i, row in tqdm(df.iterrows()):
                 hs = row["hotspot_id"]
-                arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}.tif"))
+                arr = tifffile.imread(
+                    os.path.join(root_dir, img_folder[folder_index], f"{hs}.tif")
+                )
                 cropped = crop_center(arr, 64, 64)
                 std = ((cropped - means) ** 2 / (64 * 64)).sum(axis=0).sum(axis=0)
-                new_row = {'hotspot_id': hs, 'r_std': std[2], 'g_std': std[1], 'b_std': std[0], 'nir_std': std[3]}
+                new_row = {
+                    "hotspot_id": hs,
+                    "r_std": std[2],
+                    "g_std": std[1],
+                    "b_std": std[0],
+                    "nir_std": std[3],
+                }
                 stats_df = stats_df.append(new_row, ignore_index=True)
 
         std_r = np.sqrt(stats_df["r_std"].mean())
@@ -76,8 +106,13 @@ def compute_means_stds_images(root_dir, train_csv, img_folder='images', output_f
     return means.tolist(), stds.tolist()
 
 
-def compute_means_stds_images_visual(root_dir, train_csv, img_folder="images_visual", output_file_means="stats/means_summer_images_visual.npy",
-                                     output_file_std="stats/stds_summer_images_visual.npy"):
+def compute_means_stds_images_visual(
+    root_dir,
+    train_csv,
+    img_folder="images_visual",
+    output_file_means="stats/means_summer_images_visual.npy",
+    output_file_std="stats/stds_summer_images_visual.npy",
+):
     """
     computes normalization statistics (means, stds) on training data, for RGB visual channels
     """
@@ -91,10 +126,18 @@ def compute_means_stds_images_visual(root_dir, train_csv, img_folder="images_vis
             df = pd.read_csv(os.path.join(root_dir, train_csv_file))
             for i, row in tqdm(df.iterrows()):
                 hs = row["hotspot_id"]
-                arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}_visual.tif"))
+                arr = tifffile.imread(
+                    os.path.join(root_dir, img_folder[folder_index], f"{hs}_visual.tif")
+                )
                 cropped = crop_center(arr, 64, 64)
                 means = np.mean(np.mean(cropped, axis=0), axis=0)
-                new_row = {'hotspot_id': hs, 'r': means[2], 'g': means[1], 'b': means[0], 'nir': means[3]}
+                new_row = {
+                    "hotspot_id": hs,
+                    "r": means[2],
+                    "g": means[1],
+                    "b": means[0],
+                    "nir": means[3],
+                }
                 stats_df = stats_df.append(new_row, ignore_index=True)
 
         mean_r = stats_df["r"].mean()
@@ -111,15 +154,25 @@ def compute_means_stds_images_visual(root_dir, train_csv, img_folder="images_vis
     if os.path.exists(output_file_stds_path):
         stds = np.load(output_file_stds_path)
     else:
-        stats_df: DataFrame = pd.DataFrame(columns=["hotspot_id", "r_std", "g_std", "b_std", "nir_std"])
+        stats_df: DataFrame = pd.DataFrame(
+            columns=["hotspot_id", "r_std", "g_std", "b_std", "nir_std"]
+        )
         for folder_index, train_csv_file in enumerate(train_csv):
             df = pd.read_csv(os.path.join(root_dir, train_csv_file))
             for i, row in tqdm(df.iterrows()):
                 hs = row["hotspot_id"]
-                arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}_visual.tif"))
+                arr = tifffile.imread(
+                    os.path.join(root_dir, img_folder[folder_index], f"{hs}_visual.tif")
+                )
                 cropped = crop_center(arr, 64, 64)
                 std = ((cropped - means) ** 2 / (64 * 64)).sum(axis=0).sum(axis=0)
-                new_row = {'hotspot_id': hs, 'r_std': std[2], 'g_std': std[1], 'b_std': std[0], 'nir_std': std[3]}
+                new_row = {
+                    "hotspot_id": hs,
+                    "r_std": std[2],
+                    "g_std": std[1],
+                    "b_std": std[0],
+                    "nir_std": std[3],
+                }
                 stats_df = stats_df.append(new_row, ignore_index=True)
 
         std_r = np.sqrt(stats_df["r_std"].mean())
@@ -134,8 +187,14 @@ def compute_means_stds_images_visual(root_dir, train_csv, img_folder="images_vis
     return means.tolist(), stds.tolist()
 
 
-def compute_means_stds_sat_images(root_dir, train_csv, img_bands, img_folder='images', output_file_means="stats/means_summer_rgbnir.npy",
-                              output_file_std="stats/stds_summer_rgbnir.npy"):
+def compute_means_stds_sat_images(
+    root_dir,
+    train_csv,
+    img_bands,
+    img_folder="images",
+    output_file_means="stats/means_summer_rgbnir.npy",
+    output_file_std="stats/stds_summer_rgbnir.npy",
+):
     """
     computes normalization statistics (means, stds) on training data, for RGBNIR refl channels
     """
@@ -150,27 +209,43 @@ def compute_means_stds_sat_images(root_dir, train_csv, img_bands, img_folder='im
                 hs = row["hotspot_id"]
                 arrs = []
                 if {"B2", "B3", "B4", "B8"}.issubset(set(img_bands)):
-                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}_10m.tif"))
+                    arr = tifffile.imread(
+                        os.path.join(
+                            root_dir, img_folder[folder_index], f"{hs}_10m.tif"
+                        )
+                    )
                     # print(arr.shape)
                     arr = crop_center(arr, 64, 64)
                     arrs.append(arr)
                 if {"B5", "B6", "B7", "B8A", "B11", "B12"}.issubset(set(img_bands)):
-                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}_20m.tif"))
+                    arr = tifffile.imread(
+                        os.path.join(
+                            root_dir, img_folder[folder_index], f"{hs}_20m.tif"
+                        )
+                    )
                     # print(arr.shape)
                     arr = crop_center(arr, 64, 64)
                     arrs.append(arr)
                 if {"r", "g", "b"}.issubset(set(img_bands)):
-                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index] + "_visual", f"{hs}_visual.tif"))
+                    arr = tifffile.imread(
+                        os.path.join(
+                            root_dir,
+                            img_folder[folder_index] + "_visual",
+                            f"{hs}_visual.tif",
+                        )
+                    )
                     arr = crop_center(arr, 64, 64)
                     arrs.append(arr)
                 if {"r", "g", "b", "nir"}.issubset(set(img_bands)):
-                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}.tif"))
+                    arr = tifffile.imread(
+                        os.path.join(root_dir, img_folder[folder_index], f"{hs}.tif")
+                    )
                     arr = crop_center(arr, 64, 64)
                     arrs.append(arr)
                 cropped = np.dstack(arrs)
                 # print(cropped.shape)
                 means = np.mean(np.mean(cropped, axis=0), axis=0)
-                new_row = {'hotspot_id': hs}
+                new_row = {"hotspot_id": hs}
                 for mean_i in range(len(img_bands)):
                     new_row[img_bands[mean_i]] = means[mean_i]
                 stats_df = stats_df.append(new_row, ignore_index=True)
@@ -182,7 +257,12 @@ def compute_means_stds_sat_images(root_dir, train_csv, img_bands, img_folder='im
 
     output_file_stds_path = os.path.join(root_dir, output_file_std)
     if os.path.exists(output_file_stds_path):
-        stds = np.load(output_file_stds_path, allow_pickle=True, fix_imports=True, encoding='latin1')
+        stds = np.load(
+            output_file_stds_path,
+            allow_pickle=True,
+            fix_imports=True,
+            encoding="latin1",
+        )
     else:
         stats_df = pd.DataFrame(columns=["hotspot_id"] + img_bands)
         for folder_index, train_csv_file in enumerate(train_csv):
@@ -191,24 +271,40 @@ def compute_means_stds_sat_images(root_dir, train_csv, img_bands, img_folder='im
                 hs = row["hotspot_id"]
                 arrs = []
                 if {"B2", "B3", "B4", "B8"}.issubset(set(img_bands)):
-                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}_10m.tif"))
+                    arr = tifffile.imread(
+                        os.path.join(
+                            root_dir, img_folder[folder_index], f"{hs}_10m.tif"
+                        )
+                    )
                     arr = crop_center(arr, 64, 64)
                     arrs.append(arr)
                 if {"B5", "B6", "B7", "B8A", "B11", "B12"}.issubset(set(img_bands)):
-                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}_20m.tif"))
+                    arr = tifffile.imread(
+                        os.path.join(
+                            root_dir, img_folder[folder_index], f"{hs}_20m.tif"
+                        )
+                    )
                     arr = crop_center(arr, 64, 64)
                     arrs.append(arr)
                 if {"r", "g", "b"}.issubset(set(img_bands)):
-                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index] + "_visual", f"{hs}_visual.tif"))
+                    arr = tifffile.imread(
+                        os.path.join(
+                            root_dir,
+                            img_folder[folder_index] + "_visual",
+                            f"{hs}_visual.tif",
+                        )
+                    )
                     arr = crop_center(arr, 64, 64)
                     arrs.append(arr)
                 if {"r", "g", "b", "nir"}.issubset(set(img_bands)):
-                    arr = tifffile.imread(os.path.join(root_dir, img_folder[folder_index], f"{hs}.tif"))
+                    arr = tifffile.imread(
+                        os.path.join(root_dir, img_folder[folder_index], f"{hs}.tif")
+                    )
                     arr = crop_center(arr, 64, 64)
                     arrs.append(arr)
                 cropped = np.dstack(arrs)
                 std = ((cropped - means) ** 2 / (64 * 64)).sum(axis=0).sum(axis=0)
-                new_row = {'hotspot_id': hs}
+                new_row = {"hotspot_id": hs}
                 for mean_i in range(len(img_bands)):
                     new_row[img_bands[mean_i]] = std[mean_i]
                 stats_df = stats_df.append(new_row, ignore_index=True)
@@ -225,10 +321,37 @@ def compute_means_stds_env_vars_point_values(root_dir, train_csv):
     """
     computes normalization statistics (means, stds) on training data, for environmental variables
     """
-    bioclim_env_column_names = ['bio_1', 'bio_2', 'bio_3', 'bio_4', 'bio_5',
-                                'bio_6', 'bio_7', 'bio_8', 'bio_9', 'bio_10', 'bio_11', 'bio_12',
-                                'bio_13', 'bio_14', 'bio_15', 'bio_16', 'bio_17', 'bio_18', 'bio_19']
-    ped_env_column_names = ['bdticm', 'bldfie', 'cecsol', 'clyppt', 'orcdrc', 'phihox', 'sltppt', 'sndppt']
+    bioclim_env_column_names = [
+        "bio_1",
+        "bio_2",
+        "bio_3",
+        "bio_4",
+        "bio_5",
+        "bio_6",
+        "bio_7",
+        "bio_8",
+        "bio_9",
+        "bio_10",
+        "bio_11",
+        "bio_12",
+        "bio_13",
+        "bio_14",
+        "bio_15",
+        "bio_16",
+        "bio_17",
+        "bio_18",
+        "bio_19",
+    ]
+    ped_env_column_names = [
+        "bdticm",
+        "bldfie",
+        "cecsol",
+        "clyppt",
+        "orcdrc",
+        "phihox",
+        "sltppt",
+        "sndppt",
+    ]
 
     df = pd.read_csv(os.path.join(root_dir, train_csv))
 
@@ -238,15 +361,53 @@ def compute_means_stds_env_vars_point_values(root_dir, train_csv):
     ped_means = np.nanmean(df[ped_env_column_names].values.tolist(), axis=0)
     ped_stds = np.nanstd(df[ped_env_column_names].values.tolist(), axis=0)
 
-    return bioclim_means.tolist(), bioclim_stds.tolist(), ped_means.tolist(), ped_stds.tolist()
+    return (
+        bioclim_means.tolist(),
+        bioclim_stds.tolist(),
+        ped_means.tolist(),
+        ped_stds.tolist(),
+    )
 
 
-def compute_means_stds_env_vars(root_dir, train_csv, env, env_data_folder="environmental",
-                                output_file_means="stats/env_means.npy", output_file_std="stats/env_stds.npy"):
-    bioclim_env_column_names = ['bio_1', 'bio_2', 'bio_3', 'bio_4', 'bio_5',
-                                'bio_6', 'bio_7', 'bio_8', 'bio_9', 'bio_10', 'bio_11', 'bio_12',
-                                'bio_13', 'bio_14', 'bio_15', 'bio_16', 'bio_17', 'bio_18', 'bio_19']
-    ped_env_column_names = ['bdticm', 'bldfie', 'cecsol', 'clyppt', 'orcdrc', 'phihox', 'sltppt', 'sndppt']
+def compute_means_stds_env_vars(
+    root_dir,
+    train_csv,
+    env,
+    env_data_folder="environmental",
+    output_file_means="stats/env_means.npy",
+    output_file_std="stats/env_stds.npy",
+):
+    bioclim_env_column_names = [
+        "bio_1",
+        "bio_2",
+        "bio_3",
+        "bio_4",
+        "bio_5",
+        "bio_6",
+        "bio_7",
+        "bio_8",
+        "bio_9",
+        "bio_10",
+        "bio_11",
+        "bio_12",
+        "bio_13",
+        "bio_14",
+        "bio_15",
+        "bio_16",
+        "bio_17",
+        "bio_18",
+        "bio_19",
+    ]
+    ped_env_column_names = [
+        "bdticm",
+        "bldfie",
+        "cecsol",
+        "clyppt",
+        "orcdrc",
+        "phihox",
+        "sltppt",
+        "sndppt",
+    ]
 
     env_var_names = []
     if "bioclim" in env:
@@ -263,8 +424,10 @@ def compute_means_stds_env_vars(root_dir, train_csv, env, env_data_folder="envir
             df = pd.read_csv(os.path.join(root_dir, train_csv_file))
             for i, row in tqdm(df.iterrows()):
                 hs = row["hotspot_id"]
-                arr = np.load(os.path.join(root_dir, env_data_folder[folder_index], f"{hs}.npy"))
-                per_raster_mean = np.nanmean(arr, axis=(1,2))
+                arr = np.load(
+                    os.path.join(root_dir, env_data_folder[folder_index], f"{hs}.npy")
+                )
+                per_raster_mean = np.nanmean(arr, axis=(1, 2))
                 new_row = pd.Series(per_raster_mean, index=stats_df.columns)
                 stats_df = stats_df.append(new_row, ignore_index=True)
 
@@ -286,8 +449,12 @@ def compute_means_stds_env_vars(root_dir, train_csv, env, env_data_folder="envir
             df = pd.read_csv(os.path.join(root_dir, train_csv_file))
             for i, row in tqdm(df.iterrows()):
                 hs = row["hotspot_id"]
-                arr = np.load(os.path.join(root_dir, env_data_folder[folder_index], f"{hs}.npy"))
-                std = np.nansum(((arr - means[:, np.newaxis, np.newaxis]) ** 2) / (50 * 50), axis=-1)
+                arr = np.load(
+                    os.path.join(root_dir, env_data_folder[folder_index], f"{hs}.npy")
+                )
+                std = np.nansum(
+                    ((arr - means[:, np.newaxis, np.newaxis]) ** 2) / (50 * 50), axis=-1
+                )
                 std = np.nansum(std, axis=-1)
                 new_row = pd.Series(std, index=stats_df.columns)
                 stats_df = stats_df.append(new_row, ignore_index=True)
@@ -301,6 +468,9 @@ def compute_means_stds_env_vars(root_dir, train_csv, env, env_data_folder="envir
         del stats_df
 
     print("Env var stds: ", stds)
-    return means[0:len(bioclim_env_column_names)].tolist(), stds[0:len(bioclim_env_column_names)].tolist(), means[
-                                                                                                            len(bioclim_env_column_names):].tolist(), stds[
-                                                                                                                                                      len(bioclim_env_column_names):].tolist()
+    return (
+        means[0 : len(bioclim_env_column_names)].tolist(),
+        stds[0 : len(bioclim_env_column_names)].tolist(),
+        means[len(bioclim_env_column_names) :].tolist(),
+        stds[len(bioclim_env_column_names) :].tolist(),
+    )

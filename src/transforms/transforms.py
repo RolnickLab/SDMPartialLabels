@@ -1,15 +1,16 @@
-from typing import Dict
-from math import ceil, floor
-import numpy as np
-import torch
-from torch import Tensor
-from torch.nn import Module
-import torchvision
-from torchvision.transforms.functional import normalize
-import torch.nn.functional as F
 import collections
 import numbers
 import random
+from math import ceil, floor
+from typing import Dict
+
+import numpy as np
+import torch
+import torch.nn.functional as F
+import torchvision
+from torch import Tensor
+from torch.nn import Module
+from torchvision.transforms.functional import normalize
 
 Module.__module__ = "torch.nn"
 
@@ -146,7 +147,9 @@ class MatchRes:
             top = max(0, Hb // 2 - h // 2)
             left = max(0, Wb // 2 - w // 2)
             h, w = max(ceil(h), 1), max(ceil(w), 1)
-            sample["bioclim"] = sample["bioclim"][:, int(top): int(top + h), int(left): int(left + w)]
+            sample["bioclim"] = sample["bioclim"][
+                :, int(top) : int(top + h), int(left) : int(left + w)
+            ]
         if "ped" in list(sample.keys()):
             # align bioclim with ped
             Hb, Wb = sample["ped"].shape[-2:]
@@ -156,19 +159,27 @@ class MatchRes:
             top = max(0, Hb // 2 - h // 2)
             left = max(0, Wb // 2 - w // 2)
             h, w = max(ceil(h), 1), max(ceil(w), 1)
-            sample["ped"] = sample["ped"][:, int(top): int(top + h), int(left): int(left + w)]
+            sample["ped"] = sample["ped"][
+                :, int(top) : int(top + h), int(left) : int(left + w)
+            ]
 
         means_bioclim, means_ped = self.custom
 
         for elem in list(sample.keys()):
             if elem in env:
-                if ((sample[elem].shape[-1] == 0) or (sample[elem].shape[-2] == 0)):
+                if (sample[elem].shape[-1] == 0) or (sample[elem].shape[-2] == 0):
                     if elem == "bioclim":
-                        sample[elem] = torch.Tensor(means_bioclim).unsqueeze(-1).unsqueeze(-1)
+                        sample[elem] = (
+                            torch.Tensor(means_bioclim).unsqueeze(-1).unsqueeze(-1)
+                        )
                     elif elem == "ped":
-                        sample[elem] = torch.Tensor(means_ped).unsqueeze(-1).unsqueeze(-1)
+                        sample[elem] = (
+                            torch.Tensor(means_ped).unsqueeze(-1).unsqueeze(-1)
+                        )
 
-                sample[elem] = F.interpolate(sample[elem].unsqueeze(0).float(), size=(H, W))
+                sample[elem] = F.interpolate(
+                    sample[elem].unsqueeze(0).float(), size=(H, W)
+                )
         return sample
 
 
@@ -197,14 +208,18 @@ class RandomCrop:  # type: ignore[misc,name-defined]
             the cropped input
         """
 
-        H, W = (sample["sat"].shape[-2:] if "sat" in sample else list(sample.values())[0].shape[-2:])
+        H, W = (
+            sample["sat"].shape[-2:]
+            if "sat" in sample
+            else list(sample.values())[0].shape[-2:]
+        )
         for key in sample.keys():
 
-            if (len(sample[key].shape) == 3):
+            if len(sample[key].shape) == 3:
                 sample[key] = torch.unsqueeze(sample[key], 0)
 
         if torch.rand(1) > self.p:
-            return (sample)
+            return sample
         else:
             if not self.center:
 
@@ -217,7 +232,9 @@ class RandomCrop:  # type: ignore[misc,name-defined]
             item_ = {}
             for task, tensor in sample.items():
                 if task in all_data and not task in self.ignore_band:
-                    item_.update({task: tensor[:, :, top: top + self.h, left: left + self.w]})
+                    item_.update(
+                        {task: tensor[:, :, top : top + self.h, left : left + self.w]}
+                    )
                 else:
                     item_.update({task: tensor})
 
@@ -234,11 +251,15 @@ class Resize:
     def __call__(self, sample: Dict[str, Tensor]) -> Dict[str, Tensor]:
         for s in sample:
             if s in sat:
-                sample[s] = F.interpolate(sample[s].float(), size=(self.h, self.w), mode='bilinear')
+                sample[s] = F.interpolate(
+                    sample[s].float(), size=(self.h, self.w), mode="bilinear"
+                )
             elif s in env or s in landuse:
 
-                sample[s] = F.interpolate(sample[s].float(), size=(self.h, self.w), mode='nearest')
-        return (sample)
+                sample[s] = F.interpolate(
+                    sample[s].float(), size=(self.h, self.w), mode="nearest"
+                )
+        return sample
 
 
 class RandomGaussianNoise:  # type: ignore[misc,name-defined]
@@ -275,8 +296,11 @@ class RandBrightness:
         if random.random() < self.prob:
             for s in sample:
                 if s in sat:
-                    sample[s][:, 0:3, :, :] = torchvision.transforms.functional.adjust_brightness(
-                        sample[s][:, 0:3, :, :], self.value)
+                    sample[s][:, 0:3, :, :] = (
+                        torchvision.transforms.functional.adjust_brightness(
+                            sample[s][:, 0:3, :, :], self.value
+                        )
+                    )
         return sample
 
 
@@ -289,8 +313,11 @@ class RandContrast:
         if random.random() < self.prob:
             for s in sample:
                 if s in sat:
-                    sample[s][:, 0:3, :, :] = torchvision.transforms.functional.adjust_contrast(sample[s][:, 0:3, :, :],
-                                                                                                self.factor)
+                    sample[s][:, 0:3, :, :] = (
+                        torchvision.transforms.functional.adjust_contrast(
+                            sample[s][:, 0:3, :, :], self.factor
+                        )
+                    )
         return sample
 
 
@@ -327,7 +354,9 @@ class RandRotation:
             angle = random.uniform(self.degrees[0], self.degrees[1])
             for s in sample:
                 if s in sat:
-                    sample[s] = torchvision.transforms.functional.rotate(sample[s], angle=angle, center=self.center)
+                    sample[s] = torchvision.transforms.functional.rotate(
+                        sample[s], angle=angle, center=self.center
+                    )
         return sample
 
 
@@ -349,7 +378,9 @@ class GaussianBlurring:
         if random.random() < self.prob:
             for s in sample:
                 if s in sat:
-                    sample[s] = torchvision.transforms.functional.gaussian_blur(sample[s], kernel_size=self.kernel_size)
+                    sample[s] = torchvision.transforms.functional.gaussian_blur(
+                        sample[s], kernel_size=self.kernel_size
+                    )
         return sample
 
 
@@ -359,42 +390,71 @@ def get_transform(transform_item, mode):
     an addict.Dict
     """
 
-    if transform_item.name == "crop" and not (transform_item.ignore is True or transform_item.ignore == mode):
-        return RandomCrop((transform_item.height, transform_item.width),
+    if transform_item.name == "crop" and not (
+        transform_item.ignore is True or transform_item.ignore == mode
+    ):
+        return RandomCrop(
+            (transform_item.height, transform_item.width),
             center=(transform_item.center == mode or transform_item.center == True),
-            ignore_band=transform_item.ignore_band or [], p=transform_item.p)
-    elif transform_item.name == "matchres" and not (transform_item.ignore is True or transform_item.ignore == mode):
+            ignore_band=transform_item.ignore_band or [],
+            p=transform_item.p,
+        )
+    elif transform_item.name == "matchres" and not (
+        transform_item.ignore is True or transform_item.ignore == mode
+    ):
         return MatchRes(transform_item.target_size, transform_item.custom_means)
 
-    elif transform_item.name == "hflip" and not (transform_item.ignore is True or transform_item.ignore == mode):
+    elif transform_item.name == "hflip" and not (
+        transform_item.ignore is True or transform_item.ignore == mode
+    ):
         return RandomHorizontalFlip(p=transform_item.p or 0.5)
 
-    elif transform_item.name == "vflip" and not (transform_item.ignore is True or transform_item.ignore == mode):
+    elif transform_item.name == "vflip" and not (
+        transform_item.ignore is True or transform_item.ignore == mode
+    ):
         return RandomVerticalFlip(p=transform_item.p or 0.5)
 
-    elif transform_item.name == "randomnoise" and not (transform_item.ignore is True or transform_item.ignore == mode):
-        return RandomGaussianNoise(max_noise=transform_item.max_noise or 5e-2, std=transform_item.std or 1e-2)
+    elif transform_item.name == "randomnoise" and not (
+        transform_item.ignore is True or transform_item.ignore == mode
+    ):
+        return RandomGaussianNoise(
+            max_noise=transform_item.max_noise or 5e-2, std=transform_item.std or 1e-2
+        )
 
-    elif transform_item.name == "normalize" and not (transform_item.ignore is True or transform_item.ignore == mode):
+    elif transform_item.name == "normalize" and not (
+        transform_item.ignore is True or transform_item.ignore == mode
+    ):
 
-        return Normalize(maxchan=transform_item.maxchan, custom=transform_item.custom or None,
-                         subset=transform_item.subset, normalize_by_255=transform_item.normalize_by_255)
+        return Normalize(
+            maxchan=transform_item.maxchan,
+            custom=transform_item.custom or None,
+            subset=transform_item.subset,
+            normalize_by_255=transform_item.normalize_by_255,
+        )
 
-    elif transform_item.name == "resize" and not (transform_item.ignore is True or transform_item.ignore == mode):
+    elif transform_item.name == "resize" and not (
+        transform_item.ignore is True or transform_item.ignore == mode
+    ):
 
         return Resize(size=transform_item.size)
 
-    elif transform_item.name == "blur" and not (transform_item.ignore is True or transform_item.ignore == mode):
+    elif transform_item.name == "blur" and not (
+        transform_item.ignore is True or transform_item.ignore == mode
+    ):
         return GaussianBlurring(prob=transform_item.p)
-    elif transform_item.name == "rotate" and not (transform_item.ignore is True or transform_item.ignore == mode):
+    elif transform_item.name == "rotate" and not (
+        transform_item.ignore is True or transform_item.ignore == mode
+    ):
         return RandRotation(prob=transform_item.p, degrees=transform_item.val)
 
     elif transform_item.name == "randomcontrast" and not (
-            transform_item.ignore is True or transform_item.ignore == mode):
+        transform_item.ignore is True or transform_item.ignore == mode
+    ):
         return RandContrast(prob=transform_item.p, max_factor=transform_item.val)
 
     elif transform_item.name == "randombrightness" and not (
-            transform_item.ignore is True or transform_item.ignore == mode):
+        transform_item.ignore is True or transform_item.ignore == mode
+    ):
         return RandBrightness(prob=transform_item.p, max_value=transform_item.val)
 
     elif transform_item.ignore is True or transform_item.ignore == mode:
@@ -422,7 +482,7 @@ def get_transforms(opts, mode):
             t.custom_means = opts.variables.bioclim_means, opts.variables.ped_means
 
         # account for multires
-        if t.name == 'crop' and len(opts.data.multiscale) > 1:
+        if t.name == "crop" and len(opts.data.multiscale) > 1:
             for res in opts.data.multiscale:
                 # adapt hight and width to vars in multires
                 t.hight, t.width = res, res
@@ -432,7 +492,7 @@ def get_transforms(opts, mode):
     transforms = [t for t in transforms if t is not None]
     if crop_transforms:
         crop_transforms = [t for t in crop_transforms if t is not None]
-        print('crop transforms ', crop_transforms)
+        print("crop transforms ", crop_transforms)
         return crop_transforms, transforms
     else:
         return transforms

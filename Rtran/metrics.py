@@ -1,11 +1,10 @@
 # Src code for all metrics used
-import numpy as np
 import torch
 import torch.nn as nn
 import torchmetrics
 from torchmetrics import Metric
 
-from src.losses.losses import CustomCrossEntropy
+from Rtran.losses import CustomCrossEntropy
 
 
 class CustomKL(Metric):
@@ -19,11 +18,13 @@ class CustomKL(Metric):
         p: target distribution
         q: predicted distribution
         """
-        self.correct += (torch.nansum(p * torch.log(p / q)) + torch.nansum((1 - p) * torch.log((1 - p) / (1 - q))))
+        self.correct += torch.nansum(p * torch.log(p / q)) + torch.nansum(
+            (1 - p) * torch.log((1 - p) / (1 - q))
+        )
         self.total += p.numel()
 
     def compute(self):
-        return (self.correct / self.total)
+        return self.correct / self.total
 
 
 class Presence_k(nn.Module):
@@ -37,7 +38,7 @@ class Presence_k(nn.Module):
 
     def __call__(self, target, pred):
         pres = ((pred > self.k) == (target > self.k)).mean()
-        return (pres)
+        return pres
 
 
 class CustomTopK(Metric):
@@ -57,12 +58,14 @@ class CustomTopK(Metric):
             if ki == 0:
                 pass
             else:
-                count = torch.tensor(len([k for v, k in zip(v_pred, i_pred) if k in i_targ and v > 0]))
+                count = torch.tensor(
+                    len([k for v, k in zip(v_pred, i_pred) if k in i_targ and v > 0])
+                )
                 self.correct += count / ki
                 self.total += 1
 
     def compute(self):
-        return self.correct.float()/self.total
+        return self.correct.float() / self.total
 
 
 class CustomTopK_bounded(Metric):
@@ -83,7 +86,14 @@ class CustomTopK_bounded(Metric):
                 pass
             else:
                 count = torch.tensor(
-                    len([k for v, k in zip(v_pred, i_pred) if k in i_targ and torch.abs(v - elem[k]) <= 0.5]))
+                    len(
+                        [
+                            k
+                            for v, k in zip(v_pred, i_pred)
+                            if k in i_targ and torch.abs(v - elem[k]) <= 0.5
+                        ]
+                    )
+                )
                 self.correct += count / ki
                 self.total += 1
 
@@ -112,7 +122,9 @@ class CustomTop10(Metric):
             if ki == 0:
                 pass
             else:
-                count = torch.tensor(len([k for v, k in zip(v_pred, i_pred) if k in i_targ and v > 0]))
+                count = torch.tensor(
+                    len([k for v, k in zip(v_pred, i_pred) if k in i_targ and v > 0])
+                )
                 if ki >= 10:
                     self.correct += count / 10
                 else:
@@ -144,7 +156,9 @@ class CustomTop30(Metric):
             if ki == 0:
                 pass
             else:
-                count = torch.tensor(len([k for v, k in zip(v_pred, i_pred) if k in i_targ and v > 0]))
+                count = torch.tensor(
+                    len([k for v, k in zip(v_pred, i_pred) if k in i_targ and v > 0])
+                )
                 if ki >= 30:
                     self.correct += count / 30
                 else:
@@ -163,13 +177,15 @@ class MaskedMSE(Metric):
         self.add_state("squared_error", default=torch.tensor(0.0), dist_reduce_fx="sum")
         self.add_state("num_samples", default=torch.tensor(0), dist_reduce_fx="sum")
 
-    def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor=None):
+    def update(
+        self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor = None
+    ):
         squared_diffs = (preds - target) ** 2
         self.squared_error += squared_diffs.sum()
         if mask is None:
-            self.num_samples += (preds.size(0) * preds.size(1))
+            self.num_samples += preds.size(0) * preds.size(1)
         else:
-            self.num_samples += (mask.sum())
+            self.num_samples += mask.sum()
 
     def compute(self):
         mse = self.squared_error / self.num_samples
@@ -182,7 +198,9 @@ class NonZeroMSE(Metric):
         self.add_state("squared_error", default=torch.tensor(0.0), dist_reduce_fx="sum")
         self.add_state("num_samples", default=torch.tensor(0), dist_reduce_fx="sum")
 
-    def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor=None):
+    def update(
+        self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor = None
+    ):
         # squared_diffs = (preds - target) ** 2
         nonzero_indices = target > 0
         preds = preds[nonzero_indices]
@@ -190,13 +208,14 @@ class NonZeroMSE(Metric):
         squared_diffs = (preds - target) ** 2
         self.squared_error += squared_diffs.sum()
         if mask is None:
-            self.num_samples += (preds.size(0))
+            self.num_samples += preds.size(0)
         else:
-            self.num_samples += (mask[nonzero_indices].sum())
+            self.num_samples += mask[nonzero_indices].sum()
 
     def compute(self):
         mse = self.squared_error / self.num_samples
         return mse
+
 
 class MaskedMAE(Metric):
     def __init__(self):
@@ -204,14 +223,16 @@ class MaskedMAE(Metric):
         self.add_state("abs_error", default=torch.tensor(0.0), dist_reduce_fx="sum")
         self.add_state("num_samples", default=torch.tensor(0), dist_reduce_fx="sum")
 
-    def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor=None):
+    def update(
+        self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor = None
+    ):
         diffs = torch.abs(preds - target)
         # Apply the mask
         self.abs_error += diffs.sum()
         if mask is None:
-            self.num_samples += (preds.size(0) * preds.size(1))
+            self.num_samples += preds.size(0) * preds.size(1)
         else:
-            self.num_samples += (mask.sum())
+            self.num_samples += mask.sum()
 
     def compute(self):
         mae = self.abs_error / self.num_samples
@@ -224,7 +245,9 @@ class NonZeroMAE(Metric):
         self.add_state("abs_error", default=torch.tensor(0.0), dist_reduce_fx="sum")
         self.add_state("num_samples", default=torch.tensor(0), dist_reduce_fx="sum")
 
-    def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor=None):
+    def update(
+        self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor = None
+    ):
         nonzero_indices = target > 0
         preds = preds[nonzero_indices]
         target = target[nonzero_indices]
@@ -232,9 +255,9 @@ class NonZeroMAE(Metric):
         # Apply the mask
         self.abs_error += diffs.sum()
         if mask is None:
-            self.num_samples += (preds.size(0))
+            self.num_samples += preds.size(0)
         else:
-            self.num_samples += (mask[nonzero_indices].sum())
+            self.num_samples += mask[nonzero_indices].sum()
 
     def compute(self):
         mae = self.abs_error / self.num_samples
@@ -247,7 +270,9 @@ class CustomMultiLabelAcc(Metric):
         self.add_state("correct", default=torch.tensor(0).float(), dist_reduce_fx="sum")
         self.add_state("total", default=torch.tensor(0).float(), dist_reduce_fx="sum")
 
-    def update(self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor=None):
+    def update(
+        self, target: torch.Tensor, preds: torch.Tensor, mask: torch.Tensor = None
+    ):
         """
         Compute the accuracy for multi-label classification.
 
@@ -290,9 +315,8 @@ def get_metric(metric):
         return CustomTop30()
     elif metric.name == "ce" and not metric.ignore is True:
         return CustomCrossEntropy(metric.lambd_pres, metric.lambd_abs)
-    elif metric.name == 'r2' and not metric.ignore is True:
-        return torchmetrics.ExplainedVariance(
-            multioutput='variance_weighted')
+    elif metric.name == "r2" and not metric.ignore is True:
+        return torchmetrics.ExplainedVariance(multioutput="variance_weighted")
     elif metric.name == "kl" and not metric.ignore is True:
         return CustomKL()
     elif metric.name == "accuracy" and not metric.ignore is True:
@@ -300,7 +324,7 @@ def get_metric(metric):
     elif metric.ignore is True:
         return None
     else:
-        return (None)  # raise ValueError("Unknown metric_item {}".format(metric))
+        return None  # raise ValueError("Unknown metric_item {}".format(metric))
 
 
 def get_metrics(config):

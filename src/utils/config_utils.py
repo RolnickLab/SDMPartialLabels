@@ -1,7 +1,8 @@
-from omegaconf import OmegaConf, DictConfig
-from pathlib import Path
 from os.path import expandvars
+from pathlib import Path
 from typing import cast
+
+from omegaconf import DictConfig, OmegaConf
 
 
 def resolve(path):
@@ -16,16 +17,16 @@ def resolve(path):
 
 def load_opts(path, default, commandline_opts):
     """
-        Args:
-        path (pathlib.Path): where to find the overriding configuration
-            default (pathlib.Path, optional): Where to find the default opts.
-            Defaults to None. In which case it is assumed to be a default config
-            which needs processing such as setting default values for lambdas and gen
-            fields
-     """
+    Args:
+    path (pathlib.Path): where to find the overriding configuration
+        default (pathlib.Path, optional): Where to find the default opts.
+        Defaults to None. In which case it is assumed to be a default config
+        which needs processing such as setting default values for lambdas and gen
+        fields
+    """
 
     if path is None and default is None:
-        path = (resolve(Path(__file__)).parent.parent / "configs" / "defaults.yaml")
+        path = resolve(Path(__file__)).parent.parent / "configs" / "defaults.yaml"
         print(path)
     else:
         print("using config ", path)

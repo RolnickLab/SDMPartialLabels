@@ -1,16 +1,17 @@
+import argparse
 import os
-import pandas as pd
+
 import geopandas as gpd
 import numpy as np
+import pandas as pd
+import planetary_computer
+import pystac_client
 import rasterio
-from rasterio import windows, features, warp
+from rasterio import features, warp, windows
+from retrying import retry
 from shapely import wkt
 from shapely.geometry import mapping
-from retrying import retry
 from tqdm import tqdm
-import pystac_client
-import planetary_computer
-import argparse
 
 planetary_computer.settings.set_subscription_key("api-key")
 # This should be a secret!! ask me for mine
@@ -108,21 +109,26 @@ def process_row(row, save_dir):
 def main():
     # Specify the directory to save the rasters
     root_dir = ""
-    save_dir = root_dir + "/ebutterfly/Darwin/0177350-230224095556074/ebutterfly_data_v4/raw_images/"
+    save_dir = (
+        root_dir
+        + "/ebutterfly/Darwin/0177350-230224095556074/ebutterfly_data_v4/raw_images/"
+    )
 
-    polygons_file = root_dir + "/ebutterfly/Darwin/0177350-230224095556074/ebutterfly_data_v4/ebutterfly_center_polygons.csv"
+    polygons_file = (
+        root_dir
+        + "/ebutterfly/Darwin/0177350-230224095556074/ebutterfly_data_v4/ebutterfly_center_polygons.csv"
+    )
 
     arg_parser = argparse.ArgumentParser(
-        prog='DownloadData',
-        description='download rasters from planetary compute')
+        prog="DownloadData", description="download rasters from planetary compute"
+    )
 
-    arg_parser.add_argument('-i', '--index', default=1, type=int)
-    arg_parser.add_argument('-r', '--range', default=20000, type=int)
+    arg_parser.add_argument("-i", "--index", default=1, type=int)
+    arg_parser.add_argument("-r", "--range", default=20000, type=int)
     args = arg_parser.parse_args()
 
     # Create the save directory if it doesn't exist
     os.makedirs(save_dir, exist_ok=True)
-
 
     # swap data input from here: Winter Polygons if winter, summer if summer
     data = pd.read_csv(polygons_file)
