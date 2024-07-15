@@ -4,12 +4,8 @@ Trainer for the Rtran framework
 
 import pickle
 
-import numpy as np
-import pandas as pd
 import pytorch_lightning as pl
-import torch
 from torch import nn, optim
-from torch.utils.data import DataLoader
 
 from Rtran.dataloader import *
 from Rtran.losses import BCE, CustomCrossEntropyLoss, CustomFocalLoss, RMSLELoss

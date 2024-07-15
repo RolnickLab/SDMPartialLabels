@@ -3,10 +3,17 @@ Regression-Transformer model
 Code is based on the C-tran paper: https://github.com/QData/C-Tran
 """
 
+import numpy as np
 import torch
-import torch.nn as nn
 
 from Rtran.models import *
+from Rtran.utils import (
+    custom_replace,
+    custom_replace_n,
+    get_2d_sincos_pos_embed,
+    tokenize_species,
+    weights_init,
+)
 
 
 class RTranModel(nn.Module):

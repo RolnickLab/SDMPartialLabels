@@ -6,6 +6,8 @@ Code is based on the C-tran paper: https://github.com/QData/C-Tran
 import torch.nn as nn
 import torchvision.models as models
 
+from Rtran.utils import init_first_layer_weights
+
 
 class Resnet18(nn.Module):
     def __init__(self, input_channels=3, pretrained=True):
