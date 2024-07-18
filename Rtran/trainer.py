@@ -8,7 +8,8 @@ import pytorch_lightning as pl
 from torch import nn, optim
 
 from Rtran.dataloader import *
-from Rtran.losses import BCE, CustomCrossEntropyLoss, CustomFocalLoss, RMSLELoss
+from Rtran.losses import (BCE, CustomCrossEntropyLoss, CustomFocalLoss,
+                          RMSLELoss)
 from Rtran.metrics import get_metrics
 from Rtran.rtran import RTranModel
 from src.transforms.transforms import get_transforms

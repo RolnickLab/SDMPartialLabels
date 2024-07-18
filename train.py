@@ -15,9 +15,7 @@ from pytorch_lightning.loggers import CometLogger
 
 import Rtran.trainer as RtranTrainer
 from src.utils.compute_normalization_stats import (
-    compute_means_stds_env_vars,
-    compute_means_stds_sat_images,
-)
+    compute_means_stds_env_vars, compute_means_stds_sat_images)
 from src.utils.config_utils import load_opts
 
 

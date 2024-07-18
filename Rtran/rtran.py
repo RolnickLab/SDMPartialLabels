@@ -7,13 +7,9 @@ import numpy as np
 import torch
 
 from Rtran.models import *
-from Rtran.utils import (
-    custom_replace,
-    custom_replace_n,
-    get_2d_sincos_pos_embed,
-    tokenize_species,
-    weights_init,
-)
+from Rtran.utils import (custom_replace, custom_replace_n,
+                         get_2d_sincos_pos_embed, tokenize_species,
+                         weights_init)
 
 
 class RTranModel(nn.Module):
