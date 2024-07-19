@@ -8,3 +8,4 @@ outputs/*
 2676/*
 job_*
 checkpoints*
+data/

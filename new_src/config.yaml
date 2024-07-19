@@ -1,0 +1,27 @@
+mode: "train" # "test"
+model:
+  name: "MLP"
+  input_dim: 27
+  hidden_dim: 64
+  output_dim: 228
+
+training:
+  batch_size: 64
+  learning_rate: 1e-3
+  max_epochs: 10
+
+logger:
+  project_name: "sPlotOpen"
+  experiment_name: "splot_mlp_1" # specify for training, or use to report test results
+  experiment_key: "" # use to report test results,
+
+data:
+  base: "data/sPlotOpen"
+  train: "train_indices.npy"
+  validation: "validation_indices.npy"
+  test: "test_indices.npy"
+  targets: "species_occurrences-001.npy"
+
+  worldclim_data_path: "worldclim_data.csv"
+  soilgrid_data_path: "soilgrid_data.csv"
+  species_occurrences_threshold: 1000
