@@ -1,7 +1,8 @@
 import pytorch_lightning as pl
 import torch
-from new_src.utils import multi_label_accuracy
+
 from new_src.models import *
+from new_src.utils import multi_label_accuracy
 
 
 class sPlotsTrainer(pl.LightningModule):
@@ -20,7 +21,8 @@ class sPlotsTrainer(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         data, targets = batch
-        outputs = self.activation(self.model(data))
+        outputs = self.model(data)
+
         loss = self.loss_fn(outputs, targets)
         self.log("train_loss", loss)
         return loss
@@ -31,14 +33,17 @@ class sPlotsTrainer(pl.LightningModule):
 
         loss = self.loss_fn(outputs, targets)
         accuracy = multi_label_accuracy(outputs, targets)
+
+        outputs = self.activation(outputs)
         self.log("val_loss", loss)
         self.log("val_accuracy", accuracy)
 
     def testing_step(self, batch, batch_idx):
         data, targets = batch
-        outputs = self.activation(self.model(data))
-
+        outputs = self.model(data)
         loss = self.loss_fn(outputs, targets)
+
+        outputs = self.activation(outputs)
         accuracy = multi_label_accuracy(outputs, targets)
         self.log("test_loss", loss)
         self.log("test_accuracy", accuracy)
@@ -46,8 +51,3 @@ class sPlotsTrainer(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         return optimizer
-
-
-"""
-- input normalization
-"""

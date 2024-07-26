@@ -1,26 +1,29 @@
 mode: "train" # "test"
 model:
-  name: "MLP"
+  name: "SimpleMLP"
   input_dim: 27
   hidden_dim: 64
-  output_dim: 228
+  output_dim: 229
 
 training:
-  batch_size: 64
+  batch_size: 512
   learning_rate: 1e-3
   max_epochs: 10
+  accelerator: "gpu"
+  devices: 1
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "splot_mlp_1" # specify for training, or use to report test results
+  experiment_name: "splot_SimpleMLP_v2" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
+  checkpoint_path: "./experiments_output"
 
 data:
-  base: "data/sPlotOpen"
+  base: "/network/projects/ecosystem-embeddings/sPlotOpen"
   train: "train_indices.npy"
   validation: "validation_indices.npy"
   test: "test_indices.npy"
-  targets: "species_occurrences-001.npy"
+  targets: "merged_species_occurrences.npy"
 
   worldclim_data_path: "worldclim_data.csv"
   soilgrid_data_path: "soilgrid_data.csv"

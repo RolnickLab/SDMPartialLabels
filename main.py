@@ -5,6 +5,7 @@ import os
 import yaml
 from pydantic import ValidationError
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 
 from new_src.config import Config
@@ -36,6 +37,7 @@ def main():
     print("Mode:", config.mode)
     print("Model Config:", config.model)
     print("Data Path Config:", config.data)
+    print("Training Config:", config.training)
 
     # Create data module
     data_module = TabularDataModule(config.data, batch_size=config.training.batch_size)
@@ -47,12 +49,43 @@ def main():
         project_name=config.logger.project_name,
         experiment_name=config.logger.experiment_name,
     )
+    os.makedirs(
+        os.path.join(config.logger.checkpoint_path, config.logger.experiment_name),
+        exist_ok=True,
+    )
+
+    checkpoint_callback = ModelCheckpoint(
+        monitor="val_accuracy",
+        dirpath=os.path.join(
+            config.logger.checkpoint_path, config.logger.experiment_name
+        ),
+        save_top_k=1,
+        mode="max",
+        save_last=True,
+        auto_insert_metric_name=True,
+    )
 
     # Train the model
-    trainer = Trainer(max_epochs=config.training.max_epochs, logger=comet_logger)
+    trainer = Trainer(
+        max_epochs=config.training.max_epochs,
+        logger=comet_logger,
+        accelerator=config.training.accelerator,
+        devices=config.training.devices,
+        callbacks=[checkpoint_callback],
+    )
+
     if config.mode == "train":
         trainer.fit(task, data_module)
     else:
+        task = task.load_from_checkpoint(
+            task=task,
+            checkpoint_path=os.path.join(
+                config.logger.checkpoint_path,
+                config.logger.experiment_name,
+                "last.ckpt",
+            ),
+        )
+
         val_results = trainer.validate(model=task, datamodule=data_module)
         test_results = trainer.test(
             model=task, dataloaders=data_module.test_dataloader(), verbose=True

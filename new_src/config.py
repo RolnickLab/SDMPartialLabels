@@ -12,8 +12,17 @@ class ModelConfig(BaseModel):
 
 class TrainingConfig(BaseModel):
     batch_size: Optional[int] = Field(..., description="Batch size for training")
-    learning_rate: Optional[float] = Field(..., description="Learning rate for the optimizer")
+    learning_rate: Optional[float] = Field(
+        ..., description="Learning rate for the optimizer"
+    )
     max_epochs: Optional[int] = Field(..., description="Number of epochs to train")
+    accelerator: Optional[str] = Field(
+        ..., description="Accelerator for training: gpu, cpu, or auto"
+    )
+    devices: Optional[int] = Field(
+        ..., description="Accelerator for training: gpu, cpu, or auto"
+    )
+
 
 class DataPathConfig(BaseModel):
     base: Optional[str] = Field(..., description="Base path for data")
@@ -32,6 +41,7 @@ class LoggingConfig(BaseModel):
     project_name: str = Field(..., description="Project name")
     experiment_name: str = Field(..., description="Experiment name")
     experiment_key: Optional[str] = Field(..., description="Experiment key")
+    checkpoint_path: Optional[str] = Field(..., description="Checkpoint path")
 
 
 class Config(BaseModel):
