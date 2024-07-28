@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 
+import torch
 import yaml
 from pydantic import ValidationError
 from pytorch_lightning import Trainer
@@ -75,15 +76,15 @@ def main():
     )
 
     if config.mode == "train":
-        trainer.fit(task, data_module)
+        trainer.fit(model=task, datamodule=data_module)
+        trainer.test(model=task, datamodule=data_module)
     else:
-        task = task.load_from_checkpoint(
-            task=task,
-            checkpoint_path=os.path.join(
+        task.load_state_dict(torch.load(
+            os.path.join(
                 config.logger.checkpoint_path,
                 config.logger.experiment_name,
                 "last.ckpt",
-            ),
+            ))['state_dict'],
         )
 
         val_results = trainer.validate(model=task, datamodule=data_module)
