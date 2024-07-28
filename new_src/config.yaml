@@ -1,4 +1,4 @@
-mode: "train" # "test"
+mode: "test" # "test"
 model:
   name: "SimpleMLP"
   input_dim: 27
@@ -27,4 +27,9 @@ data:
 
   worldclim_data_path: "worldclim_data.csv"
   soilgrid_data_path: "soilgrid_data.csv"
+  species_list: "species_merge_duplicates.csv"
   species_occurrences_threshold: 1000
+
+  partial_labels: False
+  # default = -1, if 0, predict non-trees, if 1, predict trees only
+  predict_family_of_species: -1

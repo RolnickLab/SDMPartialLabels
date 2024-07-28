@@ -1,3 +1,4 @@
+import pandas as pd
 import pytorch_lightning as pl
 import torch
 
@@ -11,6 +12,7 @@ class sPlotsTrainer(pl.LightningModule):
         self.learning_rate = config.training.learning_rate
         self.activation = nn.Sigmoid()
         self.loss_fn = nn.BCEWithLogitsLoss()
+        self.predict_family_of_species = config.data.predict_family_of_species
 
         # Create model
         self.model = globals()[config.model.name](
@@ -39,15 +41,15 @@ class sPlotsTrainer(pl.LightningModule):
         self.logger.log_metrics({"val_loss": loss})
         self.logger.log_metrics({"val_accuracy": accuracy})
 
-    def testing_step(self, batch, batch_idx):
+    def test_step(self, batch, batch_idx):
         data, targets = batch
         outputs = self.model(data)
         loss = self.loss_fn(outputs, targets)
 
         outputs = self.activation(outputs)
         accuracy = multi_label_accuracy(outputs, targets)
-        self.logger.log_metrics({"test_loss": loss})
-        self.logger.log_metrics({"test_accuracy": accuracy})
+        self.log("test_loss", loss)
+        self.log("test_accuracy", accuracy)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
