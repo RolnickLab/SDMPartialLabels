@@ -124,7 +124,38 @@ class Normalize:
             if self.custom:
                 means, std = self.custom
                 for task in self.subset:
+            
                     sample[task] = normalize(sample[task], means, std)
+        return sample
+
+
+class NormalizeEnv:
+    def __init__(self, custom=None, subset="env", normalize_by_255=False):
+        """
+        custom : ([means], [std])
+        means =[r: 894.6719, g: 932.5726, b:693.2768, nir: 2817.9849]
+        std = [r:883.9763, g:747.6857, b:749.3098, nir: 1342.6334]
+        subset: set of inputs on which to apply the normalization (typically env variables and sat would require different normalizations)
+        """
+        # TODO make this work with the values of the normalization values computed over the whole dataset
+        self.subset = subset
+    
+        self.custom = custom
+        self.normalize_by_255 = normalize_by_255
+
+    def __call__(self, sample: Dict[str, Tensor]) -> Dict[str, Tensor]:
+
+        d = {}
+        if self.normalize_by_255:
+            for task in self.subset:
+                sample[task] = sample[task] / 255
+        else:
+            if self.custom:
+                means, std = self.custom
+                for task in self.subset:
+                    batch_size = sample[task].shape[0]
+                    
+                    sample[task] = (sample[task] -  Tensor(means)) /Tensor(std)
         return sample
 
 
@@ -427,6 +458,15 @@ def get_transform(transform_item, mode):
 
         return Normalize(
             maxchan=transform_item.maxchan,
+            custom=transform_item.custom or None,
+            subset=transform_item.subset,
+            normalize_by_255=transform_item.normalize_by_255,
+        )
+    elif transform_item.name == "normalize_env" and not (
+        transform_item.ignore is True or transform_item.ignore == mode
+    ):
+
+        return NormalizeEnv(
             custom=transform_item.custom or None,
             subset=transform_item.subset,
             normalize_by_255=transform_item.normalize_by_255,

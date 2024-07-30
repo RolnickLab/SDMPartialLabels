@@ -20,8 +20,8 @@ def multi_species_masking(species_set, num_labels, max_known, data_base_dir):
         unk_mask_indices [List]: list of unknown indices
     """
     # when all species (birds and butterflies)| are there
-    if (
-        species_set is not None and random.random() < 0.5
+    if (species_set is not None and
+        len(species_set)> 1 and random.random() < 0.5
     ):  # 50 % of the time, mask either birds or butterflies
         # assume one of them is absent # 0 (birds) or 1 (butterflies)
         absent_species = np.random.randint(0, 2)
@@ -53,8 +53,8 @@ def songbird_masking(index, data_base_dir):
     index 1: songbirds
     """
     songbird_indices = [
-        "SatBird_data_v2/USA_summer/stats/nonsongbird_indices.npy",
-        "SatBird_data_v2/USA_summer/stats/songbird_indices.npy",
+        "stats/nonsongbird_indices.npy",
+        "stats/songbird_indices.npy",
     ]
     unk_mask_indices = np.load(os.path.join(data_base_dir, songbird_indices[index]))
     return unk_mask_indices

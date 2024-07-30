@@ -569,3 +569,106 @@ class sPlotDataloader(DataLoader):
         item1 = self.worldclim_data.iloc[index]
         item2 = self.soilgrids_data.iloc[index]
         return item1, item2
+
+    
+    
+class SDMEnvDataset(VisionDataset):
+    def __init__(
+        self,
+        df,
+        data_base_dir,
+        env,
+        transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+        mode="train",
+        target_type="probs",
+        targets_folder="corrected_targets",
+        maximum_known_labels_ratio=0.5,
+        species_set=None,
+        num_species=670,
+        predict_family=-1,
+        quantized_mask_bins=1,
+    ) -> None:
+        """
+        this dataloader handles dataset with masks for RTran model using env variables as inpu
+        Parameters:
+            df: dataframe with hotspot IDs
+            data_base_dir: base directory for data
+            env: list of env variables names to take into account
+            transforms: transforms functions
+            mode : train|val|test
+            target_type : "probs" or "binary"
+            targets_folder: folder name for labels/targets
+            maximum_known_labels_ratio: known labels ratio for RTran
+            num_species: total number of species/classes to predict
+            species_set: sets of species 
+            predict_family: -1 for none, 0 if we want to focus on predicting species_set[0], 1 if we want to predict species_set[1]
+            quantized_mask_bins: how many bins to quantize the positive (>0) encounter rates
+        """
+        super().__init__()
+        self.df = df
+        self.data_base_dir = data_base_dir
+        self.transform = transforms
+        self.env = env
+        self.mode = mode
+        self.target_type = target_type
+        self.targets_folder = targets_folder
+        self.num_species = num_species
+        self.maximum_known_labels_ratio = maximum_known_labels_ratio
+        self.species_set= species_set
+        self.predict_family_of_species = predict_family
+        self.quantized_mask_bins = quantized_mask_bins
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, index: int) -> Dict[str, Any]:
+        item_ = {}
+
+        hotspot_id = self.df.iloc[index]["hotspot_id"]
+        
+        item_["env"] = torch.Tensor(list(self.df.iloc[index][self.env]))
+        
+        # applying transforms
+        if self.transform:
+            t = trsfs.Compose(self.transform)
+            item_ = t(item_)
+
+        # concatenating env rasters, if any, with satellite image
+
+        # constructing targets
+        species = json_load(
+            os.path.join(
+                self.data_base_dir, self.targets_folder[0], hotspot_id + ".json"
+            )
+        )
+
+        item_["target"] = species["probs"]
+        item_["target"] = torch.Tensor(item_["target"])
+        if self.target_type == "binary":
+            item_["target"][item_["target"] > 0] = 1
+       
+        # constructing mask for R-tran
+        unk_mask_indices = get_unknown_mask_indices(
+            num_labels=self.num_species,
+            mode=self.mode,
+            max_known=self.maximum_known_labels_ratio,
+            species_set = self.species_set,
+            predict_family_of_species=self.predict_family_of_species,
+            data_base_dir=self.data_base_dir,
+        )
+        mask = item_["target"].clone()
+        mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
+
+        if self.quantized_mask_bins > 1:
+            num_bins = self.quantized_mask_bins
+            mask_q = torch.where(mask > 0, torch.ceil(mask * num_bins) / num_bins, mask)
+        else:
+            mask[mask > 0] = 1
+            mask_q = mask
+
+        item_["mask_q"] = mask_q
+        item_["mask"] = mask
+        # meta data
+        item_["num_complete_checklists"] = species["num_complete_checklists"]
+        item_["hotspot_id"] = hotspot_id
+        return item_

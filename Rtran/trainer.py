@@ -28,11 +28,8 @@ class RegressionTransformerTask(pl.LightningModule):
         # model and optimizer utils
         self.learning_rate = self.config.experiment.module.lr
         self.criterion = self.__loss_mapping(self.config.losses.criterion)
-        self.image_input_channels = len(self.config.data.bands)
-        self.image_input_channels += (
-            sum(self.config.data.env_var_sizes) if len(self.config.data.env) > 0 else 0
-        )
-
+       
+        self.input_channels = 1
         self.model = RTranModel(
             num_classes=self.num_species,
             species_list=os.path.join(
@@ -41,7 +38,7 @@ class RegressionTransformerTask(pl.LightningModule):
             backbone=self.config.Rtran.backbone,
             pretrained_backbone=self.config.Rtran.pretrained_backbone,
             quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
-            input_channels=self.image_input_channels,
+            input_channels=self.input_channels,
             d_hidden=self.config.Rtran.features_size,
             use_pos_encoding=self.config.Rtran.use_positional_encoding,
         )
@@ -107,7 +104,7 @@ class RegressionTransformerTask(pl.LightningModule):
 
         hotspot_id = batch["hotspot_id"]
 
-        x = batch["sat"]
+        x = batch["env"]
         y = batch["target"]
         mask = batch["mask"].long()
 
@@ -161,8 +158,9 @@ class RegressionTransformerTask(pl.LightningModule):
         loss = self.criterion(y_pred, y, mask=unknown_mask)
         if batch_idx % 50 == 0:
             self.log("train_loss", loss, on_epoch=True)
-            if len(self.config.data.species) > 1:
-                self.log_metrics(mode="train", pred=y_pred, y=y, mask=mask)
+            if  self.config.data.species is not None:
+                if len(self.config.data.species) > 1:
+                    self.log_metrics(mode="train", pred=y_pred, y=y, mask=mask)
             else:
                 self.log_metrics(mode="train", pred=y_pred, y=y)
 
@@ -172,7 +170,7 @@ class RegressionTransformerTask(pl.LightningModule):
 
         hotspot_id = batch["hotspot_id"]
 
-        x = batch["sat"]
+        x = batch["env"]
         y = batch["target"]
         mask = batch["mask"].long()
 
@@ -207,8 +205,11 @@ class RegressionTransformerTask(pl.LightningModule):
             y_pred = y_pred * range_maps_correction_data.int()
             y = y * range_maps_correction_data.int()
 
-        if self.config.Rtran.mask_eval_metrics or len(self.config.data.species) > 1:
+        if self.config.Rtran.mask_eval_metrics: 
             self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask)
+        if  self.config.data.species is not None:
+            if len(self.config.data.species) > 1:
+                 self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask)
         else:
             self.log_metrics(mode="val", pred=y_pred, y=y)
 
@@ -216,7 +217,7 @@ class RegressionTransformerTask(pl.LightningModule):
         """Test step"""
         hotspot_id = batch["hotspot_id"]
 
-        x = batch["sat"]
+        x = batch["env"]
         y = batch["target"]
         mask = batch["mask"].long()
 
@@ -251,8 +252,9 @@ class RegressionTransformerTask(pl.LightningModule):
             y_pred = y_pred * range_maps_correction_data.int()
             y = y * range_maps_correction_data.int()
 
-        if self.config.Rtran.mask_eval_metrics or len(self.config.data.species) > 1:
+        if (self.config.data.species is not None and len(self.config.data.species) > 1) or self.config.Rtran.mask_eval_metrics:
             self.log_metrics(mode="test", pred=y_pred, y=y, mask=mask)
+
         else:
             self.log_metrics(mode="test", pred=y_pred, y=y)
 
@@ -382,8 +384,6 @@ class SDMDataModule(pl.LightningDataModule):
         self.num_workers = self.config.data.loaders.num_workers
         self.data_base_dir = self.config.data.files.base
         self.targets_folder = self.config.data.files.targets_folder
-        self.env_data_folder = self.config.data.files.env_data_folder
-        self.images_folder = self.config.data.files.images_folder
         self.target_type = self.config.data.target.type
 
         # combining multiple train files
@@ -428,23 +428,14 @@ class SDMDataModule(pl.LightningDataModule):
                     axis=0,
                 )
 
-        self.bands = self.config.data.bands
         self.env = self.config.data.env
-        self.env_var_sizes = self.config.data.env_var_sizes
         self.datatype = self.config.data.datatype
 
         self.predict_family = self.config.Rtran.predict_family_of_species
         self.num_species = self.config.data.total_species
 
-        # if we are detecting more than 1 family of sepceis (birds and butterflies)
-        if len(self.config.data.species) > 1:
-            self.dataloader_to_use = "SDMCoLocatedDataset"
-            # if we are combining SatBird + SatButterfly_v1 + SatButterly_v2
-            if len(self.config.data.files.train) > 1:
-                self.dataloader_to_use = "SDMCombinedDataset"
-        else:
-            # if we are using either SatBird or SatButterly at a time
-            self.dataloader_to_use = "SDMMaskedDataset"
+        # if we are using either SatBird or SatButterly at a time
+        self.dataloader_to_use = "SDMEnvDataset"
 
     def setup(self, stage: Optional[str] = None) -> None:
         """create the train/test/val splits"""
@@ -452,14 +443,10 @@ class SDMDataModule(pl.LightningDataModule):
             df=self.df_train,
             data_base_dir=self.data_base_dir,
             env=self.env,
-            env_var_sizes=self.env_var_sizes,
             transforms=get_transforms(self.config, "train"),
             mode="train",
-            datatype=self.datatype,
             target_type=self.target_type,
             targets_folder=self.targets_folder,
-            images_folder=self.images_folder,
-            env_data_folder=self.env_data_folder,
             maximum_known_labels_ratio=self.config.Rtran.train_known_ratio,
             num_species=self.num_species,
             species_set=self.config.data.species,
@@ -468,36 +455,29 @@ class SDMDataModule(pl.LightningDataModule):
         )
 
         self.all_val_dataset = globals()[self.dataloader_to_use](
-            df=self.df_val,
+            df=self.df_train,
             data_base_dir=self.data_base_dir,
             env=self.env,
-            env_var_sizes=self.env_var_sizes,
             transforms=get_transforms(self.config, "val"),
             mode="val",
-            datatype=self.datatype,
             target_type=self.target_type,
             targets_folder=self.targets_folder,
-            images_folder=self.images_folder,
-            env_data_folder=self.env_data_folder,
             maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
             num_species=self.num_species,
             species_set=self.config.data.species,
             predict_family=self.predict_family,
             quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
+            
         )
 
         self.all_test_dataset = globals()[self.dataloader_to_use](
             df=self.df_test,
             data_base_dir=self.data_base_dir,
             env=self.env,
-            env_var_sizes=self.env_var_sizes,
             transforms=get_transforms(self.config, "val"),
             mode="test",
-            datatype=self.datatype,
             target_type=self.target_type,
             targets_folder=self.targets_folder,
-            images_folder=self.images_folder,
-            env_data_folder=self.env_data_folder,
             maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
             num_species=self.num_species,
             species_set=self.config.data.species,

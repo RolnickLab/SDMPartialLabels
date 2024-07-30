@@ -43,32 +43,21 @@ def main(opts):
     config.base_dir = base_dir
 
     # compute means and stds for normalization
-    if len(config.data.env) > 0:
-        (
-            config.variables.bioclim_means,
-            config.variables.bioclim_std,
-            config.variables.ped_means,
-            config.variables.ped_std,
-        ) = compute_means_stds_env_vars(
-            root_dir=config.data.files.base,
-            train_csv=config.data.files.train,
-            env=config.data.env,
-            env_data_folder=config.data.files.env_data_folder,
-            output_file_means=config.data.files.env_means,
-            output_file_std=config.data.files.env_stds,
-        )
+    #if len(config.data.env) > 0:
+    #    (
+    #        config.variables.bioclim_means,
+    #        config.variables.bioclim_std,
+    #        config.variables.ped_means,
+    #        config.variables.ped_std,
+    #    ) = compute_means_stds_env_vars(
+    #        root_dir=config.data.files.base,
+    #        train_csv=config.data.files.train,
+    #        env=config.data.env,
+    #        env_data_folder=config.data.files.env_data_folder,
+    #        output_file_means=config.data.files.env_means,
+    #        output_file_std=config.data.files.env_stds,
+    #    )
 
-    if len(config.data.bands) > 0 and not config.data.transforms[4].normalize_by_255:
-        config.variables.sat_means, config.variables.sat_stds = (
-            compute_means_stds_sat_images(
-                root_dir=config.data.files.base,
-                train_csv=config.data.files.train,
-                img_bands=OmegaConf.to_object(config.data.bands),
-                img_folder=config.data.files.images_folder,
-                output_file_means=config.data.files.sat_means,
-                output_file_std=config.data.files.sat_stds,
-            )
-        )
 
     # set global seed
     pl.seed_everything(global_seed)
