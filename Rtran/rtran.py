@@ -68,9 +68,6 @@ class RTranModel(nn.Module):
         )  # Dx2 (known, unknown)
 
 
-        #TODO Check if we need position encodings self.position_encoding = get_1d_sincos_pos_embed_from_grid(2, np.array([i for i in range(num_classes)]))
-
-
         # Transformer
         self.self_attn_layers = nn.ModuleList(
             [
