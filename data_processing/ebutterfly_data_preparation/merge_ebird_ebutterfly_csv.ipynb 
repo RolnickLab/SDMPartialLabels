@@ -1,0 +1,681 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Create single train / val / test files for SatBird and SatButterfly with columns indicating whether information about birds or butterflies is available. "
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 25,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import pandas as pd"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 26,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "satbird_train = pd.read_csv(\"/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/train_split.csv\")\n",
+    "#colocated with satbird\n",
+    "satbutterfly_V2_train = pd.read_csv(\"/network/projects/ecosystem-embeddings/SatButterfly_dataset/SatButterfly_v2/butterfly_hotspots_ebird_train.csv\")\n",
+    "#not colocated\n",
+    "satbutterfly_V1_train = pd.read_csv(\"/network/projects/ecosystem-embeddings/SatButterfly_dataset/SatButterfly_v1/butterfly_hotspots_train.csv\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 27,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "satbird_train[\"bird\"] = 1\n",
+    "satbird_train[\"butterfly\"] = 0\n",
+    "satbutterfly_V1_train[\"bird\"] = 0\n",
+    "satbutterfly_V1_train[\"butterfly\"] = 1"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 28,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "satbird_train.loc[satbird_train[\"hotspot_id\"].isin(list(satbutterfly_V2_train[\"hotspot_id\"])),\"butterfly\"] = 1"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 30,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "combined_train = satbird_train.merge(satbutterfly_V1_train, how = \"outer\").drop(columns = ['Unnamed: 0', 'Unnamed: 0.1'])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 31,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "combined_train.to_csv(\"/network/projects/ecosystem-embeddings/SatBirdButterfly/bird_butterfly_train.csv\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 32,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# VAL"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 34,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "satbird_valid = pd.read_csv(\"/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/valid_split.csv\")\n",
+    "#colocated with satbird\n",
+    "satbutterfly_V2_valid = pd.read_csv(\"/network/projects/ecosystem-embeddings/SatButterfly_dataset/SatButterfly_v2/butterfly_hotspots_ebird_valid.csv\")\n",
+    "#not colocated\n",
+    "satbutterfly_V1_valid = pd.read_csv(\"/network/projects/ecosystem-embeddings/SatButterfly_dataset/SatButterfly_v1/butterfly_hotspots_valid.csv\")\n",
+    "satbird_valid[\"bird\"] = 1\n",
+    "satbird_valid[\"butterfly\"] = 0\n",
+    "satbutterfly_V1_valid[\"bird\"] = 0\n",
+    "satbutterfly_V1_valid[\"butterfly\"] = 1"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 35,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "18511 1076 1147\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(len(satbird_valid), len(satbutterfly_V2_valid), len(satbutterfly_V1_valid))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 37,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "satbird_valid.loc[satbird_valid[\"hotspot_id\"].isin(list(satbutterfly_V2_valid[\"hotspot_id\"])),\"butterfly\"] = 1"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 38,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "combined_valid = satbird_valid.merge(satbutterfly_V1_valid, how = \"outer\").drop(columns = ['Unnamed: 0', 'Unnamed: 0.1'])\n",
+    "combined_valid.to_csv(\"/network/projects/ecosystem-embeddings/SatBirdButterfly/bird_butterfly_valid.csv\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 39,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "19658"
+      ]
+     },
+     "execution_count": 39,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "len(combined_valid)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 40,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "18529 958 1145\n"
+     ]
+    }
+   ],
+   "source": [
+    "satbird_test = pd.read_csv(\"/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer/test_split.csv\")\n",
+    "#colocated with satbird\n",
+    "satbutterfly_V2_test = pd.read_csv(\"/network/projects/ecosystem-embeddings/SatButterfly_dataset/SatButterfly_v2/butterfly_hotspots_ebird_test.csv\")\n",
+    "#not colocated\n",
+    "satbutterfly_V1_test= pd.read_csv(\"/network/projects/ecosystem-embeddings/SatButterfly_dataset/SatButterfly_v1/butterfly_hotspots_test.csv\")\n",
+    "satbird_test[\"bird\"] = 1\n",
+    "satbird_test[\"butterfly\"] = 0\n",
+    "satbutterfly_V1_test[\"bird\"] = 0\n",
+    "satbutterfly_V1_test[\"butterfly\"] = 1\n",
+    "\n",
+    "print(len(satbird_test), len(satbutterfly_V2_test), len(satbutterfly_V1_test))"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 41,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "satbird_test.loc[satbird_test[\"hotspot_id\"].isin(list(satbutterfly_V2_test[\"hotspot_id\"])),\"butterfly\"] = 1"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 47,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "combined_test = satbird_valid.merge(satbutterfly_V1_test, how = \"outer\").drop(columns = ['Unnamed: 0', 'Unnamed: 0.1'])\n",
+    "combined_test.to_csv(\"/network/projects/ecosystem-embeddings/SatBirdButterfly/bird_butterfly_test.csv\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 48,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>hotspot_id</th>\n",
+       "      <th>lon</th>\n",
+       "      <th>lat</th>\n",
+       "      <th>county</th>\n",
+       "      <th>county_code</th>\n",
+       "      <th>state</th>\n",
+       "      <th>state_code</th>\n",
+       "      <th>num_complete_checklists</th>\n",
+       "      <th>num_different_species</th>\n",
+       "      <th>bio_1</th>\n",
+       "      <th>...</th>\n",
+       "      <th>sltppt</th>\n",
+       "      <th>sndppt</th>\n",
+       "      <th>split</th>\n",
+       "      <th>bird</th>\n",
+       "      <th>butterfly</th>\n",
+       "      <th>index</th>\n",
+       "      <th>stateProvince</th>\n",
+       "      <th>ebutterfly_occurances</th>\n",
+       "      <th>num_checklists</th>\n",
+       "      <th>num_species</th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>0</th>\n",
+       "      <td>L985833</td>\n",
+       "      <td>-86.457644</td>\n",
+       "      <td>32.559261</td>\n",
+       "      <td>Autauga</td>\n",
+       "      <td>US-AL-001</td>\n",
+       "      <td>Alabama</td>\n",
+       "      <td>US-AL</td>\n",
+       "      <td>84.0</td>\n",
+       "      <td>40.0</td>\n",
+       "      <td>17.554167</td>\n",
+       "      <td>...</td>\n",
+       "      <td>28.0</td>\n",
+       "      <td>59.0</td>\n",
+       "      <td>valid</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>1</th>\n",
+       "      <td>L834447</td>\n",
+       "      <td>-87.511947</td>\n",
+       "      <td>30.699593</td>\n",
+       "      <td>Baldwin</td>\n",
+       "      <td>US-AL-003</td>\n",
+       "      <td>Alabama</td>\n",
+       "      <td>US-AL</td>\n",
+       "      <td>6.0</td>\n",
+       "      <td>9.0</td>\n",
+       "      <td>19.070833</td>\n",
+       "      <td>...</td>\n",
+       "      <td>29.0</td>\n",
+       "      <td>57.0</td>\n",
+       "      <td>valid</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>2</th>\n",
+       "      <td>L834449</td>\n",
+       "      <td>-87.501195</td>\n",
+       "      <td>30.693887</td>\n",
+       "      <td>Baldwin</td>\n",
+       "      <td>US-AL-003</td>\n",
+       "      <td>Alabama</td>\n",
+       "      <td>US-AL</td>\n",
+       "      <td>6.0</td>\n",
+       "      <td>24.0</td>\n",
+       "      <td>19.137501</td>\n",
+       "      <td>...</td>\n",
+       "      <td>27.0</td>\n",
+       "      <td>61.0</td>\n",
+       "      <td>valid</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>3</th>\n",
+       "      <td>L2117264</td>\n",
+       "      <td>-87.899962</td>\n",
+       "      <td>31.131137</td>\n",
+       "      <td>Baldwin</td>\n",
+       "      <td>US-AL-003</td>\n",
+       "      <td>Alabama</td>\n",
+       "      <td>US-AL</td>\n",
+       "      <td>40.0</td>\n",
+       "      <td>80.0</td>\n",
+       "      <td>18.954166</td>\n",
+       "      <td>...</td>\n",
+       "      <td>27.0</td>\n",
+       "      <td>40.0</td>\n",
+       "      <td>valid</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>4</th>\n",
+       "      <td>L834450</td>\n",
+       "      <td>-87.498381</td>\n",
+       "      <td>30.693670</td>\n",
+       "      <td>Baldwin</td>\n",
+       "      <td>US-AL-003</td>\n",
+       "      <td>Alabama</td>\n",
+       "      <td>US-AL</td>\n",
+       "      <td>6.0</td>\n",
+       "      <td>21.0</td>\n",
+       "      <td>19.133333</td>\n",
+       "      <td>...</td>\n",
+       "      <td>28.0</td>\n",
+       "      <td>58.0</td>\n",
+       "      <td>valid</td>\n",
+       "      <td>1</td>\n",
+       "      <td>0</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>...</th>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "      <td>...</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>19651</th>\n",
+       "      <td>BL1628</td>\n",
+       "      <td>-110.719142</td>\n",
+       "      <td>44.991937</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>...</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>test</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>678.0</td>\n",
+       "      <td>Wyoming</td>\n",
+       "      <td>4.0</td>\n",
+       "      <td>1.0</td>\n",
+       "      <td>3.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>19652</th>\n",
+       "      <td>BL6519</td>\n",
+       "      <td>-110.786038</td>\n",
+       "      <td>44.544706</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>...</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>test</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>5972.0</td>\n",
+       "      <td>Wyoming</td>\n",
+       "      <td>4.0</td>\n",
+       "      <td>1.0</td>\n",
+       "      <td>4.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>19653</th>\n",
+       "      <td>BL5820</td>\n",
+       "      <td>-104.691530</td>\n",
+       "      <td>44.497562</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>...</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>test</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>5217.0</td>\n",
+       "      <td>Wyoming</td>\n",
+       "      <td>3.0</td>\n",
+       "      <td>1.0</td>\n",
+       "      <td>3.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>19654</th>\n",
+       "      <td>BL7516</td>\n",
+       "      <td>-110.804556</td>\n",
+       "      <td>44.444512</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>...</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>test</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>7045.0</td>\n",
+       "      <td>Wyoming</td>\n",
+       "      <td>4.0</td>\n",
+       "      <td>1.0</td>\n",
+       "      <td>3.0</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>19655</th>\n",
+       "      <td>BL7142</td>\n",
+       "      <td>-110.838900</td>\n",
+       "      <td>44.500470</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>...</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>NaN</td>\n",
+       "      <td>test</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>6642.0</td>\n",
+       "      <td>Wyoming</td>\n",
+       "      <td>2.0</td>\n",
+       "      <td>1.0</td>\n",
+       "      <td>2.0</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "<p>19656 rows × 44 columns</p>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "      hotspot_id         lon        lat   county county_code    state  \\\n",
+       "0        L985833  -86.457644  32.559261  Autauga   US-AL-001  Alabama   \n",
+       "1        L834447  -87.511947  30.699593  Baldwin   US-AL-003  Alabama   \n",
+       "2        L834449  -87.501195  30.693887  Baldwin   US-AL-003  Alabama   \n",
+       "3       L2117264  -87.899962  31.131137  Baldwin   US-AL-003  Alabama   \n",
+       "4        L834450  -87.498381  30.693670  Baldwin   US-AL-003  Alabama   \n",
+       "...          ...         ...        ...      ...         ...      ...   \n",
+       "19651     BL1628 -110.719142  44.991937      NaN         NaN      NaN   \n",
+       "19652     BL6519 -110.786038  44.544706      NaN         NaN      NaN   \n",
+       "19653     BL5820 -104.691530  44.497562      NaN         NaN      NaN   \n",
+       "19654     BL7516 -110.804556  44.444512      NaN         NaN      NaN   \n",
+       "19655     BL7142 -110.838900  44.500470      NaN         NaN      NaN   \n",
+       "\n",
+       "      state_code  num_complete_checklists  num_different_species      bio_1  \\\n",
+       "0          US-AL                     84.0                   40.0  17.554167   \n",
+       "1          US-AL                      6.0                    9.0  19.070833   \n",
+       "2          US-AL                      6.0                   24.0  19.137501   \n",
+       "3          US-AL                     40.0                   80.0  18.954166   \n",
+       "4          US-AL                      6.0                   21.0  19.133333   \n",
+       "...          ...                      ...                    ...        ...   \n",
+       "19651        NaN                      NaN                    NaN        NaN   \n",
+       "19652        NaN                      NaN                    NaN        NaN   \n",
+       "19653        NaN                      NaN                    NaN        NaN   \n",
+       "19654        NaN                      NaN                    NaN        NaN   \n",
+       "19655        NaN                      NaN                    NaN        NaN   \n",
+       "\n",
+       "       ...  sltppt  sndppt  split  bird  butterfly   index  stateProvince  \\\n",
+       "0      ...    28.0    59.0  valid     1          0     NaN            NaN   \n",
+       "1      ...    29.0    57.0  valid     1          0     NaN            NaN   \n",
+       "2      ...    27.0    61.0  valid     1          0     NaN            NaN   \n",
+       "3      ...    27.0    40.0  valid     1          0     NaN            NaN   \n",
+       "4      ...    28.0    58.0  valid     1          0     NaN            NaN   \n",
+       "...    ...     ...     ...    ...   ...        ...     ...            ...   \n",
+       "19651  ...     NaN     NaN   test     0          1   678.0        Wyoming   \n",
+       "19652  ...     NaN     NaN   test     0          1  5972.0        Wyoming   \n",
+       "19653  ...     NaN     NaN   test     0          1  5217.0        Wyoming   \n",
+       "19654  ...     NaN     NaN   test     0          1  7045.0        Wyoming   \n",
+       "19655  ...     NaN     NaN   test     0          1  6642.0        Wyoming   \n",
+       "\n",
+       "       ebutterfly_occurances  num_checklists  num_species  \n",
+       "0                        NaN             NaN          NaN  \n",
+       "1                        NaN             NaN          NaN  \n",
+       "2                        NaN             NaN          NaN  \n",
+       "3                        NaN             NaN          NaN  \n",
+       "4                        NaN             NaN          NaN  \n",
+       "...                      ...             ...          ...  \n",
+       "19651                    4.0             1.0          3.0  \n",
+       "19652                    4.0             1.0          4.0  \n",
+       "19653                    3.0             1.0          3.0  \n",
+       "19654                    4.0             1.0          3.0  \n",
+       "19655                    2.0             1.0          2.0  \n",
+       "\n",
+       "[19656 rows x 44 columns]"
+      ]
+     },
+     "execution_count": 48,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "combined_test"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import json"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with open(\"/network/projects/ecosystem-embeddings/SatButterfly_dataset/SatButterfly_v2/USA/butterfly_targets_v1.2/L1182345.json\", \"rb\") as f:\n",
+    "    data = json.load(f)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "172"
+      ]
+     },
+     "execution_count": 4,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "len(data[\"probs\"])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "with open(\"/network/projects/ecosystem-embeddings/SatButterfly_dataset/SatButterfly_v1/USA/butterfly_targets_v1.2/BL1000.json\", \"rb\") as f:\n",
+    "    data = json.load(f)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "metadata": {},
+   "outputs": [
+    {
+     "data": {
+      "text/plain": [
+       "dict_keys(['num_complete_checklists', 'probs', 'hotspot_id'])"
+      ]
+     },
+     "execution_count": 11,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "data.keys()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (satbird)",
+   "language": "python",
+   "name": "satbird"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.10.4"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 4
+}
