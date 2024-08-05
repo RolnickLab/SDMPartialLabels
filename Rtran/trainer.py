@@ -435,7 +435,7 @@ class SDMDataModule(pl.LightningDataModule):
         self.num_species = self.config.data.total_species
 
         # if we are using either SatBird or SatButterly at a time
-        self.dataloader_to_use = "SDMEnvDataset"
+        self.dataloader_to_use = self.config.dataloader_to_use
 
     def setup(self, stage: Optional[str] = None) -> None:
         """create the train/test/val splits"""
@@ -455,7 +455,7 @@ class SDMDataModule(pl.LightningDataModule):
         )
 
         self.all_val_dataset = globals()[self.dataloader_to_use](
-            df=self.df_train,
+            df=self.df_val,
             data_base_dir=self.data_base_dir,
             env=self.env,
             transforms=get_transforms(self.config, "val"),

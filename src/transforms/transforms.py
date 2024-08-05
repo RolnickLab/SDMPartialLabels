@@ -30,7 +30,7 @@ def normalize_custom(t, mini=0, maxi=1):
 
 
 class Normalize:
-    def __init__(self, maxchan=True, custom=None, subset=sat, normalize_by_255=False):
+    def __init__(self, maxchan=True, custom=None, subset="sat", normalize_by_255=False):
         """
         custom : ([means], [std])
         means =[r: 894.6719, g: 932.5726, b:693.2768, nir: 2817.9849]
