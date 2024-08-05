@@ -12,6 +12,8 @@ max_epochs: 50
 base_dir: ""
 
 
+dataloader_to_use: "SDMEnvDataset"
+
 comet:
   project_name: "SDMPartialLabels"
   tags: ["MLP", "corrected_targets", "EnvNormalization", "satbird"]
@@ -104,14 +106,6 @@ data:
   loaders:
     num_workers: 8
     batch_size: 128
-  #What kind of satellite input ? "refl" for "raw" reflectance values or 
-  #"img" for 0-255 values (only supported for "rgb" and "nir" bands)
-  datatype: "img"
-  multiscale : [64]
-  
-  bands: ["r","g","b"]  #any subset of ["r", "g", "b", "nir"] if working with "refl" data or ["rgb", "nir"] if using "img"
-  
-  res: 10 #resolution of the images
 
   #o you want to use environmental data (pedological and bioclimatic (low res) data) #ped" or "bioclim" or both or empty list
   env: ['bio_1', 'bio_2',
@@ -119,10 +113,7 @@ data:
        'bio_11', 'bio_12', 'bio_13', 'bio_14', 'bio_15', 'bio_16', 'bio_17',
        'bio_18', 'bio_19', 'bdticm', 'bldfie', 'cecsol', 'clyppt', 'orcdrc',
        'phihox', 'sltppt', 'sndppt']
-  #env_var_sizes: [19, 8]
   
-  #resolution of pedological and bioclimatic data in meters
-
   files:
     base: "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer"
     train: ["train_split.csv"]
@@ -131,11 +122,7 @@ data:
 
     targets_folder: ["targets"]
     env_data_folder: ["environmental"]
-    images_folder: ["images"]
     correction_thresh: "range_maps.pkl" # range maps - threshold = False
-
-    sat_means: "stats/means_images_visual.npy"
-    sat_stds: "stats/stds_images_visual.npy"
 
     env_means: "stats/env_means.npy"
     env_stds: "stats/env_stds.npy"
