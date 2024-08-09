@@ -11,12 +11,14 @@ from Rtran.utils import (custom_replace, custom_replace_n,
                          get_2d_sincos_pos_embed, tokenize_species,
                          weights_init)
 
+from new_src.models import *
+
 
 class RTranModel(nn.Module):
     def __init__(
         self,
         num_classes,
-        species_list,
+        species_list=None,
         backbone="Resnet18",
         pretrained_backbone=True,
         quantized_mask_bins=1,
@@ -44,7 +46,7 @@ class RTranModel(nn.Module):
         super(RTranModel, self).__init__()
         self.d_hidden = d_hidden  # this should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
         self.use_pos_encoding = use_pos_encoding
-        self.use_text_species = True
+        self.use_text_species = False
 
         self.quantized_mask_bins = quantized_mask_bins
         self.n_embedding_state = self.quantized_mask_bins + 2

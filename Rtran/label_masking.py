@@ -36,7 +36,7 @@ def multi_species_masking(species_set, num_labels, max_known, data_base_dir):
         species_set is None and random.random() < 0.5
     ):  # mask songbirds vs. nonsongbirds with this probability
         set_to_mask = np.random.randint(0, 2)
-        unk_mask_indices = songbird_masking(set_to_mask, data_base_dir)
+        unk_mask_indices = trees_masking(set_to_mask, data_base_dir)
     else:  # mask randomly from all species
         num_known = random.randint(
             0, int(num_labels * max_known)
@@ -58,6 +58,15 @@ def songbird_masking(index, data_base_dir):
     ]
     unk_mask_indices = np.load(os.path.join(data_base_dir, songbird_indices[index]))
     return unk_mask_indices
+
+
+def trees_masking(index, data_base_dir):
+    """
+    masking trees or not-trees given an index
+    index 0: isTree=False
+    index 1: isTree=True
+    """
+    return np.where(data_base_dir["isTree"] == bool(index))[0]
 
 
 def bird_species_masking(species_set, max_known):
@@ -131,7 +140,7 @@ def get_unknown_mask_indices(
         if predict_family_of_species == 1:
             # to predict butterflies only (or songbird only if only birds data are there)
             if species_set is None:
-                unk_mask_indices = songbird_masking(
+                unk_mask_indices = trees_masking(
                     index=predict_family_of_species, data_base_dir=data_base_dir
                 )
             else:
@@ -141,7 +150,7 @@ def get_unknown_mask_indices(
         elif predict_family_of_species == 0:
             # to predict birds only (or non-songbirds only if only birds data are there)
             if species_set is None:
-                unk_mask_indices = songbird_masking(
+                unk_mask_indices = trees_masking(
                     index=predict_family_of_species, data_base_dir=data_base_dir
                 )
             else:
@@ -156,9 +165,10 @@ def get_unknown_mask_indices(
                     species_set=species_set, max_known=max_known
                 )
             else:
-                num_known = int(num_labels * max_known)
-                unk_mask_indices = random.sample(
-                    range(num_labels), int(num_labels - num_known)
-                )
+                # num_known = int(num_labels * max_known)
+                # unk_mask_indices = random.sample(
+                #     range(num_labels), int(num_labels - num_known)
+                # )
+                unk_mask_indices = np.arange(0, num_labels)
 
     return unk_mask_indices
