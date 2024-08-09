@@ -8,6 +8,7 @@ class ModelConfig(BaseModel):
     input_dim: Optional[int] = Field(..., description="Input dimension of the data")
     hidden_dim: Optional[int] = Field(..., description="Hidden dimension of the MLP")
     output_dim: Optional[int] = Field(..., description="Output dimension of the MLP")
+    backbone: Optional[str] = Field(..., description="Name of the backbone")
 
 
 class TrainingConfig(BaseModel):
@@ -44,6 +45,7 @@ class LoggingConfig(BaseModel):
     experiment_name: str = Field(..., description="Experiment name")
     experiment_key: Optional[str] = Field(..., description="Experiment key")
     checkpoint_path: Optional[str] = Field(..., description="Checkpoint path")
+    checkpoint_name: Optional[str] = Field(..., description="Checkpoint name")
 
 
 class Config(BaseModel):

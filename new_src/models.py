@@ -3,9 +3,9 @@ from torch import Tensor, nn
 
 
 class SimpleMLP(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim):
+    def __init__(self, input_channels, hidden_dim, output_dim):
         super(SimpleMLP, self).__init__()
-        self.layer_1 = nn.Linear(input_dim, hidden_dim)
+        self.layer_1 = nn.Linear(input_channels, hidden_dim)
         self.layer_2 = nn.Linear(hidden_dim, hidden_dim)
         self.layer_3 = nn.Linear(hidden_dim, output_dim)
 
@@ -13,6 +13,18 @@ class SimpleMLP(nn.Module):
         x = F.relu(self.layer_1(x))
         x = F.relu(self.layer_2(x))
         x = self.layer_3(x)
+        return x
+
+
+class MLPBackbone(nn.Module):
+    def __init__(self, input_channels, pretrained=False, hidden_dim=64):
+        super(MLPBackbone, self).__init__()
+        self.layer_1 = nn.Linear(input_channels, hidden_dim)
+        self.layer_2 = nn.Linear(hidden_dim, hidden_dim)
+
+    def forward(self, x):
+        x = F.relu(self.layer_1(x))
+        x = self.layer_2(x)
         return x
 
 

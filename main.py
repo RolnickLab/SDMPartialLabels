@@ -56,11 +56,12 @@ def main():
     )
 
     checkpoint_callback = ModelCheckpoint(
-        monitor="val_accuracy",
+        monitor="val_auroc",
         dirpath=os.path.join(
             config.logger.checkpoint_path, config.logger.experiment_name
         ),
-        save_top_k=1,
+        save_top_k=2,
+        every_n_epochs=1,
         mode="max",
         save_last=True,
         auto_insert_metric_name=True,
@@ -83,7 +84,7 @@ def main():
             os.path.join(
                 config.logger.checkpoint_path,
                 config.logger.experiment_name,
-                "last.ckpt",
+                config.logger.checkpoint_name,
             ))['state_dict'],
         )
 
