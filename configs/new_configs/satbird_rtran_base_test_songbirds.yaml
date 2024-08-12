@@ -1,0 +1,153 @@
+#where to save checkpoints
+save_path: "/network/scratch/t/tengmeli/SDMPartialLabels/exps"
+# load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
+load_ckpt_path: "/network/scratch/t/tengmeli/SDMPartialLabels/exps/1337/epoch=49-step=33449.ckpt"
+save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
+log_comet: True
+
+overfit_batches: 0.0
+# maximum number of epochs to train for
+max_epochs: 50
+# base directory
+base_dir: ""
+
+dataloader_to_use: "SDMEnvDataset"
+
+comet:
+  project_name: "SDMPartialLabels"
+  tags: ["MLP", "corrected_targets", "EnvNormalization", "satbird", "test"]
+  experiment_name: "baseline_MLP_RTran" # specify for training, or use to report test results, TODO: also use to resume training
+  experiment_key: "" # use to report test results,
+
+experiment:
+  #TASK and name should always be ebird_classifier --> maybe remove it 
+  task: "ebird_classifier"
+  name: "ebird_classifier"
+  seed: 42
+  module:
+    #choose model : "resnet18" "resnet50" "inceptionv3" "linear" (just a linear model)
+    model: "MlpEncoder"
+    #"linear" or "linear_net" for a 2 layer MLP
+    fc: "linear"
+    #use pretrained weights ( torchvision )
+    pretrained: False
+    # resume training from another model (transfer learning), set empty if training from scratch
+    resume: ""
+    freeze: False
+    #initializes biases of the output layer sothat sigmoid(bias) = mean over the training set for each species
+    init_bias: ""
+    means_path: ""
+    lr: 0.0001
+
+
+
+Rtran:
+    use: true
+    # Resnet18 or Resnet50
+    backbone: "MlpEncoder"
+    # use ImageNet pretrained weights
+    pretrained_backbone: False
+    # size of hidden feature vector: should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
+    features_size: 512
+    # mask known labels out of the loss (true or false)
+    masked_loss: False
+    # quantized mask (1 if all positives to 1, > 1 to indicate bins)
+    quantized_mask_bins: 4
+    # use positional encoding
+    use_positional_encoding: True
+    # use the actual regression labels as input to the model and multiply with the embeddings (true or false)
+    scale_embeddings_by_labels: False
+    # max ratio of unknown labels during training
+    train_known_ratio: 0.75
+    # what known ratios do we consider when testing
+    eval_known_ratio: 0.0 # [1.0, 0.9, 0.8, 0.5]
+    # should the known values be masked out of the reported metrics or no
+    mask_eval_metrics: True
+
+# During testing, eval family of birds (0), or family of butterflies (1)
+#or 0 for non songbirds and 1 for songbirds
+predict_family_of_species: 1
+
+optimizer: "AdamW"  #"Adam", "AdamW", "SGD"
+
+losses:
+#scale attribute is just for plotting if the values are very small
+  criterion: "CE" #or MAE or MSE or Focal or RMSLE  (loss to choose for optim )
+
+#auto lr will only work if there is only one optimizer
+auto_lr_find: False
+scheduler:
+  name: "ReduceLROnPlateau" #"" for no schuler, "ReduceLROnPlateau" #"ReduceLROnPlateau" or "StepLR" "WarmUp"
+  reduce_lr_plateau:
+    factor: 0.5
+    lr_schedule_patience: 20
+  step_lr:
+    step_size: 100
+    gamma: 0.5
+  warmup:
+    warmup_epochs: 5
+    max_epochs: 100
+
+  cyclical:
+    warmup_epochs: 10
+
+variables: &default_vars
+    ped_means: &ped_means []
+    ped_std: &ped_std []
+    bioclim_means: &bioclim_means []
+    bioclim_std: &bioclim_std []
+
+    sat_means: &sat_means []
+    sat_stds: &sat_stds []
+
+
+
+data:
+  loaders:
+    num_workers: 8
+    batch_size: 128
+
+  #o you want to use environmental data (pedological and bioclimatic (low res) data) #ped" or "bioclim" or both or empty list
+  env: ['bio_1', 'bio_2',
+       'bio_3', 'bio_4', 'bio_5', 'bio_6', 'bio_7', 'bio_8', 'bio_9', 'bio_10',
+       'bio_11', 'bio_12', 'bio_13', 'bio_14', 'bio_15', 'bio_16', 'bio_17',
+       'bio_18', 'bio_19', 'bdticm', 'bldfie', 'cecsol', 'clyppt', 'orcdrc',
+       'phihox', 'sltppt', 'sndppt']
+
+  #resolution of pedological and bioclimatic data in meters
+
+  files:
+    base: "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer"
+    train: ["train_split.csv"]
+    val: ["valid_split.csv"]
+    test: ["test_split.csv"]
+
+    targets_folder: ["targets"]
+    env_data_folder: ["environmental"]
+    images_folder: ["images"]
+    correction_thresh: "range_maps.pkl" # range maps - threshold = False
+
+    species_list: "/network/projects/ecosystem-embeddings/SatBird_data_v2/species_list_USA.txt"
+
+  correction_factor:
+     thresh:  # to train with RM
+
+  target:
+    type: "probs"  #binary for classification targets  or "probs" for regression (default should be "probs")
+
+    # choose subset of birds : "ducks" for trying on species [37] or [2] for cooper's hawk (non passerine) "songbirds" (307 species) or None (full set 684 species) "not_songbirds"
+    subset:  
+    
+  #normalization: None
+  transforms:
+
+    - name: normalize_env
+      normalize_by_255: False
+      ignore: False
+      subset: ["env"]
+      custom: [[10.955988179540004,12.236250204477217, 35.96278006523285, 835.9481168414062,28.92741685698603,-6.044292036204458,34.97170890477423,14.927477855267002,6.4854284072755375,21.1035768761497,0.5188644803499928,912.9750733210864,113.9407037694444,42.98515110843783,35.29366560795811,315.0189896607973,148.15688376562966,232.19786039352508,221.59733857190605,2229.538437248645,1372.0547964434259,19.635677215400474,18.498966138094996,29.48191950812975,60.436182280719024,37.425202376918115,44.07317914418219], [   4.3892892 ,    2.19978161,    8.07044232,  205.35243614, 3.51261974,    6.58096678,    6.19315927,    7.96444985,10.6856319 ,    3.65811312,    6.2352588 ,  353.03804503,46.5901702 ,   28.43576577,   23.75435061,  131.32617126,91.05441071,  117.10351788,  144.40789454, 2181.09141972,102.53156537,    7.13406536,    6.55554485,   20.32604051,8.31235472,    9.21637828,   12.37060054]]
+
+  species:
+  total_species: 670
+trainer:
+  auto_scale_batch_size: False
