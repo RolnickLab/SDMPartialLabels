@@ -207,11 +207,11 @@ class RegressionTransformerTask(pl.LightningModule):
 
         if self.config.Rtran.mask_eval_metrics: 
             self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask)
-        if  self.config.data.species is not None:
+        elif  self.config.data.species is not None:
             if len(self.config.data.species) > 1:
                  self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask)
-        else:
-            self.log_metrics(mode="val", pred=y_pred, y=y)
+            else:
+                self.log_metrics(mode="val", pred=y_pred, y=y)
 
     def test_step(self, batch: Dict[str, Any], batch_idx: int) -> None:
         """Test step"""
@@ -251,7 +251,7 @@ class RegressionTransformerTask(pl.LightningModule):
             )
             y_pred = y_pred * range_maps_correction_data.int()
             y = y * range_maps_correction_data.int()
-
+      
         if (self.config.data.species is not None and len(self.config.data.species) > 1) or self.config.Rtran.mask_eval_metrics:
             self.log_metrics(mode="test", pred=y_pred, y=y, mask=mask)
 
@@ -343,6 +343,7 @@ class RegressionTransformerTask(pl.LightningModule):
         """
         log metrics through logger
         """
+     
         unknown_mask = None
         if mask is not None:
             unknown_mask = mask.clone()
@@ -352,7 +353,8 @@ class RegressionTransformerTask(pl.LightningModule):
             else:
                 unknown_mask[mask == -1] = 1
                 unknown_mask[mask == -2] = 0
-
+            
+            
             loss = self.criterion(pred, y, mask=unknown_mask)
 
             pred = pred * unknown_mask
@@ -431,7 +433,7 @@ class SDMDataModule(pl.LightningDataModule):
         self.env = self.config.data.env
         self.datatype = self.config.data.datatype
 
-        self.predict_family = self.config.Rtran.predict_family_of_species
+        self.predict_family = self.config.predict_family_of_species
         self.num_species = self.config.data.total_species
 
         # if we are using either SatBird or SatButterly at a time

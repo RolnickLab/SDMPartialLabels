@@ -109,6 +109,7 @@ def get_unknown_mask_indices(
     predict family of species: (only if not training) mask out either birds or butterflies
     data_base_dir: root directory for data, used to access songbird and nonsongbird indices
     """
+    
     if mode == "train":
         random.seed()
         if absent_species == -1:  # all species are there
@@ -127,7 +128,6 @@ def get_unknown_mask_indices(
                 species_set=species_set, max_known=max_known
             )
     else:
-        # for validation or testing
         if predict_family_of_species == 1:
             # to predict butterflies only (or songbird only if only birds data are there)
             if species_set is None:
