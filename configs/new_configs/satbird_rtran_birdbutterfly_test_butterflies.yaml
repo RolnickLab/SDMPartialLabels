@@ -117,7 +117,7 @@ data:
     base: "/network/projects/ecosystem-embeddings/"
     train: ["SatBirdButterfly/bird_butterfly_train_env_fillna.csv"]
     val: ["SatBirdButterfly/bird_butterfly_valid_env_fillna.csv"]
-    test: ["SatBirdButterfly/bird_butterfly_test_env_fillna.csv"]
+    test: ["SatBirdButterfly/bird_butterfly_test_coloc_env_fillna.csv"]
 
     targets_folder: ["SatBird_data_v2/USA_summer/targets","SatButterfly_dataset/SatButterfly_v1/USA/butterfly_targets_v1.2","SatButterfly_dataset/SatButterfly_v2/USA/butterfly_targets_v1.2"]
  
