@@ -37,6 +37,7 @@ def multi_species_masking(species_set, num_labels, max_known, data_base_dir):
     ):  # mask songbirds vs. nonsongbirds with this probability
         set_to_mask = np.random.randint(0, 2)
         unk_mask_indices = songbird_masking(set_to_mask, data_base_dir)
+    
     else:  # mask randomly from all species
         num_known = random.randint(
             0, int(num_labels * max_known)
@@ -134,6 +135,8 @@ def get_unknown_mask_indices(
                 unk_mask_indices = songbird_masking(
                     index=predict_family_of_species, data_base_dir=data_base_dir
                 )
+            elif species_set == "all":
+                unk_mask_indices = np.arange(num_labels)
             else:
                 unk_mask_indices = np.arange(
                     species_set[0], species_set[0] + species_set[1]
@@ -144,6 +147,8 @@ def get_unknown_mask_indices(
                 unk_mask_indices = songbird_masking(
                     index=predict_family_of_species, data_base_dir=data_base_dir
                 )
+            elif species_set == "all":
+                unk_mask_indices = np.arange(num_labels)
             else:
                 unk_mask_indices = np.arange(0, species_set[0])
         else:  # when no certain family of species is specified

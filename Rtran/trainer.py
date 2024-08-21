@@ -220,6 +220,8 @@ class RegressionTransformerTask(pl.LightningModule):
         x = batch["env"]
         y = batch["target"]
         mask = batch["mask"].long()
+        
+        eval_mask = batch["eval_mask"].long()
 
         if self.config.data.target.type == "binary":
             y_pred = self.model(x, mask.clone(), batch["mask_q"])
@@ -253,7 +255,7 @@ class RegressionTransformerTask(pl.LightningModule):
             y = y * range_maps_correction_data.int()
       
         if (self.config.data.species is not None and len(self.config.data.species) > 1) or self.config.Rtran.mask_eval_metrics:
-            self.log_metrics(mode="test", pred=y_pred, y=y, mask=mask)
+            self.log_metrics(mode="test", pred=y_pred, y=y, mask=eval_mask)
 
         else:
             self.log_metrics(mode="test", pred=y_pred, y=y)
@@ -452,6 +454,7 @@ class SDMDataModule(pl.LightningDataModule):
             maximum_known_labels_ratio=self.config.Rtran.train_known_ratio,
             num_species=self.num_species,
             species_set=self.config.data.species,
+            species_set_eval=self.config.data.species_eval,
             predict_family=self.predict_family,
             quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
         )
@@ -467,6 +470,7 @@ class SDMDataModule(pl.LightningDataModule):
             maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
             num_species=self.num_species,
             species_set=self.config.data.species,
+            species_set_eval=self.config.data.species_eval,
             predict_family=self.predict_family,
             quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
             
@@ -483,6 +487,7 @@ class SDMDataModule(pl.LightningDataModule):
             maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
             num_species=self.num_species,
             species_set=self.config.data.species,
+            species_set_eval=self.config.data.species_eval,
             predict_family=self.predict_family,
             quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
         )

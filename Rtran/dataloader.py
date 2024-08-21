@@ -174,7 +174,7 @@ class SDMEnvCombinedDataset(EnvDataset):
         mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
 
         if self.quantized_mask_bins > 1:
-            num_bins = self.quantized_mask_bins
+            num_bins = self.quantized_mask_binst
             mask_q = torch.where(mask > 0, torch.ceil(mask * num_bins) / num_bins, mask)
         else:
             mask[mask > 0] = 1
@@ -224,6 +224,7 @@ class SDMEnvDataset(EnvDataset):
         targets_folder="corrected_targets",
         maximum_known_labels_ratio=0.5,
         species_set=None,
+        species_set_eval=None, 
         num_species=670,
         predict_family=-1,
         quantized_mask_bins=1,
@@ -255,6 +256,7 @@ class SDMEnvDataset(EnvDataset):
         self.num_species = num_species
         self.maximum_known_labels_ratio = maximum_known_labels_ratio
         self.species_set= species_set
+        self.species_set_eval = species_set_eval
         self.predict_family_of_species = predict_family
         self.quantized_mask_bins = quantized_mask_bins
 
@@ -296,19 +298,36 @@ class SDMEnvDataset(EnvDataset):
             predict_family_of_species=self.predict_family_of_species,
             data_base_dir=self.data_base_dir,
         )
+        
+        eval_mask_indices = get_unknown_mask_indices(
+            num_labels=self.num_species,
+            mode=self.mode,
+            max_known=0.0,
+            species_set = self.species_set_eval,
+            predict_family_of_species=self.predict_family_of_species,
+            data_base_dir=self.data_base_dir,
+        )
+        
         mask = item_["target"].clone()
         mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
-
+        
+        eval_mask= item_["target"].clone()
+        eval_mask.scatter_(dim=0, index=torch.Tensor(eval_mask_indices).long(), value=-1.0)
+        
         if self.quantized_mask_bins > 1:
             num_bins = self.quantized_mask_bins
             mask_q = torch.where(mask > 0, torch.ceil(mask * num_bins) / num_bins, mask)
         else:
             mask[mask > 0] = 1
             mask_q = mask
+            
+            eval_mask[eval_mask > 0] = 1
 
         item_["mask_q"] = mask_q
         item_["mask"] = mask
         # meta data
         item_["num_complete_checklists"] = species["num_complete_checklists"]
         item_["hotspot_id"] = hotspot_id
+        
+        item_["eval_mask"] = eval_mask
         return item_
