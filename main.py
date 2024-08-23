@@ -80,19 +80,21 @@ def main():
         trainer.fit(model=task, datamodule=data_module)
         trainer.test(model=task, datamodule=data_module)
     else:
-        task.load_state_dict(torch.load(
-            os.path.join(
-                config.logger.checkpoint_path,
-                config.logger.experiment_name,
-                config.logger.checkpoint_name,
-            ))['state_dict'],
+        task.load_state_dict(
+            torch.load(
+                os.path.join(
+                    config.logger.checkpoint_path,
+                    config.logger.experiment_name,
+                    config.logger.checkpoint_name,
+                )
+            )["state_dict"],
         )
 
-        val_results = trainer.validate(model=task, datamodule=data_module)
+        # val_results = trainer.validate(model=task, datamodule=data_module)
         test_results = trainer.test(
-            model=task, dataloaders=data_module.test_dataloader(), verbose=True
+            model=task, datamodule=data_module, verbose=True
         )
-        logging.info("validation results: %s", val_results)
+        # logging.info("validation results: %s", val_results)
         logging.info("test results: %s", test_results)
 
 

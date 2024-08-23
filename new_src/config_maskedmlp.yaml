@@ -1,7 +1,7 @@
 mode: "test" # "test"
 
 model:
-  name: "RTranModel"
+  name: "MaskedMLP_2"
   input_dim: 27
   hidden_dim: 64
   output_dim: 3950
@@ -16,7 +16,7 @@ training:
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "splot_cTran_model_v1" # specify for training, or use to report test results
+  experiment_name: "splot_maskedmlp_v2" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
   checkpoint_path: "./experiments_output"
   checkpoint_name: "last.ckpt"

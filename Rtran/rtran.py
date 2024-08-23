@@ -6,12 +6,11 @@ Code is based on the C-tran paper: https://github.com/QData/C-Tran
 import numpy as np
 import torch
 
+from new_src.models import *
 from Rtran.models import *
 from Rtran.utils import (custom_replace, custom_replace_n,
                          get_2d_sincos_pos_embed, tokenize_species,
                          weights_init)
-
-from new_src.models import *
 
 
 class RTranModel(nn.Module):
@@ -28,6 +27,8 @@ class RTranModel(nn.Module):
         heads=4,
         dropout=0.2,
         use_pos_encoding=False,
+        use_text_species=False,
+        train_state_label_embeddings=True,
     ):
         """
         pos_emb is false by default
@@ -46,7 +47,8 @@ class RTranModel(nn.Module):
         super(RTranModel, self).__init__()
         self.d_hidden = d_hidden  # this should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
         self.use_pos_encoding = use_pos_encoding
-        self.use_text_species = False
+        self.use_text_species = use_text_species
+        self.train_state_label_embeddings = train_state_label_embeddings
 
         self.quantized_mask_bins = quantized_mask_bins
         self.n_embedding_state = self.quantized_mask_bins + 2
@@ -158,26 +160,33 @@ class RTranModel(nn.Module):
             label_feat_vec = custom_replace(mask, 0, 1, 2).long()
 
         # Get state embeddings
-        state_embeddings = self.state_embeddings(label_feat_vec)  # (128, 670, 512)
-        # Add state embeddings to label embeddings
-        init_label_embeddings += state_embeddings
-        # concatenate images features to label embeddings
-        embeddings = torch.cat(
-            (z_features, init_label_embeddings), 1
-        )  # (128, 674, 512)
+        if self.train_state_label_embeddings:
+            state_embeddings = self.state_embeddings(label_feat_vec)  # (128, 670, 512)
+            # Add state embeddings to label embeddings
+            init_label_embeddings += state_embeddings
+            # concatenate images features to label embeddings
+            embeddings = torch.cat(
+                (z_features, init_label_embeddings), 1
+            )  # (128, 674, 512)
+        else:
+            embeddings = z_features
+
         # Feed all (image and label) embeddings through Transformer
         embeddings = self.LayerNorm(embeddings)
         for layer in self.self_attn_layers:
             embeddings = layer(embeddings, mask=None)
-
         # Readout each label embedding using a linear layer
-        label_embeddings = embeddings[:, -init_label_embeddings.size(1) :, :]
-        output = self.output_linear(label_embeddings)
-        diag_mask = (
-            torch.eye(output.size(1), device=output.device)
-            .unsqueeze(0)
-            .repeat(output.size(0), 1, 1)
-        )
-        output = (output * diag_mask).sum(-1)
+        if self.train_state_label_embeddings:
+            label_embeddings = embeddings[:, -init_label_embeddings.size(1) :, :]
+            output = self.output_linear(label_embeddings)
+            diag_mask = (
+                torch.eye(output.size(1), device=output.device)
+                .unsqueeze(0)
+                .repeat(output.size(0), 1, 1)
+            )
+            output = (output * diag_mask).sum(-1)
+        else:
+            output = self.output_linear(embeddings)
+            output = output.squeeze(1)
 
         return output
