@@ -41,7 +41,9 @@ class DataPathConfig(BaseModel):
     predict_family_of_species: int = Field(
         ..., description="what family of species to predict during testing"
     )
-    maximum_known_labels_ratio: Optional[float] = Field(..., description="Maximum known labels ratio")
+    maximum_known_labels_ratio: Optional[float] = Field(
+        ..., description="Maximum known labels ratio"
+    )
 
 
 class LoggingConfig(BaseModel):

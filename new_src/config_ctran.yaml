@@ -1,22 +1,22 @@
-mode: "test" # "test"
+mode: "train" # "test"
 
 model:
   name: "RTranModel"
   input_dim: 27
-  hidden_dim: 64
+  hidden_dim: 128
   output_dim: 3950
   backbone: "MLPBackbone"
 
 training:
   batch_size: 64
   learning_rate: 1e-3
-  max_epochs: 10
+  max_epochs: 20
   accelerator: "gpu"
   devices: 1
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "splot_cTran_model_v1" # specify for training, or use to report test results
+  experiment_name: "splot_cTran_model_v4" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
   checkpoint_path: "./experiments_output"
   checkpoint_name: "last.ckpt"
@@ -37,5 +37,5 @@ data:
 
   partial_labels: True
   species_set: None
-  predict_family_of_species: 1
-  maximum_known_labels_ratio: 0
+  predict_family_of_species: -1
+  maximum_known_labels_ratio: 0.75
