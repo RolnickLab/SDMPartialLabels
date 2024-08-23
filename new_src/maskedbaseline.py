@@ -4,7 +4,16 @@ import torch.nn.functional as F
 
 
 class MaskedMLP(nn.Module):
-    def __init__(self, input_channels, d_hidden, num_classes, latent_dim=32, backbone=None, attention_layers=2, heads=2):
+    def __init__(
+        self,
+        input_channels,
+        d_hidden,
+        num_classes,
+        latent_dim=32,
+        backbone=None,
+        attention_layers=2,
+        heads=2,
+    ):
         super(MaskedMLP, self).__init__()
 
         self.input_size = input_channels
@@ -26,7 +35,7 @@ class MaskedMLP(nn.Module):
 
         # Class prediction layer
         self.classifier = nn.Sequential(
-            nn.Linear(latent_dim*2, d_hidden),
+            nn.Linear(latent_dim * 2, d_hidden),
             nn.ReLU(),
             nn.Linear(d_hidden, self.num_classes),
         )
@@ -45,7 +54,15 @@ class MaskedMLP(nn.Module):
 
 
 class MaskedMLP_2(nn.Module):
-    def __init__(self, input_channels, d_hidden, num_classes, backbone=None, attention_layers=2, heads=2):
+    def __init__(
+        self,
+        input_channels,
+        d_hidden,
+        num_classes,
+        backbone=None,
+        attention_layers=2,
+        heads=2,
+    ):
         super(MaskedMLP_2, self).__init__()
         self.layer_1 = nn.Linear(input_channels + num_classes, d_hidden)
         self.layer_2 = nn.Linear(d_hidden, d_hidden)
@@ -58,6 +75,7 @@ class MaskedMLP_2(nn.Module):
         x = F.relu(self.layer_2(x))
         x = self.layer_3(x)
         return x
+
 
 """
 training:

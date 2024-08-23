@@ -61,7 +61,7 @@ def main():
             config.logger.checkpoint_path, config.logger.experiment_name
         ),
         save_top_k=2,
-        every_n_epochs=1,
+        every_n_epochs=2,
         mode="max",
         save_last=True,
         auto_insert_metric_name=True,
@@ -91,9 +91,7 @@ def main():
         )
 
         # val_results = trainer.validate(model=task, datamodule=data_module)
-        test_results = trainer.test(
-            model=task, datamodule=data_module, verbose=True
-        )
+        test_results = trainer.test(model=task, datamodule=data_module, verbose=True)
         # logging.info("validation results: %s", val_results)
         logging.info("test results: %s", test_results)
 

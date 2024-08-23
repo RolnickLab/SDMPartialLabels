@@ -2,11 +2,10 @@ import pytorch_lightning as pl
 import torch
 from torchmetrics.classification import MultilabelAUROC
 
-from new_src.models import *
 from new_src.maskedbaseline import *
+from new_src.models import *
 from new_src.utils import multi_label_accuracy, trees_masking
 from Rtran.rtran import RTranModel
-
 
 
 class sPlotsTrainer(pl.LightningModule):
@@ -24,8 +23,6 @@ class sPlotsTrainer(pl.LightningModule):
                 backbone=self.config.model.backbone,
                 input_channels=self.config.model.input_dim,
                 d_hidden=self.config.model.hidden_dim,
-                attention_layers=2,
-                heads=2,
             )
         else:
             self.model = globals()[self.config.model.name](
