@@ -1,11 +1,12 @@
-
 import pytorch_lightning as pl
 import torch
-
-from Rtran.rtran import RTranModel
-from new_src.models import *
-from new_src.utils import multi_label_accuracy, trees_masking
 from torchmetrics.classification import MultilabelAUROC
+
+from new_src.models import *
+from new_src.maskedbaseline import *
+from new_src.utils import multi_label_accuracy, trees_masking
+from Rtran.rtran import RTranModel
+
 
 
 class sPlotsTrainer(pl.LightningModule):
@@ -18,7 +19,7 @@ class sPlotsTrainer(pl.LightningModule):
 
         # Create model
         if config.data.partial_labels:
-            self.model = RTranModel(
+            self.model = globals()[self.config.model.name](
                 num_classes=self.config.model.output_dim,
                 backbone=self.config.model.backbone,
                 input_channels=self.config.model.input_dim,
@@ -40,8 +41,12 @@ class sPlotsTrainer(pl.LightningModule):
             out_num_classes = len(self.indices_to_predict)
 
         print(f"Number of classes: {out_num_classes}")
-        self.val_auc_metric = MultilabelAUROC(num_labels=out_num_classes, average="macro")
-        self.test_auc_metric = MultilabelAUROC(num_labels=out_num_classes, average="macro")
+        self.val_auc_metric = MultilabelAUROC(
+            num_labels=out_num_classes, average="macro"
+        )
+        self.test_auc_metric = MultilabelAUROC(
+            num_labels=out_num_classes, average="macro"
+        )
 
     def training_step(self, batch, batch_idx):
         data, targets, mask = batch
@@ -76,7 +81,7 @@ class sPlotsTrainer(pl.LightningModule):
         self.logger.log_metrics({"val_accuracy": accuracy})
 
         self.val_auc_metric.update(predictions, targets.long())
-        self.log('val_auroc', self.val_auc_metric, on_epoch=True)
+        self.log("val_auroc", self.val_auc_metric, on_epoch=True)
 
     def test_step(self, batch, batch_idx):
         data, targets, mask = batch
@@ -99,7 +104,7 @@ class sPlotsTrainer(pl.LightningModule):
         self.log("test_accuracy", accuracy)
 
         self.test_auc_metric.update(predictions, targets.long())
-        self.log('test_auroc', self.test_auc_metric, on_epoch=True)
+        self.log("test_auroc", self.test_auc_metric, on_epoch=True)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)

@@ -6,6 +6,7 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader, Dataset
+
 from Rtran.label_masking import get_unknown_mask_indices
 
 
@@ -40,7 +41,11 @@ class TabularDataset(Dataset):
         data = self.data.iloc[idx][self.df_data_columns].tolist()
         data = (data - self.normalization_means) / (self.normalization_stds + 1e-8)
 
-        return torch.tensor(data.tolist(), dtype=torch.float32), torch.tensor(targets, dtype=torch.float32), None
+        return (
+            torch.tensor(data.tolist(), dtype=torch.float32),
+            torch.tensor(targets, dtype=torch.float32),
+            None,
+        )
 
 
 class MaskedDataset(Dataset):
@@ -79,13 +84,19 @@ class MaskedDataset(Dataset):
         data = self.data.iloc[idx][self.df_data_columns].tolist()
         data = (data - self.normalization_means) / (self.normalization_stds + 1e-8)
 
-        unk_mask_indices = get_unknown_mask_indices(num_labels=len(self.species_indices), mode=self.mode,
-                                                    max_known=self.maximum_known_labels_ratio,
-                                                    predict_family_of_species=self.predict_family_of_species,
-                                                    data_base_dir=self.species_list)
-
-        mask = targets.clone()
-        mask.scatter_(0, torch.Tensor(unk_mask_indices).long(), -1)
+        if self.maximum_known_labels_ratio > 0:
+            unk_mask_indices = get_unknown_mask_indices(
+                num_labels=len(self.species_indices),
+                mode=self.mode,
+                max_known=self.maximum_known_labels_ratio,
+                predict_family_of_species=self.predict_family_of_species,
+                data_base_dir=self.species_list,
+            )
+            mask = targets.clone()
+            mask.scatter_(0, torch.Tensor(unk_mask_indices).long(), -1)
+        else:
+            mask = torch.ones_like(targets)
+            mask = mask * -1
 
         data = torch.tensor(data.tolist(), dtype=torch.float32)
         return data, targets, mask.long()
@@ -177,6 +188,7 @@ class TabularDataModule(pl.LightningDataModule):
             species_list=species_df,
             mode="train",
             predict_family=self.config.predict_family_of_species,
+            maximum_known_labels_ratio=self.config.maximum_known_labels_ratio,
         )
         self.val_dataset = globals()[self.dataloader_to_use](
             data=data.iloc[val_split],
@@ -188,6 +200,7 @@ class TabularDataModule(pl.LightningDataModule):
             species_list=species_df,
             mode="val",
             predict_family=self.config.predict_family_of_species,
+            maximum_known_labels_ratio=self.config.maximum_known_labels_ratio,
         )
         self.test_dataset = globals()[self.dataloader_to_use](
             data=data.iloc[test_split],
@@ -199,6 +212,7 @@ class TabularDataModule(pl.LightningDataModule):
             species_list=species_df,
             mode="test",
             predict_family=self.config.predict_family_of_species,
+            maximum_known_labels_ratio=self.config.maximum_known_labels_ratio,
         )
 
     def train_dataloader(self):

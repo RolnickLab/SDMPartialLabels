@@ -20,9 +20,7 @@ def trees_masking(config):
         return None
 
     targets = np.load(os.path.join(config.base, config.targets))
-    species_df = pd.read_csv(
-        os.path.join(config.base, config.species_list)
-    )
+    species_df = pd.read_csv(os.path.join(config.base, config.species_list))
 
     species_indices = np.where(
         targets.sum(axis=0) >= config.species_occurrences_threshold
@@ -32,6 +30,8 @@ def trees_masking(config):
     species_df = species_df.reset_index(drop=True)
 
     # 0: not trees, 1 : trees
-    indices_to_predict = np.where(species_df["isTree"] == config.predict_family_of_species)[0]
+    indices_to_predict = np.where(
+        species_df["isTree"] == config.predict_family_of_species
+    )[0]
 
     return indices_to_predict

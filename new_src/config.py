@@ -34,10 +34,14 @@ class DataPathConfig(BaseModel):
     worldclim_data_path: str = Field(..., description="Path to WorldClim data")
     soilgrid_data_path: str = Field(..., description="Path to SoilGrid data")
     species_occurrences_threshold: int = Field(
-        ..., description="Species occurrences threshold")
+        ..., description="Species occurrences threshold"
+    )
     species_list: str = Field(..., description="Path to list of species names")
     partial_labels: bool = Field(..., description="Training with Partial labels or not")
-    predict_family_of_species: int = Field(..., description="what family of species to predict during testing")
+    predict_family_of_species: int = Field(
+        ..., description="what family of species to predict during testing"
+    )
+    maximum_known_labels_ratio: Optional[float] = Field(..., description="Maximum known labels ratio")
 
 
 class LoggingConfig(BaseModel):
