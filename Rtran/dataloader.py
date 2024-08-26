@@ -60,6 +60,7 @@ class SDMEnvCombinedDataset(EnvDataset):
         maximum_known_labels_ratio=0.5,
         num_species=842,
         species_set=None,
+        species_set_eval=None,
         predict_family=-1,
         quantized_mask_bins=1,
     ) -> None:
@@ -131,7 +132,7 @@ class SDMEnvCombinedDataset(EnvDataset):
                     hotspot_id + ".json",
                 ))
             target_bird = targ["probs"]
-            species_to_exclude = 1
+            
                 
             if has_butterfly==1:
                 targ = json_load(
@@ -141,6 +142,8 @@ class SDMEnvCombinedDataset(EnvDataset):
                     hotspot_id + ".json",
                 ))
                 target_butterfly = targ["probs"]
+            else: 
+                species_to_exclude = 1
 
         else:
             if has_butterfly==1:
@@ -152,7 +155,7 @@ class SDMEnvCombinedDataset(EnvDataset):
                     ))
                 target_butterfly = targ["probs"]
                 species_to_exclude = 0
-            if has_butterfly==0:
+            elif has_butterfly==0:
                 raise ValueError("cannot have neither butterflies nor birds targets available")
             
 
@@ -174,7 +177,7 @@ class SDMEnvCombinedDataset(EnvDataset):
         mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
 
         if self.quantized_mask_bins > 1:
-            num_bins = self.quantized_mask_binst
+            num_bins = self.quantized_mask_bins
             mask_q = torch.where(mask > 0, torch.ceil(mask * num_bins) / num_bins, mask)
         else:
             mask[mask > 0] = 1
@@ -184,6 +187,7 @@ class SDMEnvCombinedDataset(EnvDataset):
 
         item_["mask_q"] = mask_q
         item_["mask"] = mask
+        item_["eval_mask"] = mask
         # meta data
         item_["hotspot_id"] = hotspot_id
         return item_
