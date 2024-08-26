@@ -14,8 +14,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 
 import Rtran.trainer as RtranTrainer
-from src.utils.compute_normalization_stats import (
-    compute_means_stds_env_vars, compute_means_stds_sat_images)
+from src.base_trainer import BaseTrainer
 from src.utils.config_utils import load_opts
 
 
@@ -52,8 +51,11 @@ def main(opts):
         OmegaConf.save(config=config, f=fp)
     fp.close()
 
-    task = RtranTrainer.RegressionTransformerTask(config)
     datamodule = RtranTrainer.SDMDataModule(config)
+    if config.Rtran.use:
+        task = RtranTrainer.RegressionTransformerTask(config)
+    else:
+        task = BaseTrainer(config)
 
     trainer_args = cast(Dict[str, Any], OmegaConf.to_object(config.trainer))
 

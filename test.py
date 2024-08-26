@@ -15,10 +15,9 @@ from hydra.utils import get_original_cwd
 from omegaconf import OmegaConf
 from pytorch_lightning.loggers import CometLogger
 
-import Rtran.trainer as rtran_trainer
-from src.utils.compute_normalization_stats import (
-    compute_means_stds_env_vars, compute_means_stds_sat_images)
+import Rtran.trainer as RtranTrainer
 from src.utils.config_utils import load_opts
+from src.base_trainer import BaseTrainer
 
 hydra_config_path = Path(__file__).resolve().parent / "configs/hydra.yaml"
 
@@ -80,8 +79,11 @@ def main(opts):
     config.save_path = os.path.join(base_dir, config.save_path, str(global_seed))
     pl.seed_everything(config.program.seed)
 
-    task = rtran_trainer.RegressionTransformerTask(config)
-    datamodule = rtran_trainer.SDMDataModule(config)
+    datamodule = RtranTrainer.SDMDataModule(config)
+    if config.Rtran.use:
+        task = RtranTrainer.RegressionTransformerTask(config)
+    else:
+        task = BaseTrainer(config)
 
     trainer_args = cast(Dict[str, Any], OmegaConf.to_object(config.trainer))
 
