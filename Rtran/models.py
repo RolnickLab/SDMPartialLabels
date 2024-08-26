@@ -7,6 +7,7 @@ import torch.nn as nn
 import torchvision.models as models
 from torch import Tensor
 from Rtran.utils import init_first_layer_weights
+import torch.nn.functional as F
 
 
 class SimpleMLP(nn.Module):
