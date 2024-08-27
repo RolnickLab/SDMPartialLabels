@@ -15,10 +15,9 @@ from hydra.utils import get_original_cwd
 from omegaconf import OmegaConf
 from pytorch_lightning.loggers import CometLogger
 
-import Rtran.trainer as rtran_trainer
-from src.utils.compute_normalization_stats import (
-    compute_means_stds_env_vars, compute_means_stds_sat_images)
+import Rtran.trainer as RtranTrainer
 from src.utils.config_utils import load_opts
+from src.base_trainer import BaseTrainer
 
 hydra_config_path = Path(__file__).resolve().parent / "configs/hydra.yaml"
 
@@ -80,9 +79,14 @@ def main(opts):
     config.save_path = os.path.join(base_dir, config.save_path, str(global_seed))
     pl.seed_everything(config.program.seed)
 
-    task = rtran_trainer.RegressionTransformerTask(config)
-    datamodule = rtran_trainer.SDMDataModule(config)
+
+    datamodule = RtranTrainer.SDMDataModule(config)
     datamodule.setup()
+    if config.Rtran.use:
+        task = RtranTrainer.RegressionTransformerTask(config)
+    else:
+        task = BaseTrainer(config)
+
     trainer_args = cast(Dict[str, Any], OmegaConf.to_object(config.trainer))
 
     if config.comet.experiment_key:
@@ -98,13 +102,13 @@ def main(opts):
 
     def test_task(task):
         trainer = pl.Trainer(**trainer_args)
-        #val_results = trainer.validate(model=task, datamodule=datamodule)
+        val_results = trainer.validate(model=task, datamodule=datamodule)
         test_results = trainer.test(
             model=task, dataloaders=datamodule.test_dataloader(), verbose=True
         )
 
         print("Final test results: ", test_results)
-        return test_results #val_results, test_results
+        return val_results, test_results
 
     # if a single checkpoint is given
     if config.load_ckpt_path:
@@ -115,19 +119,19 @@ def main(opts):
                 checkpint_path=config.load_ckpt_path,
                 save_preds_path=config.save_preds_path,
             )
-            test_results = test_task(task)
-            #val_results, test_results = test_task(task)
+          
+            val_results, test_results = test_task(task)
+            
             save_test_results_to_csv(
-                results=test_results[0],
-                root_dir=os.path.join(
-                    config.base_dir, os.path.dirname(config.load_ckpt_path)
-                ),
+                    results=test_results[0],
+                    root_dir=os.path.join(config.base_dir, config.load_ckpt_path),
+                    file_name="test_results.csv",
+                )
+            save_test_results_to_csv(
+                results=val_results[0],
+                root_dir=os.path.join(config.base_dir, config.load_ckpt_path),
+                file_name="val_results.csv",
             )
-            #save_test_results_to_csv(
-            #    results=val_results[0],
-            #    root_dir=os.path.join(config.base_dir, config.load_ckpt_path),
-            #    file_name="val_results.csv",
-            #)
         else:
             # get the number of experiments based on folders given
             n_runs = len(
