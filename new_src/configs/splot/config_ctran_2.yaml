@@ -1,7 +1,7 @@
 mode: "test" # "test"
-
+dataset_name: "sPlot"
 model:
-  name: "MaskedMLP_2"
+  name: "RTranModel"
   input_dim: 27
   hidden_dim: 64
   output_dim: 3950
@@ -16,7 +16,7 @@ training:
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "splot_maskedmlp_v2" # specify for training, or use to report test results
+  experiment_name: "splot_cTran_model_v3_all_unknown`" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
   checkpoint_path: "./experiments_output"
   checkpoint_name: "last.ckpt"
@@ -32,10 +32,10 @@ data:
   soilgrid_data_path: "soilgrid_data.csv"
 
   species_occurrences_threshold: 100
+  batch_size: 64
 
   species_list: "species_merge_duplicates.csv"
 
   partial_labels: True
-  species_set: None
   predict_family_of_species: 1
-  maximum_known_labels_ratio: 0
+  maximum_known_labels_ratio: 0.75

@@ -55,7 +55,9 @@ class RTranModel(nn.Module):
 
         # ResNet backbone
         self.backbone = globals()[backbone](
-            input_channels=input_channels, pretrained=pretrained_backbone
+            input_channels=input_channels,
+            pretrained=pretrained_backbone,
+            hidden_dim=self.d_hidden,
         )
         # Label Embeddings
         self.label_input = torch.Tensor(np.arange(num_classes)).view(1, -1).long()

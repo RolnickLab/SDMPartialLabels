@@ -12,7 +12,6 @@ class ModelConfig(BaseModel):
 
 
 class TrainingConfig(BaseModel):
-    batch_size: Optional[int] = Field(..., description="Batch size for training")
     learning_rate: Optional[float] = Field(
         ..., description="Learning rate for the optimizer"
     )
@@ -36,12 +35,15 @@ class DataPathConfig(BaseModel):
     species_occurrences_threshold: int = Field(
         ..., description="Species occurrences threshold"
     )
+    batch_size: Optional[int] = Field(..., description="Batch size for training")
     species_list: str = Field(..., description="Path to list of species names")
     partial_labels: bool = Field(..., description="Training with Partial labels or not")
     predict_family_of_species: int = Field(
         ..., description="what family of species to predict during testing"
     )
-    maximum_known_labels_ratio: Optional[float] = Field(..., description="Maximum known labels ratio")
+    maximum_known_labels_ratio: Optional[float] = Field(
+        ..., description="Maximum known labels ratio"
+    )
 
 
 class LoggingConfig(BaseModel):
@@ -54,6 +56,7 @@ class LoggingConfig(BaseModel):
 
 class Config(BaseModel):
     mode: Literal["train", "test"] = Field(..., description="Mode of operation")
+    dataset_name: str = Field(..., description="Dataset name")
     model: ModelConfig = Field(..., description="Model configuration")
     data: DataPathConfig = Field(..., description="Data paths configuration")
     training: TrainingConfig = Field(..., description="Training configuration")

@@ -1,3 +1,4 @@
+import csv
 import os
 
 import numpy as np
@@ -35,3 +36,18 @@ def trees_masking(config):
     )[0]
 
     return indices_to_predict
+
+
+def save_results_to_csv(results, root_dir, file_name="test_results.csv"):
+    output_file = os.path.join(root_dir, file_name)
+
+    with open(output_file, "a+", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=results.keys())
+        csvfile.seek(0)
+        if not csvfile.read():
+            writer.writeheader()  # Write the header row based on the dictionary keys
+
+        csvfile.seek(0, os.SEEK_END)
+        writer.writerow(results)  # Write the values row by row
+
+    print(f"CSV file '{output_file}' has been saved.")
