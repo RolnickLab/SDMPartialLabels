@@ -1,15 +1,15 @@
+# supports training baseline models and C-tran on splot data
 import pytorch_lightning as pl
-import torch
 from torchmetrics.classification import MultilabelAUROC
 
-from new_src.maskedbaseline import *
 from new_src.models import *
 from new_src.utils import multi_label_accuracy, trees_masking
 from Rtran.rtran import RTranModel
 
-class sPlotsTrainer(pl.LightningModule):
+
+class sPlotTrainer(pl.LightningModule):
     def __init__(self, config):
-        super(sPlotsTrainer, self).__init__()
+        super(sPlotTrainer, self).__init__()
         self.learning_rate = config.training.learning_rate
         self.config = config
 
