@@ -1,40 +1,40 @@
-mode: "train" # "test"
-
+mode: "test" # "test"
+dataset_name: "sPlot"
 model:
-  name: "RTranModel"
+  name: "SimpleMLP"
   input_dim: 27
-  hidden_dim: 128
+  hidden_dim: 64
   output_dim: 3950
-  backbone: "MLPBackbone"
+  backbone: ""
 
 training:
-  batch_size: 64
   learning_rate: 1e-3
-  max_epochs: 20
+  max_epochs: 10
   accelerator: "gpu"
   devices: 1
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "splot_cTran_model_v4" # specify for training, or use to report test results
+  experiment_name: "Simple_MLP_baseline_splot_v0" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
   checkpoint_path: "./experiments_output"
   checkpoint_name: "last.ckpt"
 
 data:
-  base: "/network/projects/ecosystem-embeddings/sPlotOpen"
+  base: "/Users/hagerradi/Projects/SDMPartialLabels/data/sPlotOpen"
   train: "train_indices.npy"
   validation: "validation_indices.npy"
   test: "test_indices.npy"
   targets: "merged_species_occurrences.npy"
 
+  batch_size: 512
+
   worldclim_data_path: "worldclim_data.csv"
   soilgrid_data_path: "soilgrid_data.csv"
-
+  species_list: "species_merge_duplicates.csv"
   species_occurrences_threshold: 100
 
-  species_list: "species_merge_duplicates.csv"
-
-  partial_labels: True
-  predict_family_of_species: -1
-  maximum_known_labels_ratio: 0.75
+  partial_labels: False
+  # default = -1, if 0, predict non-trees, if 1, predict trees only
+  predict_family_of_species: 1
+  maximum_known_labels_ratio: 0

@@ -2,7 +2,6 @@ import argparse
 import logging
 import os
 
-import comet_ml
 import torch
 import yaml
 from pydantic import ValidationError
@@ -11,16 +10,23 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 
 from new_src.config import Config
-from new_src.dataloader import TabularDataModule
-from new_src.trainer import sPlotsTrainer
+from new_src.trainers.splot_trainer import sPlotTrainer
+from new_src.dataloaders.splot_dataloader import sPlotDataModule
+from new_src.utils import save_results_to_csv
 
 
 def load_config(config_path) -> Config:
     print(config_path)
     with open(config_path, "r") as file:
         config_dict = yaml.safe_load(file)
-        print(config_dict)
     return Config(**config_dict)
+
+
+def map_dataset_name_from_config(config):
+    if config.dataset_name == "sPlot":
+        return sPlotTrainer, sPlotDataModule
+    else:
+        raise ValueError(f"Dataset {config.dataset_name} not supported")
 
 
 def main():
@@ -43,9 +49,10 @@ def main():
     print("Data Path Config:", config.data)
     print("Training Config:", config.training)
 
-    # Create data module
-    data_module = TabularDataModule(config.data, batch_size=config.training.batch_size)
-    task = sPlotsTrainer(config)
+    # Create data module and trainer
+    trainer_class, data_module_class = map_dataset_name_from_config(config)
+    data_module = data_module_class(config.data)
+    task = trainer_class(config)
 
     # Initialize Comet.ml logger
     comet_logger = CometLogger(
@@ -83,20 +90,21 @@ def main():
         trainer.fit(model=task, datamodule=data_module)
         trainer.test(model=task, datamodule=data_module)
     else:
-        task.load_state_dict(
-            torch.load(
-                os.path.join(
+        checkpoint_path = os.path.join(
                     config.logger.checkpoint_path,
                     config.logger.experiment_name,
-                    config.logger.checkpoint_name,
-                )
-            )["state_dict"],
+                    config.logger.checkpoint_name)
+        logging.info("loading checkpoint %s", checkpoint_path)
+        task.load_state_dict(
+            torch.load(checkpoint_path)["state_dict"],
         )
-
-        # val_results = trainer.validate(model=task, datamodule=data_module)
-        # logging.info("validation results: %s", val_results)
         test_results = trainer.test(model=task, datamodule=data_module, verbose=True)
         logging.info("test results: %s", test_results)
+        save_results_to_csv(
+            results=test_results[0],
+            root_dir=os.path.join(config.logger.checkpoint_path, config.logger.experiment_name),
+            file_name="test_results.csv",
+        )
 
 
 if __name__ == "__main__":

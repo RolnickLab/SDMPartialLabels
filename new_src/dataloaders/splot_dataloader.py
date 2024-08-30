@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader, Dataset
 from Rtran.label_masking import get_unknown_mask_indices
 
 
-class TabularDataset(Dataset):
+class sPlotDataset(Dataset):
     def __init__(
         self,
         data,
@@ -32,7 +32,7 @@ class TabularDataset(Dataset):
         return batch
 
 
-class MaskedDataset(Dataset):
+class sPlotMaskedDataset(Dataset):
     def __init__(
         self,
         data,
@@ -75,16 +75,16 @@ class MaskedDataset(Dataset):
         return batch
 
 
-class TabularDataModule(pl.LightningDataModule):
-    def __init__(self, data_config, batch_size=32):
+class sPlotDataModule(pl.LightningDataModule):
+    def __init__(self, data_config):
         super().__init__()
         self.config = data_config
-        self.batch_size = batch_size
+        self.batch_size = data_config.batch_size
 
         if self.config.partial_labels:
-            self.dataloader_to_use = "MaskedDataset"
+            self.dataloader_to_use = "sPlotMaskedDataset"
         else:
-            self.dataloader_to_use = "TabularDataset"
+            self.dataloader_to_use = "sPlotDataset"
 
     def setup(self, stage: Optional[str] = None) -> None:
 
@@ -149,9 +149,7 @@ class TabularDataModule(pl.LightningDataModule):
         normalization_means = np.mean(data[train_split, :], axis=0)
         normalization_stds = np.std(data[train_split, :], axis=0)
 
-        data = (data - normalization_means) / (
-            normalization_stds + 1e-8
-        )
+        data = (data - normalization_means) / (normalization_stds + 1e-8)
 
         self.train_dataset = globals()[self.dataloader_to_use](
             data=torch.tensor(data[train_split], dtype=torch.float32),
