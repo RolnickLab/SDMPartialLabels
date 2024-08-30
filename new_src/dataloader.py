@@ -15,10 +15,7 @@ class TabularDataset(Dataset):
         self,
         data,
         targets,
-        species_indices,
-        normalization_means,
-        normalization_stds,
-        df_data_columns,
+        num_labels,
         species_list=None,
         mode=None,
         maximum_known_labels_ratio=None,
@@ -26,26 +23,13 @@ class TabularDataset(Dataset):
     ):
         self.data = data
         self.targets = targets
-        self.species_indices = species_indices
-        self.normalization_means = normalization_means
-        self.normalization_stds = normalization_stds
-        self.df_data_columns = df_data_columns
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        targets = self.targets[:, self.species_indices]
-        targets = targets[idx]
-
-        data = self.data.iloc[idx][self.df_data_columns].tolist()
-        data = (data - self.normalization_means) / (self.normalization_stds + 1e-8)
-
-        return (
-            torch.tensor(data.tolist(), dtype=torch.float32),
-            torch.tensor(targets, dtype=torch.float32),
-            None,
-        )
+        batch = {"data": self.data[idx], "targets": self.targets[idx]}
+        return batch
 
 
 class MaskedDataset(Dataset):
@@ -53,10 +37,7 @@ class MaskedDataset(Dataset):
         self,
         data,
         targets,
-        species_indices,
-        normalization_means,
-        normalization_stds,
-        df_data_columns,
+        num_labels,
         species_list,
         mode="train",
         predict_family=False,
@@ -64,10 +45,7 @@ class MaskedDataset(Dataset):
     ):
         self.data = data
         self.targets = targets
-        self.species_indices = species_indices
-        self.normalization_means = normalization_means
-        self.normalization_stds = normalization_stds
-        self.df_data_columns = df_data_columns
+        self.num_labels = num_labels
         self.species_list = species_list
         self.mode = mode
         self.predict_family_of_species = predict_family
@@ -77,16 +55,12 @@ class MaskedDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        targets = self.targets[:, self.species_indices]
-        targets = targets[idx]
-        targets = torch.tensor(targets, dtype=torch.float32)
-
-        data = self.data.iloc[idx][self.df_data_columns].tolist()
-        data = (data - self.normalization_means) / (self.normalization_stds + 1e-8)
+        targets = self.targets[idx]
+        data = self.data[idx]
 
         if self.maximum_known_labels_ratio > 0:
             unk_mask_indices = get_unknown_mask_indices(
-                num_labels=len(self.species_indices),
+                num_labels=self.num_labels,
                 mode=self.mode,
                 max_known=self.maximum_known_labels_ratio,
                 predict_family_of_species=self.predict_family_of_species,
@@ -97,9 +71,8 @@ class MaskedDataset(Dataset):
         else:
             mask = torch.ones_like(targets)
             mask = mask * -1
-
-        data = torch.tensor(data.tolist(), dtype=torch.float32)
-        return data, targets, mask.long()
+        batch = {"data": data, "targets": targets, "mask": mask.long()}
+        return batch
 
 
 class TabularDataModule(pl.LightningDataModule):
@@ -156,8 +129,10 @@ class TabularDataModule(pl.LightningDataModule):
             "SNDPPT",
             "BLDFIE",
         ]
+        df_data_columns = worldclim_env_column_names + soilgrid_env_column_names
 
         data = pd.concat([worldclim_df, soilgrid_df], axis=1)
+        data = data[df_data_columns].to_numpy()
 
         train_split = np.load(os.path.join(self.config.base, self.config.train))
         val_split = np.load(os.path.join(self.config.base, self.config.validation))
@@ -168,48 +143,47 @@ class TabularDataModule(pl.LightningDataModule):
             targets.sum(axis=0) >= self.config.species_occurrences_threshold
         )[0]
 
-        species_df = species_df.loc[species_indices]
-        species_df = species_df.reset_index(drop=True)
+        species_df = species_df.loc[species_indices].reset_index(drop=True)
 
-        self.normalization_means = data[
-            worldclim_env_column_names + soilgrid_env_column_names
-        ].mean()
-        self.normalization_stds = data[
-            worldclim_env_column_names + soilgrid_env_column_names
-        ].std()
+        # Precompute normalization
+        normalization_means = np.mean(data[train_split, :], axis=0)
+        normalization_stds = np.std(data[train_split, :], axis=0)
+
+        data = (data - normalization_means) / (
+            normalization_stds + 1e-8
+        )
 
         self.train_dataset = globals()[self.dataloader_to_use](
-            data=data.iloc[train_split],
-            targets=targets[train_split],
-            species_indices=species_indices,
-            normalization_means=self.normalization_means,
-            normalization_stds=self.normalization_stds,
-            df_data_columns=worldclim_env_column_names + soilgrid_env_column_names,
+            data=torch.tensor(data[train_split], dtype=torch.float32),
+            targets=torch.tensor(
+                targets[train_split][:, species_indices], dtype=torch.float32
+            ),
             species_list=species_df,
+            num_labels=len(species_indices),
             mode="train",
             predict_family=self.config.predict_family_of_species,
             maximum_known_labels_ratio=self.config.maximum_known_labels_ratio,
         )
+
         self.val_dataset = globals()[self.dataloader_to_use](
-            data=data.iloc[val_split],
-            targets=targets[val_split],
-            species_indices=species_indices,
-            normalization_means=self.normalization_means,
-            normalization_stds=self.normalization_stds,
-            df_data_columns=worldclim_env_column_names + soilgrid_env_column_names,
+            data=torch.tensor(data[val_split], dtype=torch.float32),
+            targets=torch.tensor(
+                targets[val_split][:, species_indices], dtype=torch.float32
+            ),
             species_list=species_df,
+            num_labels=len(species_indices),
             mode="val",
             predict_family=self.config.predict_family_of_species,
             maximum_known_labels_ratio=self.config.maximum_known_labels_ratio,
         )
+
         self.test_dataset = globals()[self.dataloader_to_use](
-            data=data.iloc[test_split],
-            targets=targets[test_split],
-            species_indices=species_indices,
-            normalization_means=self.normalization_means,
-            normalization_stds=self.normalization_stds,
-            df_data_columns=worldclim_env_column_names + soilgrid_env_column_names,
+            data=torch.tensor(data[test_split], dtype=torch.float32),
+            targets=torch.tensor(
+                targets[test_split][:, species_indices], dtype=torch.float32
+            ),
             species_list=species_df,
+            num_labels=len(species_indices),
             mode="test",
             predict_family=self.config.predict_family_of_species,
             maximum_known_labels_ratio=self.config.maximum_known_labels_ratio,
@@ -222,7 +196,7 @@ class TabularDataModule(pl.LightningDataModule):
             shuffle=True,
             persistent_workers=True,
             pin_memory=True,
-            num_workers=4,
+            num_workers=16,
         )
 
     def val_dataloader(self):
@@ -231,8 +205,13 @@ class TabularDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             persistent_workers=True,
             pin_memory=True,
-            num_workers=4,
+            num_workers=16,
         )
 
     def test_dataloader(self):
-        return DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=4)
+        return DataLoader(
+            self.test_dataset,
+            batch_size=self.batch_size,
+            pin_memory=True,
+            num_workers=16,
+        )

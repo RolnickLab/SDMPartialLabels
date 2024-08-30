@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 
+import comet_ml
 import torch
 import yaml
 from pydantic import ValidationError
@@ -14,9 +15,11 @@ from new_src.dataloader import TabularDataModule
 from new_src.trainer import sPlotsTrainer
 
 
-def load_config(config_path: str) -> Config:
+def load_config(config_path) -> Config:
+    print(config_path)
     with open(config_path, "r") as file:
         config_dict = yaml.safe_load(file)
+        print(config_dict)
     return Config(**config_dict)
 
 
@@ -30,7 +33,7 @@ def main():
 
     try:
         # Load and validate configuration
-        config = load_config(args.config)
+        config = load_config(os.path.join(os.getcwd(), args.config))
     except ValidationError as e:
         print("Configuration validation error:", e.json())
         exit(1)
@@ -91,8 +94,8 @@ def main():
         )
 
         # val_results = trainer.validate(model=task, datamodule=data_module)
-        test_results = trainer.test(model=task, datamodule=data_module, verbose=True)
         # logging.info("validation results: %s", val_results)
+        test_results = trainer.test(model=task, datamodule=data_module, verbose=True)
         logging.info("test results: %s", test_results)
 
 

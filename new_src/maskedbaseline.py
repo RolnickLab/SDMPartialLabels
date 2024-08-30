@@ -75,10 +75,3 @@ class MaskedMLP_2(nn.Module):
         x = F.relu(self.layer_2(x))
         x = self.layer_3(x)
         return x
-
-
-"""
-training:
-1. Can i use MSE reconstruction loss on the mask and the predicted classes?
-2. Can i use cross-entropy loss on the predicted and the GT classes? (unknown only)
-"""
