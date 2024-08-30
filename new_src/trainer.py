@@ -7,13 +7,10 @@ from new_src.models import *
 from new_src.utils import multi_label_accuracy, trees_masking
 from Rtran.rtran import RTranModel
 
-
 class sPlotsTrainer(pl.LightningModule):
     def __init__(self, config):
         super(sPlotsTrainer, self).__init__()
         self.learning_rate = config.training.learning_rate
-        self.activation = nn.Sigmoid()
-        self.loss_fn = nn.BCEWithLogitsLoss()
         self.config = config
 
         # Create model
@@ -45,64 +42,56 @@ class sPlotsTrainer(pl.LightningModule):
             num_labels=out_num_classes, average="macro"
         )
 
-    def training_step(self, batch, batch_idx):
-        data, targets, mask = batch
-        if mask is not None:
-            predictions = self.model(data, mask)
-        else:
-            predictions = self.model(data)
+        self.activation = nn.Sigmoid()
+        self.loss_fn = nn.BCEWithLogitsLoss()
+
+    def forward(self, batch):
+        if self.config.data.partial_labels:
+            return self.model(batch["data"], batch["mask"])
+        return self.model(batch["data"])
+
+    def _shared_step(self, batch, stage: str):
+        data, targets = batch["data"], batch["targets"]
+        predictions = self(batch)
+
+        if self.indices_to_predict is not None:
+            predictions = predictions[:, self.indices_to_predict]
+            targets = targets[:, self.indices_to_predict]
 
         loss = self.loss_fn(predictions, targets)
-        self.logger.log_metrics({"train_loss": loss})
+        predictions = self.activation(predictions)
+        accuracy = multi_label_accuracy(predictions, targets)
+
+        metrics = {
+            f"{stage}_loss": loss,
+            f"{stage}_accuracy": accuracy,
+        }
+
+        if stage == "val":
+            self.val_auc_metric.update(predictions, targets.long())
+        elif stage == "test":
+            self.test_auc_metric.update(predictions, targets.long())
+
+        self.log_dict(metrics, on_step=False, on_epoch=True)
         return loss
 
+    def training_step(self, batch, batch_idx):
+        return self._shared_step(batch, "train")
+
     def validation_step(self, batch, batch_idx):
-        data, targets, mask = batch
-
-        if mask is not None:
-            predictions = self.model(data, mask)
-        else:
-            predictions = self.model(data)
-
-        if self.indices_to_predict is not None:
-            predictions = predictions[:, self.indices_to_predict]
-            targets = targets[:, self.indices_to_predict]
-
-        loss = self.loss_fn(predictions, targets)
-
-        predictions = self.activation(predictions)
-
-        accuracy = multi_label_accuracy(predictions, targets)
-
-        self.logger.log_metrics({"val_loss": loss})
-        self.logger.log_metrics({"val_accuracy": accuracy})
-
-        self.val_auc_metric.update(predictions, targets.long())
-        self.log("val_auroc", self.val_auc_metric, on_epoch=True)
+        self._shared_step(batch, "val")
 
     def test_step(self, batch, batch_idx):
-        data, targets, mask = batch
+        self._shared_step(batch, "test")
 
-        if mask is not None:
-            predictions = self.model(data, mask)
-        else:
-            predictions = self.model(data)
+    def on_validation_epoch_end(self):
+        self.log("val_auroc", self.val_auc_metric.compute())
+        self.val_auc_metric.reset()
 
-        if self.indices_to_predict is not None:
-            predictions = predictions[:, self.indices_to_predict]
-            targets = targets[:, self.indices_to_predict]
-
-        loss = self.loss_fn(predictions, targets)
-        predictions = self.activation(predictions)
-
-        accuracy = multi_label_accuracy(predictions, targets)
-
-        self.log("test_loss", loss)
-        self.log("test_accuracy", accuracy)
-
-        self.test_auc_metric.update(predictions, targets.long())
-        self.log("test_auroc", self.test_auc_metric, on_epoch=True)
+    def on_test_epoch_end(self):
+        self.log("test_auroc", self.test_auc_metric.compute())
+        self.test_auc_metric.reset()
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.learning_rate)
         return optimizer

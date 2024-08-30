@@ -1,14 +1,13 @@
-mode: "test" # "test"
-
+mode: "train" # "test"
 model:
-  name: "MaskedMLP_2"
+  name: "SimpleMLP"
   input_dim: 27
   hidden_dim: 64
   output_dim: 3950
-  backbone: "MLPBackbone"
+  backbone: ""
 
 training:
-  batch_size: 64
+  batch_size: 512
   learning_rate: 1e-3
   max_epochs: 10
   accelerator: "gpu"
@@ -16,13 +15,13 @@ training:
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "splot_maskedmlp_v2" # specify for training, or use to report test results
+  experiment_name: "test" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
   checkpoint_path: "./experiments_output"
   checkpoint_name: "last.ckpt"
 
 data:
-  base: "/network/projects/ecosystem-embeddings/sPlotOpen"
+  base: "/Users/hagerradi/Projects/SDMPartialLabels/data/sPlotOpen"
   train: "train_indices.npy"
   validation: "validation_indices.npy"
   test: "test_indices.npy"
@@ -30,12 +29,10 @@ data:
 
   worldclim_data_path: "worldclim_data.csv"
   soilgrid_data_path: "soilgrid_data.csv"
-
+  species_list: "species_merge_duplicates.csv"
   species_occurrences_threshold: 100
 
-  species_list: "species_merge_duplicates.csv"
-
-  partial_labels: True
-  species_set: None
-  predict_family_of_species: 1
+  partial_labels: False
+  # default = -1, if 0, predict non-trees, if 1, predict trees only
+  predict_family_of_species: -1
   maximum_known_labels_ratio: 0
