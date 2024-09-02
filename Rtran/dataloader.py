@@ -142,6 +142,7 @@ class SDMEnvCombinedDataset(EnvDataset):
                     hotspot_id + ".json",
                 ))
                 target_butterfly = targ["probs"]
+            
             else: 
                 species_to_exclude = 1
 

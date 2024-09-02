@@ -161,7 +161,7 @@ def get_unknown_mask_indices(
                     species_set=species_set, max_known=max_known
                 )
             else:
-                num_known = int(num_labels * max_known)
+                num_known = random.randint(0, int(num_labels * max_known))
                 unk_mask_indices = random.sample(
                     range(num_labels), int(num_labels - num_known)
                 )
