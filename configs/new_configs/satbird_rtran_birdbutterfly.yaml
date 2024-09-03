@@ -1,5 +1,5 @@
 #where to save checkpoints
-save_path: "/network/projects/ecosystem-embeddings/experiments/baseline_joint_species_rtran_resnet18_RGBNIR_ENV_new2"
+save_path: "/network/projects/ecosystem-embeddings/experiments/baseline_joint_species_rtran_resnet18_RGBNIR_ENV_new100epochs"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 load_ckpt_path: ""
@@ -8,7 +8,7 @@ log_comet: true
 
 overfit_batches: 0.0
 # maximum number of epochs to train for
-max_epochs: 60
+max_epochs: 100
 # base directory
 base_dir: ""
 

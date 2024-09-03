@@ -92,6 +92,7 @@ class RTranModel(nn.Module):
         self.output_linear.apply(weights_init)
 
     def forward(self, images, mask, mask_q=None):
+        images = images.type(torch.float32)
         z_features = self.backbone(images.unsqueeze(-1))  # image: HxWxD , out: [128, 4, 512]
 
         const_label_input = self.label_input.repeat(images.size(0), 1).to(

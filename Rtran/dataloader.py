@@ -7,7 +7,7 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms as trsfs
-
+import pytorch_lightning as pl
 from Rtran.label_masking import get_unknown_mask_indices
 from Rtran.utils import json_load, load_geotiff, load_geotiff_visual
 
@@ -16,6 +16,7 @@ class EnvDataset(Dataset[Dict[str, Any]], abc.ABC):
     """Abstract base class for datasets lacking geospatial information.
     This base class is designed for datasets with pre-defined image chips.
     """
+    
 
     @abc.abstractmethod
     def __getitem__(self, index: int) -> Dict[str, Any]:
@@ -50,13 +51,12 @@ class EnvDataset(Dataset[Dict[str, Any]], abc.ABC):
 class SDMEnvCombinedDataset(EnvDataset):
     def __init__(
         self,
-        df,
-        data_base_dir,
-        env,
-        transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+        data,
+        targets,
+        hotspots,
+        exclude, 
+        #transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
         mode="train",
-        target_type="probs",
-        targets_folder="corrected_targets",
         maximum_known_labels_ratio=0.5,
         num_species=842,
         species_set=None,
@@ -67,14 +67,10 @@ class SDMEnvCombinedDataset(EnvDataset):
         """
         this dataloader handles all datasets together SatBird + SatButterfly_v1 + SatButterfly_v2( co-located with some of SatBird positions)
         Parameters:
-            df: dataframe with hotspot IDs
-            data_base_dir: base directory for data
-            env: list of env data to take into account [ped, bioclim]
-            transforms: transforms functions
+            data: tensor of input data num_hotspots x env variables 
+            targets: tensor of targets num_hotspots x num_species, 
+            exclude: for each hotspot, indicator of species not to consider in the masking proportion because no data is available 
             mode : train|val|test
-            target_type : "probs" or "binary"
-            targets_folder= [targets_folder_bird,targets_folder_butterfly,targets_folder_butterfly_colocated] 
-            env_data_folder: folder name for env data
             maximum_known_labels_ratio: known labels ratio for RTran
             num_species: total number of species/classes to predict
             species_set: set with different species sizes
@@ -83,98 +79,42 @@ class SDMEnvCombinedDataset(EnvDataset):
         """
 
         super().__init__()
-        self.df = df
-        self.data_base_dir = data_base_dir
-        self.transform = transforms
-        self.env = env
-        self.mode = mode
-        self.target_type = target_type
-        self.targets_folder_bird,self.targets_folder_butterfly,self.targets_folder_butterfly_colocated = targets_folder
-       
+        
+        self.data = data
+        self.targets = targets 
+        self.hotspots=hotspots
+        self.exclude = exclude 
+        self.mode = mode   
         self.num_species = num_species
         self.species_set = species_set
+        
         self.maximum_known_labels_ratio = maximum_known_labels_ratio
         self.predict_family_of_species = predict_family
         self.quantized_mask_bins = quantized_mask_bins
 
     def __len__(self):
-        return len(self.df)
+        return self.data.shape[0]
 
     def __getitem__(self, index: int) -> Dict[str, Any]:
-        item_ = {}
-
-        hotspot_id = self.df.iloc[index]["hotspot_id"]
-        has_bird = self.df.iloc[index]["bird"]
-        has_butterfly = self.df.iloc[index]["butterfly"]
-        item_ = {}
-
-        hotspot_id = self.df.iloc[index]["hotspot_id"]
         
-        item_["env"] = torch.Tensor(list(self.df.iloc[index][self.env]))
+        data = self.data[index]
+        targets = self.targets[index]
+        hotspots = self.hotspots[index]
+        species_to_exclude = self.exclude[index]
       
-        # applying transforms
-        if self.transform:
-            t = trsfs.Compose(self.transform)
-            item_ = t(item_)
-
-      
-        # constructing targets
-        target_bird = [-2] * self.species_set[0]
-        target_butterfly = [-2] * self.species_set[1] #len(butterfly species)
-
-        species_to_exclude = -1 #all species present
-        
-        if has_bird==1:
-            targ = json_load(
-                os.path.join(
-                    self.data_base_dir,
-                    self.targets_folder_bird,
-                    hotspot_id + ".json",
-                ))
-            target_bird = targ["probs"]
-            
-                
-            if has_butterfly==1:
-                targ = json_load(
-                os.path.join(
-                    self.data_base_dir,
-                    self.targets_folder_butterfly_colocated,
-                    hotspot_id + ".json",
-                ))
-                target_butterfly = targ["probs"]
-            
-            else: 
-                species_to_exclude = 1
-
-        else:
-            if has_butterfly==1:
-                targ = json_load(
-                    os.path.join(
-                        self.data_base_dir,
-                        self.targets_folder_butterfly,
-                        hotspot_id + ".json",
-                    ))
-                target_butterfly = targ["probs"]
-                species_to_exclude = 0
-            elif has_butterfly==0:
-                raise ValueError("cannot have neither butterflies nor birds targets available")
-            
-
-        item_["target"] = target_bird + target_butterfly 
-        item_["target"] = torch.Tensor(item_["target"])
 
         # constructing mask for R-tran
         unk_mask_indices = get_unknown_mask_indices(
             num_labels=self.num_species,
             mode=self.mode,
             max_known=self.maximum_known_labels_ratio,
-            absent_species=species_to_exclude,
+            absent_species = species_to_exclude,
             species_set=self.species_set,
             predict_family_of_species=self.predict_family_of_species,
-            data_base_dir=self.data_base_dir,
+            
         )
-        mask = item_["target"].clone()
-
+        
+        mask = targets.clone()
         mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
 
         if self.quantized_mask_bins > 1:
@@ -185,48 +125,22 @@ class SDMEnvCombinedDataset(EnvDataset):
             mask_q = mask
 
         mask[mask > 0] = 1
-
-        item_["mask_q"] = mask_q
-        item_["mask"] = mask
-        item_["eval_mask"] = mask
-        # meta data
-        item_["hotspot_id"] = hotspot_id
+        
+        item_ = {"data": data, "hotspot_id": hotspot_id, "targets": targets, "mask": mask.long(), "eval_mask": mask.long(), "mask_q": mask_q.long()}
+ 
         return item_
-
-
-class sPlotDataloader(DataLoader):
-    def __init__(self, worldclim_filename, soilgrids_filename, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.worldclim_data = pd.read_csv(worldclim_filename)
-        self.soilgrids_data = pd.read_csv(soilgrids_filename)
-
-        # Ensuring both datasets have the same length by trimming the longer one
-        min_len = min(len(self.worldclim_data), len(self.soilgrids_data))
-        self.data1 = self.worldclim_data.head(min_len)
-        self.data2 = self.soilgrids_data.head(min_len)
-
-    def __len__(self):
-        """Returns the total number of items in the dataset."""
-        return len(self.soilgrids_data)
-
-    def __getitem__(self, index):
-        """Returns the items from both files at the given index."""
-        item1 = self.worldclim_data.iloc[index]
-        item2 = self.soilgrids_data.iloc[index]
-        return item1, item2
 
     
     
 class SDMEnvDataset(EnvDataset):
     def __init__(
         self,
-        df,
-        data_base_dir,
-        env,
-        transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+        data, 
+        targets, 
+        hotspots,
+        data_base_dir, 
+        #transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
         mode="train",
-        target_type="probs",
-        targets_folder="corrected_targets",
         maximum_known_labels_ratio=0.5,
         species_set=None,
         species_set_eval=None, 
@@ -237,10 +151,8 @@ class SDMEnvDataset(EnvDataset):
         """
         this dataloader handles dataset with masks for RTran model using env variables as inpu
         Parameters:
-            df: dataframe with hotspot IDs
-            data_base_dir: base directory for data
-            env: list of env variables names to take into account
-            transforms: transforms functions
+            data: tensor of input data num_hotspots x env variables 
+            targets: tensor of targets num_hotspots x num_species, 
             mode : train|val|test
             target_type : "probs" or "binary"
             targets_folder: folder name for labels/targets
@@ -251,49 +163,26 @@ class SDMEnvDataset(EnvDataset):
             quantized_mask_bins: how many bins to quantize the positive (>0) encounter rates
         """
         super().__init__()
-        self.df = df
+        self.data = data
         self.data_base_dir = data_base_dir
-        self.transform = transforms
-        self.env = env
-        self.mode = mode
-        self.target_type = target_type
-        self.targets_folder = targets_folder
-        self.num_species = num_species
+        self.targets = targets 
+        self.hotspots = hotspots
+        self.mode = mode   
+        self.num_species = num_species       
         self.maximum_known_labels_ratio = maximum_known_labels_ratio
         self.species_set= species_set
         self.species_set_eval = species_set_eval
         self.predict_family_of_species = predict_family
         self.quantized_mask_bins = quantized_mask_bins
+        
 
     def __len__(self):
-        return len(self.df)
+        return (self.data.shape[0])
 
     def __getitem__(self, index: int) -> Dict[str, Any]:
-        item_ = {}
-
-        hotspot_id = self.df.iloc[index]["hotspot_id"]
-        
-        item_["env"] = torch.Tensor(list(self.df.iloc[index][self.env]))
-        
-        # applying transforms
-        if self.transform:
-            t = trsfs.Compose(self.transform)
-            item_ = t(item_)
-
-        # concatenating env rasters, if any, with satellite image
-
-        # constructing targets
-        species = json_load(
-            os.path.join(
-                self.data_base_dir, self.targets_folder[0], hotspot_id + ".json"
-            )
-        )
-
-        item_["target"] = species["probs"]
-        item_["target"] = torch.Tensor(item_["target"])
-        if self.target_type == "binary":
-            item_["target"][item_["target"] > 0] = 1
-       
+        data = self.data[index]
+        targets = self.targets[index]
+        hotspot_id = self.hotspots[index]
         # constructing mask for R-tran
         unk_mask_indices = get_unknown_mask_indices(
             num_labels=self.num_species,
@@ -313,10 +202,10 @@ class SDMEnvDataset(EnvDataset):
             data_base_dir=self.data_base_dir,
         )
         
-        mask = item_["target"].clone()
+        mask = targets.clone()
         mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
         
-        eval_mask= item_["target"].clone()
+        eval_mask= targets.clone()
         eval_mask.scatter_(dim=0, index=torch.Tensor(eval_mask_indices).long(), value=-1.0)
         
         if self.quantized_mask_bins > 1:
@@ -328,14 +217,7 @@ class SDMEnvDataset(EnvDataset):
             
             eval_mask[eval_mask > 0] = 1
 
-        item_["mask_q"] = mask_q
-        item_["mask"] = mask
-        # meta data
-        item_["num_complete_checklists"] = species["num_complete_checklists"]
-        item_["hotspot_id"] = hotspot_id
-        
-        item_["eval_mask"] = eval_mask
-        return item_
+        return {"data": data, "targets": targets, "hotspot_id": hotspot_id, "mask": mask.long(), "eval_mask": mask.long(), "mask_q": mask_q.long()}
 
     
 class SDMDataModule(pl.LightningDataModule):
@@ -345,15 +227,15 @@ class SDMDataModule(pl.LightningDataModule):
 
     def __init__(self, opts) -> None:
         super().__init__()
-        self.config = opts
-
+        self.config = opts       
         self.seed = self.config.program.seed
         self.batch_size = self.config.data.loaders.batch_size
         self.num_workers = self.config.data.loaders.num_workers
         self.data_base_dir = self.config.data.files.base
         self.targets_folder = self.config.data.files.targets_folder
         self.target_type = self.config.data.target.type
-
+        
+        
         # combining multiple train files
         self.df_train = pd.read_csv(
             os.path.join(self.data_base_dir, self.config.data.files.train[0])
@@ -395,67 +277,206 @@ class SDMDataModule(pl.LightningDataModule):
                     ],
                     axis=0,
                 )
+       
+     
 
         self.env = self.config.data.env
-        self.datatype = self.config.data.datatype
 
         self.predict_family = self.config.predict_family_of_species
         self.num_species = self.config.data.total_species
 
         # if we are using either SatBird or SatButterly at a time
         self.dataloader_to_use = self.config.dataloader_to_use
+        
+    
+    def get_bird_targets(self, df):
+        targets = torch.zeros([len(df), self.num_species])
+        for i, row in df.iterrows():
+            
+            hotspot_id = row["hotspot_id"]
+        
+            # constructing targets
+            species = json_load(
+                os.path.join(
+                    self.data_base_dir, self.targets_folder[0], hotspot_id + ".json"
+                )
+            )["probs"]
+            targets[i, :] = torch.Tensor(species)
+        return(targets, np.array(df["hotspot_id"]))
 
+ 
+    
+    def get_bird_butterfly_targets(self, df, species_set):
+        
+        self.targets_folder_bird, self.targets_folder_butterfly, self.targets_folder_butterfly_colocated = self.targets_folder
+        
+        has_bird = df["bird"]
+        has_butterfly = df["butterfly"]
+        
+        targets = torch.zeros([len(df), species_set[0]+ species_set[1]])
+        # constructing targets
+        
+
+        df["species_to_exclude"] = -1 #all species present
+        
+        for i, row in df.iterrows():
+            hotspot_id = row["hotspot_id"]
+            target_bird = [-2] * species_set[0]
+            target_butterfly = [-2] * species_set[1] #len(butterfly species)
+            
+            if row["bird"]==1:
+                targ = json_load(
+                    os.path.join(
+                        self.data_base_dir,
+                        self.targets_folder_bird,
+                        hotspot_id + ".json",
+                    ))
+                target_bird = targ["probs"]
+
+
+                if row["butterfly"]==1:
+                    targ = json_load(
+                    os.path.join(
+                        self.data_base_dir,
+                        self.targets_folder_butterfly_colocated,
+                        hotspot_id + ".json",
+                    ))
+                    target_butterfly = targ["probs"]
+
+                else: 
+                    df.loc[i, "species_to_exclude"]= 1
+
+            else:
+                if row["butterfly"]==1:
+                    targ = json_load(
+                        os.path.join(
+                            self.data_base_dir,
+                            self.targets_folder_butterfly,
+                            hotspot_id + ".json",
+                        ))
+                    target_butterfly = targ["probs"]
+                    df.loc[i, "species_to_exclude"] = 0
+
+                elif row["butterfly"]==0:
+                    raise ValueError("cannot have neither butterflies nor birds targets available")
+
+
+            target = target_bird + target_butterfly 
+            targets[i,:] =  torch.Tensor(target)
+        
+        return targets, np.array(df["species_to_exclude"]), np.array(df["hotspot_id"])
+    
     def setup(self, stage: Optional[str] = None) -> None:
         """create the train/test/val splits"""
-        self.all_train_dataset = globals()[self.dataloader_to_use](
-            df=self.df_train,
-            data_base_dir=self.data_base_dir,
-            env=self.env,
-            transforms=get_transforms(self.config, "train"),
-            mode="train",
-            target_type=self.target_type,
-            targets_folder=self.targets_folder,
-            maximum_known_labels_ratio=self.config.Rtran.train_known_ratio,
-            num_species=self.num_species,
-            species_set=self.config.data.species,
-            species_set_eval=self.config.data.species_eval,
-            predict_family=self.predict_family,
-            quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
-        )
+        
 
-        self.all_val_dataset = globals()[self.dataloader_to_use](
-            df=self.df_val,
-            data_base_dir=self.data_base_dir,
-            env=self.env,
-            transforms=get_transforms(self.config, "val"),
-            mode="val",
-            target_type=self.target_type,
-            targets_folder=self.targets_folder,
-            maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
-            num_species=self.num_species,
-            species_set=self.config.data.species,
-            species_set_eval=self.config.data.species_eval,
-            predict_family=self.predict_family,
-            quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
-            
-        )
+        train_data = self.df_train[self.env].to_numpy()
+        val_data = self.df_val[self.env].to_numpy()
+        test_data = self.df_test[self.env].to_numpy()
+        
+        normalization_means = np.mean(train_data, axis=0)
+        normalization_stds = np.std(train_data, axis=0)
+        
+        train_data = (train_data - normalization_means) / (normalization_stds + 1e-8)
+        val_data = (val_data - normalization_means) / (normalization_stds + 1e-8)
+        test_data = (test_data - normalization_means) / (normalization_stds + 1e-8)
+        
+        if self.dataloader_to_use == 'SDMEnvCombinedDataset' :
+            train_targets, exclude_train, train_hotspots = self.get_bird_butterfly_targets(self.df_train, self.config.data.species)
+            val_targets, exclude_val, val_hotspots = self.get_bird_butterfly_targets(self.df_val, self.config.data.species)
+            test_targets, exclude_test, test_hotspots = self.get_bird_butterfly_targets(self.df_test, self.config.data.species)
 
-        self.all_test_dataset = globals()[self.dataloader_to_use](
-            df=self.df_test,
-            data_base_dir=self.data_base_dir,
-            env=self.env,
-            transforms=get_transforms(self.config, "val"),
-            mode="test",
-            target_type=self.target_type,
-            targets_folder=self.targets_folder,
-            maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
-            num_species=self.num_species,
-            species_set=self.config.data.species,
-            species_set_eval=self.config.data.species_eval,
-            predict_family=self.predict_family,
-            quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
-        )
+            self.all_train_dataset = globals()[self.dataloader_to_use](
+                data = train_data, 
+                targets = train_targets, 
+                exclude = exclude_train,
+                hotspots = train_hotspots,
+                mode="train",
+                maximum_known_labels_ratio=self.config.Rtran.train_known_ratio,
+                num_species=self.num_species,
+                species_set=self.config.data.species,
+                species_set_eval=self.config.data.species_eval,
+                predict_family=self.predict_family,
+                quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
+            )
 
+            self.all_val_dataset = globals()[self.dataloader_to_use](
+                data = val_data, 
+                targets = val_targets, 
+                exclude = exclude_val, 
+                hotspots = val_hotspots,
+                mode="val",
+                maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
+                num_species=self.num_species,
+                species_set=self.config.data.species,
+                species_set_eval=self.config.data.species_eval,
+                predict_family=self.predict_family,
+                quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
+
+            )
+
+            self.all_test_dataset = globals()[self.dataloader_to_use](
+                data = test_data, 
+                targets = test_targets, 
+                exclude = exclude_test, 
+                hotspots = test_hotspots,
+                mode="test",
+                maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
+                num_species=self.num_species,
+                species_set=self.config.data.species,
+                species_set_eval=self.config.data.species_eval,
+                predict_family=self.predict_family,
+                quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
+            )
+        
+        else:
+            train_targets, train_hotspots = self.get_bird_targets(self.df_train)
+            val_targets, val_hotspots = self.get_bird_targets(self.df_val)
+            test_targets, test_hotspots = self.get_bird_targets(self.df_test)
+   
+            self.all_train_dataset = globals()[self.dataloader_to_use](
+                data = train_data, 
+                targets = train_targets,
+                hotspots = train_hotspots,
+                data_base_dir= self.data_base_dir, 
+                mode="train",
+                maximum_known_labels_ratio=self.config.Rtran.train_known_ratio,
+                num_species=self.num_species,
+                species_set=self.config.data.species,
+                species_set_eval=self.config.data.species_eval,
+                predict_family=self.predict_family,
+                quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
+            )
+
+            self.all_val_dataset = globals()[self.dataloader_to_use](
+                data = val_data, 
+                targets = val_targets,
+                hotspots = val_hotspots,
+                data_base_dir= self.data_base_dir,  
+                mode="val",
+                maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
+                num_species=self.num_species,
+                species_set=self.config.data.species,
+                species_set_eval=self.config.data.species_eval,
+                predict_family=self.predict_family,
+                quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
+
+            )
+
+            self.all_test_dataset = globals()[self.dataloader_to_use](
+                data = test_data, 
+                targets = test_targets,
+                hotspots = test_hotspots,
+                data_base_dir= self.data_base_dir,  
+                mode="test",
+                maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
+                num_species=self.num_species,
+                species_set=self.config.data.species,
+                species_set_eval=self.config.data.species_eval,
+                predict_family=self.predict_family,
+                quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
+            )
+     
     def train_dataloader(self) -> DataLoader[Any]:
         """Returns the actual dataloader"""
         return DataLoader(
