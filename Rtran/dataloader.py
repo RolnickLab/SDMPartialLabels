@@ -99,7 +99,7 @@ class SDMEnvCombinedDataset(EnvDataset):
         
         data = self.data[index]
         targets = self.targets[index]
-        hotspots = self.hotspots[index]
+        hotspot_id = self.hotspots[index]
         species_to_exclude = self.exclude[index]
       
 
