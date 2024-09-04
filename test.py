@@ -16,7 +16,7 @@ from omegaconf import OmegaConf
 from pytorch_lightning.loggers import CometLogger
 
 import Rtran.trainer as RtranTrainer
-import Rtran.datamodule as RtranData
+import Rtran.dataloader as RtranData
 from src.utils.config_utils import load_opts
 from src.base_trainer import BaseTrainer
 
