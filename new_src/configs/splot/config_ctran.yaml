@@ -1,4 +1,4 @@
-mode: "train" # "test"
+mode: "test" # "test"
 dataset_name: "sPlot"
 model:
   name: "RTranModel"
@@ -31,10 +31,10 @@ data:
   soilgrid_data_path: "soilgrid_data.csv"
 
   species_occurrences_threshold: 100
-  batch_size: 128
+  batch_size: 64
 
   species_list: "species_merge_duplicates.csv"
 
   partial_labels: True
   predict_family_of_species: -1
-  maximum_known_labels_ratio: 0.75
+  maximum_known_labels_ratio: 0
