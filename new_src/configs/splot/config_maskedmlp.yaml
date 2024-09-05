@@ -1,14 +1,14 @@
-mode: "train" # "test"
+mode: "test" # "test"
 dataset_name: "sPlot"
 model:
-  name: "MaskedMLP_2"
+  name: "MaskedMLP"
   input_dim: 27
   hidden_dim: 64
   output_dim: 3950
-  backbone: "MLPBackbone"
+  backbone:
 
 training:
-  batch_size: 64
+  batch_size: 128
   learning_rate: 1e-3
   max_epochs: 10
   accelerator: "gpu"
@@ -16,8 +16,8 @@ training:
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "test" # specify for training, or use to report test results
-  experiment_key: "" # use to report test results,
+  experiment_name: "MaskedMLP_onehotencoding" # specify for training, or use to report test results
+  experiment_key: "" # use to report test results
   checkpoint_path: "./experiments_output"
   checkpoint_name: "last.ckpt"
 
@@ -38,4 +38,4 @@ data:
 
   partial_labels: True
   predict_family_of_species: 1
-  maximum_known_labels_ratio: 0
+  maximum_known_labels_ratio: 0.75
