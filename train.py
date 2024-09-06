@@ -13,10 +13,10 @@ from omegaconf import OmegaConf
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 
-import Rtran.trainer as RtranTrainer
 import Rtran.dataloader as RtranData
-from src.base_trainer import BaseTrainer
-from src.utils.config_utils import load_opts
+import Rtran.trainer as RtranTrainer
+from src.config_utils import load_opts
+from src.trainers.mlp_trainer import MLPTrainer
 
 
 @hydra.main(config_path="configs", config_name="hydra")
@@ -42,7 +42,6 @@ def main(opts):
     )
     config.base_dir = base_dir
 
-
     # set global seed
     pl.seed_everything(global_seed)
 
@@ -56,7 +55,7 @@ def main(opts):
     if config.Rtran.use:
         task = RtranTrainer.RegressionTransformerTask(config)
     else:
-        task = BaseTrainer(config)
+        task = MLPTrainer(config)
 
     trainer_args = cast(Dict[str, Any], OmegaConf.to_object(config.trainer))
 

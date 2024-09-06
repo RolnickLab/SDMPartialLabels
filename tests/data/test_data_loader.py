@@ -6,7 +6,7 @@ import pytest
 import torch
 
 from Rtran.dataloader import SDMMaskedDataset
-from src.utils.config_utils import load_opts
+from src.config_utils import load_opts
 
 
 @pytest.fixture

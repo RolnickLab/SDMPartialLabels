@@ -20,8 +20,8 @@ def multi_species_masking(species_set, num_labels, max_known, data_base_dir):
         unk_mask_indices [List]: list of unknown indices
     """
     # when all species (birds and butterflies)| are there
-    if (species_set is not None and
-        len(species_set)> 1 and random.random() < 0.5
+    if (
+        species_set is not None and len(species_set) > 1 and random.random() < 0.5
     ):  # 50 % of the time, mask either birds or butterflies
         # assume one of them is absent # 0 (birds) or 1 (butterflies)
         absent_species = np.random.randint(0, 2)
@@ -37,7 +37,7 @@ def multi_species_masking(species_set, num_labels, max_known, data_base_dir):
     ):  # mask songbirds vs. nonsongbirds with this probability
         set_to_mask = np.random.randint(0, 2)
         unk_mask_indices = songbird_masking(set_to_mask, data_base_dir)
-    
+
     else:  # mask randomly from all species
         num_known = random.randint(
             0, int(num_labels * max_known)
@@ -110,7 +110,7 @@ def get_unknown_mask_indices(
     predict family of species: (only if not training) mask out either birds or butterflies
     data_base_dir: root directory for data, used to access songbird and nonsongbird indices
     """
-    
+
     if mode == "train":
         random.seed()
         if absent_species == -1:  # all species are there

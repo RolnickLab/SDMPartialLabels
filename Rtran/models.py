@@ -4,10 +4,11 @@ Code is based on the C-tran paper: https://github.com/QData/C-Tran
 """
 
 import torch.nn as nn
+import torch.nn.functional as F
 import torchvision.models as models
 from torch import Tensor
+
 from Rtran.utils import init_first_layer_weights
-import torch.nn.functional as F
 
 
 class SimpleMLP(nn.Module):
@@ -77,6 +78,7 @@ class MLP(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         return self.head(self.mlp_encoder(x))
+
 
 class Resnet18(nn.Module):
     def __init__(self, input_channels=3, pretrained=True):

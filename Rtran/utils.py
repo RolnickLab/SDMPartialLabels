@@ -168,7 +168,7 @@ def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
     emb_sin = np.sin(out)  # (M, D/2)
     emb_cos = np.cos(out)  # (M, D/2)
 
-    emb = emb_sin + emb_cos #np.concatenate([emb_sin, emb_cos], axis=1)  # (M, D)
+    emb = emb_sin + emb_cos  # np.concatenate([emb_sin, emb_cos], axis=1)  # (M, D)
     return emb
 
 

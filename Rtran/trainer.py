@@ -12,7 +12,6 @@ from Rtran.losses import (BCE, CustomCrossEntropyLoss, CustomFocalLoss,
                           RMSLELoss)
 from Rtran.metrics import get_metrics
 from Rtran.rtran import RTranModel
-from src.transforms.transforms import get_transforms
 
 
 class RegressionTransformerTask(pl.LightningModule):
@@ -28,7 +27,7 @@ class RegressionTransformerTask(pl.LightningModule):
         # model and optimizer utils
         self.learning_rate = self.config.experiment.module.lr
         self.criterion = self.__loss_mapping(self.config.losses.criterion)
-       
+
         self.input_channels = 1
         self.model = RTranModel(
             num_classes=self.num_species,
@@ -158,7 +157,7 @@ class RegressionTransformerTask(pl.LightningModule):
         loss = self.criterion(y_pred, y, mask=unknown_mask)
         if batch_idx % 50 == 0:
             self.log("train_loss", loss, on_epoch=True)
-            if  self.config.data.species is not None:
+            if self.config.data.species is not None:
                 if len(self.config.data.species) > 1:
                     self.log_metrics(mode="train", pred=y_pred, y=y, mask=mask)
             else:
@@ -205,11 +204,11 @@ class RegressionTransformerTask(pl.LightningModule):
             y_pred = y_pred * range_maps_correction_data.int()
             y = y * range_maps_correction_data.int()
 
-        if self.config.Rtran.mask_eval_metrics: 
+        if self.config.Rtran.mask_eval_metrics:
             self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask)
-        elif  self.config.data.species is not None:
+        elif self.config.data.species is not None:
             if len(self.config.data.species) > 1:
-                 self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask)
+                self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask)
             else:
                 self.log_metrics(mode="val", pred=y_pred, y=y)
 
@@ -220,7 +219,7 @@ class RegressionTransformerTask(pl.LightningModule):
         x = batch["data"]
         y = batch["targets"]
         mask = batch["mask"].long()
-        
+
         eval_mask = batch["eval_mask"].long()
 
         if self.config.data.target.type == "binary":
@@ -253,8 +252,10 @@ class RegressionTransformerTask(pl.LightningModule):
             )
             y_pred = y_pred * range_maps_correction_data.int()
             y = y * range_maps_correction_data.int()
-      
-        if (self.config.data.species is not None and len(self.config.data.species) > 1) or self.config.Rtran.mask_eval_metrics:
+
+        if (
+            self.config.data.species is not None and len(self.config.data.species) > 1
+        ) or self.config.Rtran.mask_eval_metrics:
             self.log_metrics(mode="test", pred=y_pred, y=y, mask=eval_mask)
 
         else:
@@ -345,7 +346,7 @@ class RegressionTransformerTask(pl.LightningModule):
         """
         log metrics through logger
         """
-     
+
         unknown_mask = None
         if mask is not None:
             unknown_mask = mask.clone()
@@ -355,8 +356,7 @@ class RegressionTransformerTask(pl.LightningModule):
             else:
                 unknown_mask[mask == -1] = 1
                 unknown_mask[mask == -2] = 0
-            
-            
+
             loss = self.criterion(pred, y, mask=unknown_mask)
 
             pred = pred * unknown_mask
@@ -372,5 +372,3 @@ class RegressionTransformerTask(pl.LightningModule):
 
         self.__log_metric(mode, pred, y, mask=unknown_mask)
         self.log(str(mode) + "_loss", loss, on_epoch=True)
-
-

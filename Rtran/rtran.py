@@ -7,9 +7,7 @@ import numpy as np
 import torch
 
 from Rtran.models import *
-from Rtran.utils import (custom_replace, custom_replace_n,
-                         get_2d_sincos_pos_embed, get_1d_sincos_pos_embed_from_grid,tokenize_species,
-                         weights_init)
+from Rtran.utils import custom_replace, custom_replace_n, weights_init
 
 
 class RTranModel(nn.Module):
@@ -48,25 +46,23 @@ class RTranModel(nn.Module):
 
         self.quantized_mask_bins = quantized_mask_bins
         self.n_embedding_state = self.quantized_mask_bins + 2
-    
-        
+
         self.backbone = globals()[backbone](
-            d_in= input_channels, d_out=d_hidden, dropout = dropout, n_layers = n_layers
+            d_in=input_channels, d_out=d_hidden, dropout=dropout, n_layers=n_layers
         )
-        
-        #Env embed layer
-         
+
+        # Env embed layer
+
         # Label Embeddings
         self.label_input = torch.Tensor(np.arange(num_classes)).view(1, -1).long()
         self.label_embeddings = torch.nn.Embedding(
-                num_classes, self.d_hidden, padding_idx=None
-            )  # LxD
+            num_classes, self.d_hidden, padding_idx=None
+        )  # LxD
 
         # State Embeddings
         self.state_embeddings = torch.nn.Embedding(
             self.n_embedding_state, self.d_hidden, padding_idx=0
         )  # Dx2 (known, unknown)
-
 
         # Transformer
         self.self_attn_layers = nn.ModuleList(
@@ -93,14 +89,16 @@ class RTranModel(nn.Module):
 
     def forward(self, images, mask, mask_q=None):
         images = images.type(torch.float32)
-        z_features = self.backbone(images.unsqueeze(-1))  # image: HxWxD , out: [128, 4, 512]
+        z_features = self.backbone(
+            images.unsqueeze(-1)
+        )  # image: HxWxD , out: [128, 4, 512]
 
         const_label_input = self.label_input.repeat(images.size(0), 1).to(
             images.device
         )  # LxD (128, 670)
         init_label_embeddings = self.label_embeddings(
-                const_label_input
-            )  # LxD # (128, 670, 512)
+            const_label_input
+        )  # LxD # (128, 670, 512)
 
         mask[mask == -2] = -1
         if self.quantized_mask_bins > 1:

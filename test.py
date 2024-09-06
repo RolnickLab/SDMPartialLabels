@@ -15,10 +15,10 @@ from hydra.utils import get_original_cwd
 from omegaconf import OmegaConf
 from pytorch_lightning.loggers import CometLogger
 
-import Rtran.trainer as RtranTrainer
 import Rtran.dataloader as RtranData
-from src.utils.config_utils import load_opts
-from src.base_trainer import BaseTrainer
+import Rtran.trainer as RtranTrainer
+from src.config_utils import load_opts
+from src.trainers.mlp_trainer import MLPTrainer
 
 hydra_config_path = Path(__file__).resolve().parent / "configs/hydra.yaml"
 
@@ -73,20 +73,18 @@ def main(opts):
     config = load_opts(config_path, default=default_config, commandline_opts=hydra_opts)
     config.base_dir = base_dir
 
-
     run_id = args["run_id"]
     global_seed = get_seed(run_id, config.program.seed)
 
     config.save_path = os.path.join(base_dir, config.save_path, str(global_seed))
     pl.seed_everything(config.program.seed)
 
-
     datamodule = RtranData.SDMDataModule(config)
     datamodule.setup()
     if config.Rtran.use:
         task = RtranTrainer.RegressionTransformerTask(config)
     else:
-        task = BaseTrainer(config)
+        task = MLPTrainer(config)
 
     trainer_args = cast(Dict[str, Any], OmegaConf.to_object(config.trainer))
 
@@ -120,14 +118,14 @@ def main(opts):
                 checkpint_path=config.load_ckpt_path,
                 save_preds_path=config.save_preds_path,
             )
-          
+
             val_results, test_results = test_task(task)
-            
+
             save_test_results_to_csv(
-                    results=test_results[0],
-                    root_dir=os.path.join(config.base_dir, config.load_ckpt_path),
-                    file_name="test_results.csv",
-                )
+                results=test_results[0],
+                root_dir=os.path.join(config.base_dir, config.load_ckpt_path),
+                file_name="test_results.csv",
+            )
             save_test_results_to_csv(
                 results=val_results[0],
                 root_dir=os.path.join(config.base_dir, config.load_ckpt_path),

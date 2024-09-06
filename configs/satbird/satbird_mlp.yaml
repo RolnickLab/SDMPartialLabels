@@ -2,15 +2,12 @@
 save_path: "experiments_outputs/baseline_MLP"
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 load_ckpt_path: "/home/mila/h/hager.radi/scratch/satbird_SDMPartialLabels/SDMPartialLabels/experiments_outputs/baseline_MLP/1337/epoch=47-step=32111.ckpt"
-save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
-log_comet: True
+save_preds_path: ""
 
-overfit_batches: 0.0
 # maximum number of epochs to train for
 max_epochs: 50
 # base directory
 base_dir: ""
-
 
 dataloader_to_use: "SDMEnvDataset"
 
@@ -68,40 +65,6 @@ Rtran:
 # During testing, eval family of birds (0), or family of butterflies (1)
 predict_family_of_species: 1
 
-optimizer: "AdamW"  #"Adam", "AdamW", "SGD"
-
-losses:
-#scale attribute is just for plotting if the values are very small
-  criterion: "CE" #or MAE or MSE or Focal or RMSLE  (loss to choose for optim )
-
-#auto lr will only work if there is only one optimizer
-auto_lr_find: False
-scheduler:
-  name: "ReduceLROnPlateau" #"" for no schuler, "ReduceLROnPlateau" #"ReduceLROnPlateau" or "StepLR" "WarmUp"
-  reduce_lr_plateau:
-    factor: 0.5
-    lr_schedule_patience: 20
-  step_lr:
-    step_size: 100
-    gamma: 0.5
-  warmup:
-    warmup_epochs: 5
-    max_epochs: 100
-
-  cyclical:
-    warmup_epochs: 10
-
-variables: &default_vars
-    ped_means: &ped_means []
-    ped_std: &ped_std []
-    bioclim_means: &bioclim_means []
-    bioclim_std: &bioclim_std []
-
-    sat_means: &sat_means []
-    sat_stds: &sat_stds []
-
-
-
 data:
   loaders:
     num_workers: 8
@@ -121,24 +84,9 @@ data:
     test: ["test_split.csv"]
 
     targets_folder: ["targets"]
-    env_data_folder: ["environmental"]
-    correction_thresh: "range_maps.pkl" # range maps - threshold = False
 
-    env_means: "stats/env_means.npy"
-    env_stds: "stats/env_stds.npy"
     species_list: "/network/projects/ecosystem-embeddings/SatBird_data_v2/species_list_USA.txt"
-
-  correction_factor:
-     thresh:  # to train with RM
-
-  target:
-    type: "probs"  #binary for classification targets  or "probs" for regression (default should be "probs")
-
-    # choose subset of birds : "ducks" for trying on species [37] or [2] for cooper's hawk (non passerine) "songbirds" (307 species) or None (full set 684 species) "not_songbirds"
-    subset: 
 
   species:
   species_eval:
   total_species: 670
-trainer:
-  auto_scale_batch_size: False
