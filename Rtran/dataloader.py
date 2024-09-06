@@ -6,10 +6,9 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader, Dataset
-from torchvision import transforms as trsfs
 import pytorch_lightning as pl
 from Rtran.label_masking import get_unknown_mask_indices
-from Rtran.utils import json_load, load_geotiff, load_geotiff_visual
+from Rtran.utils import json_load
 
 
 class EnvDataset(Dataset[Dict[str, Any]], abc.ABC):
@@ -55,7 +54,6 @@ class SDMEnvCombinedDataset(EnvDataset):
         targets,
         hotspots,
         exclude, 
-        #transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
         mode="train",
         maximum_known_labels_ratio=0.5,
         num_species=842,
@@ -139,7 +137,6 @@ class SDMEnvDataset(EnvDataset):
         targets, 
         hotspots,
         data_base_dir, 
-        #transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
         mode="train",
         maximum_known_labels_ratio=0.5,
         species_set=None,
@@ -483,6 +480,8 @@ class SDMDataModule(pl.LightningDataModule):
             self.all_train_dataset,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
+            persistent_workers=True,
+            pin_memory=True,
             shuffle=True,
         )
 
@@ -492,6 +491,8 @@ class SDMDataModule(pl.LightningDataModule):
             self.all_val_dataset,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
+            persistent_workers=True,
+            pin_memory=True,
             shuffle=False,
         )
 
@@ -502,4 +503,6 @@ class SDMDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             shuffle=False,
+            persistent_workers=True,
+            pin_memory=True,
         )
