@@ -86,7 +86,7 @@ def main(opts):
     else:
         task = MLPTrainer(config)
 
-    trainer_args = cast(Dict[str, Any], OmegaConf.to_object(config.trainer))
+    trainer_args = {}
 
     if config.comet.experiment_key:
         comet_logger = CometLogger(

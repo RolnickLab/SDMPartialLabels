@@ -1,5 +1,5 @@
 #where to save checkpoints
-save_path: "experiments_outputs/baseline_MLP"
+save_path: "experiments_outputs/satbird_baseline_MLP_v0"
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 load_ckpt_path: "/home/mila/h/hager.radi/scratch/satbird_SDMPartialLabels/SDMPartialLabels/experiments_outputs/baseline_MLP/1337/epoch=47-step=32111.ckpt"
 save_preds_path: ""
@@ -14,7 +14,7 @@ dataloader_to_use: "SDMEnvDataset"
 comet:
   project_name: "SDMPartialLabels"
   tags: ["MLP", "corrected_targets", "EnvNormalization", "satbird"]
-  experiment_name: "baseline_MLP" # specify for training, or use to report test results, TODO: also use to resume training
+  experiment_name: "satbird_baseline_MLP_v0" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 experiment:
@@ -63,7 +63,7 @@ Rtran:
     mask_eval_metrics: True
 
 # During testing, eval family of birds (0), or family of butterflies (1)
-predict_family_of_species: 1
+predict_family_of_species: -1
 
 data:
   loaders:
@@ -83,7 +83,7 @@ data:
     val: ["valid_split.csv"]
     test: ["test_split.csv"]
 
-    targets_folder: ["targets"]
+    targets_file: ["satbird_usa_summer_targets.pkl"]
 
     species_list: "/network/projects/ecosystem-embeddings/SatBird_data_v2/species_list_USA.txt"
 

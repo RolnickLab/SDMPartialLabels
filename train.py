@@ -52,12 +52,13 @@ def main(opts):
     fp.close()
 
     datamodule = RtranData.SDMDataModule(config)
+
     if config.Rtran.use:
         task = RtranTrainer.RegressionTransformerTask(config)
     else:
         task = MLPTrainer(config)
 
-    trainer_args = cast(Dict[str, Any], OmegaConf.to_object(config.trainer))
+    trainer_args = {}
 
     if config.log_comet:
         if os.environ.get("COMET_API_KEY"):
@@ -85,33 +86,19 @@ def main(opts):
     )
 
     trainer_args["callbacks"] = [checkpoint_callback]
-    trainer_args["overfit_batches"] = config.overfit_batches  # 0 if not overfitting
     trainer_args["max_epochs"] = config.max_epochs
 
     trainer = pl.Trainer(**trainer_args)
-    if config.log_comet:
-        trainer.logger.experiment.add_tags(list(config.comet.tags))
-    if config.auto_lr_find:
-        lr_finder = trainer.tuner.lr_find(task, datamodule=datamodule)
-
-        # Pick point based on plot, or get suggestion
-        new_lr = lr_finder.suggestion()
-
-        # update hparams of the model
-        task.hparams.learning_rate = new_lr
-        task.hparams.lr = new_lr
-        trainer.tune(model=task, datamodule=datamodule)
 
     # Run experiment
     trainer.fit(model=task, datamodule=datamodule)
     trainer.test(model=task, datamodule=datamodule)
 
     # logging the best checkpoint to comet ML
-    if config.log_comet:
-        print(checkpoint_callback.best_model_path)
-        trainer.logger.experiment.log_asset(
-            checkpoint_callback.best_model_path, file_name="best_checkpoint.ckpt"
-        )
+    print(checkpoint_callback.best_model_path)
+    trainer.logger.experiment.log_asset(
+        checkpoint_callback.best_model_path, file_name="best_checkpoint.ckpt"
+    )
 
 
 if __name__ == "__main__":

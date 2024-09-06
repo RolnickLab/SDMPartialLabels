@@ -1,5 +1,6 @@
 import abc
 import os
+import pickle
 from typing import Any, Dict, Optional
 
 import numpy as np
@@ -51,6 +52,7 @@ class SDMEnvDataset(EnvDataset):
         self,
         data,
         targets,
+        exclude,
         hotspots,
         data_base_dir,
         mode="train",
@@ -289,7 +291,7 @@ class SDMDataModule(pl.LightningDataModule):
         self.batch_size = self.config.data.loaders.batch_size
         self.num_workers = self.config.data.loaders.num_workers
         self.data_base_dir = self.config.data.files.base
-        self.targets_folder = self.config.data.files.targets_folder
+        self.targets_file = self.config.data.files.targets_file
         self.target_type = self.config.data.target.type
 
         # combining multiple train files
@@ -342,20 +344,14 @@ class SDMDataModule(pl.LightningDataModule):
         # if we are using either SatBird or SatButterly at a time
         self.dataloader_to_use = self.config.dataloader_to_use
 
-    def get_bird_targets(self, df):
-        targets = torch.zeros([len(df), self.num_species])
-        for i, row in df.iterrows():
+    def get_bird_targets(self, hotspots: list) -> np.array:
+        with open(
+            os.path.join(self.data_base_dir, self.targets_file[0]), "rb"
+        ) as pickle_file:
+            data_dict = pickle.load(pickle_file)
 
-            hotspot_id = row["hotspot_id"]
-
-            # constructing targets
-            species = json_load(
-                os.path.join(
-                    self.data_base_dir, self.targets_folder[0], hotspot_id + ".json"
-                )
-            )["probs"]
-            targets[i, :] = torch.Tensor(species)
-        return (targets, np.array(df["hotspot_id"]))
+        values = [data_dict.get(key, None) for key in hotspots]
+        return np.array(values)
 
     def get_bird_butterfly_targets(self, df, species_set):
 
@@ -430,6 +426,10 @@ class SDMDataModule(pl.LightningDataModule):
         val_data = self.df_val[self.env].to_numpy()
         test_data = self.df_test[self.env].to_numpy()
 
+        train_hotspots = self.df_train["hotspot_id"].tolist()
+        val_hotspots = self.df_val["hotspot_id"].tolist()
+        test_hotspots = self.df_test["hotspot_id"].tolist()
+
         normalization_means = np.mean(train_data, axis=0)
         normalization_stds = np.std(train_data, axis=0)
 
@@ -448,94 +448,56 @@ class SDMDataModule(pl.LightningDataModule):
                 self.df_test, self.config.data.species
             )
 
-            self.all_train_dataset = globals()[self.dataloader_to_use](
-                data=train_data,
-                targets=train_targets,
-                exclude=exclude_train,
-                hotspots=train_hotspots,
-                mode="train",
-                maximum_known_labels_ratio=self.config.Rtran.train_known_ratio,
-                num_species=self.num_species,
-                species_set=self.config.data.species,
-                species_set_eval=self.config.data.species_eval,
-                predict_family=self.predict_family,
-                quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
-            )
-
-            self.all_val_dataset = globals()[self.dataloader_to_use](
-                data=val_data,
-                targets=val_targets,
-                exclude=exclude_val,
-                hotspots=val_hotspots,
-                mode="val",
-                maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
-                num_species=self.num_species,
-                species_set=self.config.data.species,
-                species_set_eval=self.config.data.species_eval,
-                predict_family=self.predict_family,
-                quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
-            )
-
-            self.all_test_dataset = globals()[self.dataloader_to_use](
-                data=test_data,
-                targets=test_targets,
-                exclude=exclude_test,
-                hotspots=test_hotspots,
-                mode="test",
-                maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
-                num_species=self.num_species,
-                species_set=self.config.data.species,
-                species_set_eval=self.config.data.species_eval,
-                predict_family=self.predict_family,
-                quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
-            )
-
         else:
-            train_targets, train_hotspots = self.get_bird_targets(self.df_train)
-            val_targets, val_hotspots = self.get_bird_targets(self.df_val)
-            test_targets, test_hotspots = self.get_bird_targets(self.df_test)
+            train_targets = self.get_bird_targets(train_hotspots)
+            val_targets = self.get_bird_targets(val_hotspots)
+            test_targets = self.get_bird_targets(test_hotspots)
+            exclude_train, exclude_val, exclude_test = None, None, None
 
-            self.all_train_dataset = globals()[self.dataloader_to_use](
-                data=train_data,
-                targets=train_targets,
-                hotspots=train_hotspots,
-                data_base_dir=self.data_base_dir,
-                mode="train",
-                maximum_known_labels_ratio=self.config.Rtran.train_known_ratio,
-                num_species=self.num_species,
-                species_set=self.config.data.species,
-                species_set_eval=self.config.data.species_eval,
-                predict_family=self.predict_family,
-                quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
-            )
+        self.all_train_dataset = globals()[self.dataloader_to_use](
+            data=torch.tensor(train_data, dtype=torch.float32),
+            targets=torch.tensor(train_targets, dtype=torch.float32),
+            exclude=exclude_train,
+            hotspots=train_hotspots,
+            data_base_dir=self.data_base_dir,
+            mode="train",
+            maximum_known_labels_ratio=self.config.Rtran.train_known_ratio,
+            num_species=self.num_species,
+            species_set=self.config.data.species,
+            species_set_eval=self.config.data.species_eval,
+            predict_family=self.predict_family,
+            quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
+        )
 
-            self.all_val_dataset = globals()[self.dataloader_to_use](
-                data=val_data,
-                targets=val_targets,
-                hotspots=val_hotspots,
-                data_base_dir=self.data_base_dir,
-                mode="val",
-                maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
-                num_species=self.num_species,
-                species_set=self.config.data.species,
-                species_set_eval=self.config.data.species_eval,
-                predict_family=self.predict_family,
-                quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
-            )
+        self.all_val_dataset = globals()[self.dataloader_to_use](
+            data=torch.tensor(val_data, dtype=torch.float32),
+            targets=torch.tensor(val_targets, dtype=torch.float32),
+            exclude=exclude_val,
+            hotspots=val_hotspots,
+            data_base_dir=self.data_base_dir,
+            mode="val",
+            maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
+            num_species=self.num_species,
+            species_set=self.config.data.species,
+            species_set_eval=self.config.data.species_eval,
+            predict_family=self.predict_family,
+            quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
+        )
 
-            self.all_test_dataset = globals()[self.dataloader_to_use](
-                data=test_data,
-                targets=test_targets,
-                hotspots=test_hotspots,
-                data_base_dir=self.data_base_dir,
-                mode="test",
-                maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
-                num_species=self.num_species,
-                species_set=self.config.data.species,
-                species_set_eval=self.config.data.species_eval,
-                predict_family=self.predict_family,
-                quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
-            )
+        self.all_test_dataset = globals()[self.dataloader_to_use](
+            data=torch.tensor(test_data, dtype=torch.float32),
+            targets=torch.tensor(test_targets, dtype=torch.float32),
+            exclude=exclude_test,
+            hotspots=test_hotspots,
+            data_base_dir=self.data_base_dir,
+            mode="test",
+            maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
+            num_species=self.num_species,
+            species_set=self.config.data.species,
+            species_set_eval=self.config.data.species_eval,
+            predict_family=self.predict_family,
+            quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
+        )
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Returns the actual dataloader"""

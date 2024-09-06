@@ -20,9 +20,14 @@ class MLPTrainer(BaseTrainer):
         self.indices_to_predict = None
         out_num_classes = self.config.data.total_species
 
-        if self.config.predict_family_of_species != -1 and self.config.data.species is None:
-            self.indices_to_predict = satbird_species_split(index=self.config.predict_family_of_species,
-                                                            base_data_folder=self.config.data.files.base)
+        if (
+            self.config.predict_family_of_species != -1
+            and self.config.data.species is None
+        ):
+            self.indices_to_predict = satbird_species_split(
+                index=self.config.predict_family_of_species,
+                base_data_folder=self.config.data.files.base,
+            )
 
         if self.indices_to_predict is not None:
             out_num_classes = len(self.indices_to_predict)
@@ -41,7 +46,7 @@ class MLPTrainer(BaseTrainer):
 
     def training_step(self, batch, batch_idx):
         data = batch["data"]
-        targets = batch["target"]
+        targets = batch["targets"]
 
         predictions = self.sigmoid_activation(self.model(data))
 
@@ -53,7 +58,7 @@ class MLPTrainer(BaseTrainer):
 
     def validation_step(self, batch, batch_idx):
         data = batch["data"]
-        targets = batch["target"]
+        targets = batch["targets"]
 
         predictions = self.sigmoid_activation(self.model(data))
 
@@ -65,7 +70,7 @@ class MLPTrainer(BaseTrainer):
 
     def test_step(self, batch, batch_idx):
         data = batch["data"]
-        targets = batch["target"]
+        targets = batch["targets"]
 
         predictions = self.sigmoid_activation(self.model(data))
 
