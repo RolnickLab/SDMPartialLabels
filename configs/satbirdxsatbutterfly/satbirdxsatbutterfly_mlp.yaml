@@ -16,7 +16,7 @@ comet:
   experiment_name: "baseline_MLP_satbirdxsatbutterfly_v0" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
-dataloader_to_use: "SDMEnvCombinedDataset"
+dataloader_to_use: "SDMEnvDataset"
 
 experiment:
   #TASK and name should always be ebird_classifier --> maybe remove it 

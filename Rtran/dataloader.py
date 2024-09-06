@@ -46,7 +46,56 @@ class EnvDataset(Dataset[Dict[str, Any]], abc.ABC):
     size: {len(self)}"""
 
 
-class SDMEnvCombinedDataset(EnvDataset):
+class SDMEnvDataset(EnvDataset):
+    def __init__(
+        self,
+        data,
+        targets,
+        hotspots,
+        data_base_dir,
+        mode="train",
+        maximum_known_labels_ratio=0.5,
+        species_set=None,
+        species_set_eval=None,
+        num_species=670,
+        predict_family=-1,
+        quantized_mask_bins=1,
+    ) -> None:
+        """
+        this dataloader handles dataset with masks for RTran model using env variables as inpu
+        Parameters:
+            data: tensor of input data num_hotspots x env variables
+            targets: tensor of targets num_hotspots x num_species,
+            mode : train|val|test
+            target_type : "probs" or "binary"
+            targets_folder: folder name for labels/targets
+            maximum_known_labels_ratio: known labels ratio for RTran
+            num_species: total number of species/classes to predict
+            species_set: sets of species
+            predict_family: -1 for none, 0 if we want to focus on predicting species_set[0], 1 if we want to predict species_set[1]
+            quantized_mask_bins: how many bins to quantize the positive (>0) encounter rates
+        """
+        super().__init__()
+        self.data = data
+        self.targets = targets
+        self.hotspots = hotspots
+
+    def __len__(self):
+        return self.data.shape[0]
+
+    def __getitem__(self, index: int) -> Dict[str, Any]:
+        data = self.data[index]
+        targets = self.targets[index]
+        hotspot_id = self.hotspots[index]
+
+        return {
+            "data": data,
+            "targets": targets,
+            "hotspot_id": hotspot_id,
+        }
+
+
+class SDMEnvCombinedMaskedDataset(EnvDataset):
     def __init__(
         self,
         data,
@@ -133,7 +182,7 @@ class SDMEnvCombinedDataset(EnvDataset):
         return item_
 
 
-class SDMEnvDataset(EnvDataset):
+class SDMEnvMaskedDataset(EnvDataset):
     def __init__(
         self,
         data,

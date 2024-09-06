@@ -12,7 +12,7 @@ max_epochs: 50
 base_dir: ""
 
 
-dataloader_to_use: "SDMEnvDataset"
+dataloader_to_use: "SDMEnvMaskedDataset"
 
 comet:
   project_name: "SDMPartialLabels"
