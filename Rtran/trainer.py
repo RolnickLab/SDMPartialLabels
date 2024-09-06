@@ -104,8 +104,8 @@ class RegressionTransformerTask(pl.LightningModule):
 
         hotspot_id = batch["hotspot_id"]
 
-        x = batch["env"]
-        y = batch["target"]
+        x = batch["data"]
+        y = batch["targets"]
         mask = batch["mask"].long()
 
         if self.config.data.target.type == "binary":
@@ -170,8 +170,8 @@ class RegressionTransformerTask(pl.LightningModule):
 
         hotspot_id = batch["hotspot_id"]
 
-        x = batch["env"]
-        y = batch["target"]
+        x = batch["data"]
+        y = batch["targets"]
         mask = batch["mask"].long()
 
         if self.config.data.target.type == "binary":
@@ -217,8 +217,8 @@ class RegressionTransformerTask(pl.LightningModule):
         """Test step"""
         hotspot_id = batch["hotspot_id"]
 
-        x = batch["env"]
-        y = batch["target"]
+        x = batch["data"]
+        y = batch["targets"]
         mask = batch["mask"].long()
         
         eval_mask = batch["eval_mask"].long()
@@ -374,147 +374,3 @@ class RegressionTransformerTask(pl.LightningModule):
         self.log(str(mode) + "_loss", loss, on_epoch=True)
 
 
-class SDMDataModule(pl.LightningDataModule):
-    """
-    SDM - Species Distribution Modeling: works for ebird or ebutterfly
-    """
-
-    def __init__(self, opts) -> None:
-        super().__init__()
-        self.config = opts
-
-        self.seed = self.config.program.seed
-        self.batch_size = self.config.data.loaders.batch_size
-        self.num_workers = self.config.data.loaders.num_workers
-        self.data_base_dir = self.config.data.files.base
-        self.targets_folder = self.config.data.files.targets_folder
-        self.target_type = self.config.data.target.type
-
-        # combining multiple train files
-        self.df_train = pd.read_csv(
-            os.path.join(self.data_base_dir, self.config.data.files.train[0])
-        )
-        if len(self.config.data.files.train) > 1:
-            for df_file_name in self.config.data.files.train[1:]:
-                self.df_train = pd.concat(
-                    [
-                        self.df_train,
-                        pd.read_csv(os.path.join(self.data_base_dir, df_file_name)),
-                    ],
-                    axis=0,
-                )
-
-        # combining multiple validation files
-        self.df_val = pd.read_csv(
-            os.path.join(self.data_base_dir, self.config.data.files.val[0])
-        )
-        if len(self.config.data.files.val) > 1:
-            for df_file_name in self.config.data.files.val[1:]:
-                self.df_val = pd.concat(
-                    [
-                        self.df_val,
-                        pd.read_csv(os.path.join(self.data_base_dir, df_file_name)),
-                    ],
-                    axis=0,
-                )
-
-        # combining multiple testing files
-        self.df_test = pd.read_csv(
-            os.path.join(self.data_base_dir, self.config.data.files.test[0])
-        )
-        if len(self.config.data.files.test) > 1:
-            for df_file_name in self.config.data.files.test[1:]:
-                self.df_test = pd.concat(
-                    [
-                        self.df_test,
-                        pd.read_csv(os.path.join(self.data_base_dir, df_file_name)),
-                    ],
-                    axis=0,
-                )
-
-        self.env = self.config.data.env
-        self.datatype = self.config.data.datatype
-
-        self.predict_family = self.config.predict_family_of_species
-        self.num_species = self.config.data.total_species
-
-        # if we are using either SatBird or SatButterly at a time
-        self.dataloader_to_use = self.config.dataloader_to_use
-
-    def setup(self, stage: Optional[str] = None) -> None:
-        """create the train/test/val splits"""
-        self.all_train_dataset = globals()[self.dataloader_to_use](
-            df=self.df_train,
-            data_base_dir=self.data_base_dir,
-            env=self.env,
-            transforms=get_transforms(self.config, "train"),
-            mode="train",
-            target_type=self.target_type,
-            targets_folder=self.targets_folder,
-            maximum_known_labels_ratio=self.config.Rtran.train_known_ratio,
-            num_species=self.num_species,
-            species_set=self.config.data.species,
-            species_set_eval=self.config.data.species_eval,
-            predict_family=self.predict_family,
-            quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
-        )
-
-        self.all_val_dataset = globals()[self.dataloader_to_use](
-            df=self.df_val,
-            data_base_dir=self.data_base_dir,
-            env=self.env,
-            transforms=get_transforms(self.config, "val"),
-            mode="val",
-            target_type=self.target_type,
-            targets_folder=self.targets_folder,
-            maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
-            num_species=self.num_species,
-            species_set=self.config.data.species,
-            species_set_eval=self.config.data.species_eval,
-            predict_family=self.predict_family,
-            quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
-            
-        )
-
-        self.all_test_dataset = globals()[self.dataloader_to_use](
-            df=self.df_test,
-            data_base_dir=self.data_base_dir,
-            env=self.env,
-            transforms=get_transforms(self.config, "val"),
-            mode="test",
-            target_type=self.target_type,
-            targets_folder=self.targets_folder,
-            maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
-            num_species=self.num_species,
-            species_set=self.config.data.species,
-            species_set_eval=self.config.data.species_eval,
-            predict_family=self.predict_family,
-            quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
-        )
-
-    def train_dataloader(self) -> DataLoader[Any]:
-        """Returns the actual dataloader"""
-        return DataLoader(
-            self.all_train_dataset,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            shuffle=True,
-        )
-
-    def val_dataloader(self) -> DataLoader[Any]:
-        """Returns the validation dataloader"""
-        return DataLoader(
-            self.all_val_dataset,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            shuffle=False,
-        )
-
-    def test_dataloader(self) -> DataLoader[Any]:
-        """Returns the test dataloader"""
-        return DataLoader(
-            self.all_test_dataset,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers,
-            shuffle=False,
-        )

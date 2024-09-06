@@ -16,6 +16,7 @@ from omegaconf import OmegaConf
 from pytorch_lightning.loggers import CometLogger
 
 import Rtran.trainer as RtranTrainer
+import Rtran.dataloader as RtranData
 from src.utils.config_utils import load_opts
 from src.base_trainer import BaseTrainer
 
@@ -80,7 +81,7 @@ def main(opts):
     pl.seed_everything(config.program.seed)
 
 
-    datamodule = RtranTrainer.SDMDataModule(config)
+    datamodule = RtranData.SDMDataModule(config)
     datamodule.setup()
     if config.Rtran.use:
         task = RtranTrainer.RegressionTransformerTask(config)
