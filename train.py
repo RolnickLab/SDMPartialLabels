@@ -52,7 +52,7 @@ def main(opts):
 
     datamodule = dataloader.SDMDataModule(config)
 
-    if config.Rtran.use:
+    if config.Ctran.use:
         task = CtranTrainer.CTranTrainer(config)
     else:
         task = MLPTrainer(config)

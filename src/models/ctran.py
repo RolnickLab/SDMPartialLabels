@@ -10,7 +10,7 @@ from src.models.baselines import *
 from src.models.utils import custom_replace, custom_replace_n, weights_init
 
 
-class RTranModel(nn.Module):
+class CTranModel(nn.Module):
     def __init__(
         self,
         num_classes,
@@ -40,7 +40,7 @@ class RTranModel(nn.Module):
         dropout: dropout ratio
         use_pos_encoding: flag to use positional encoding or not
         """
-        super(RTranModel, self).__init__()
+        super(CTranModel, self).__init__()
         self.d_hidden = d_hidden  # this should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
         self.use_pos_encoding = use_pos_encoding
 

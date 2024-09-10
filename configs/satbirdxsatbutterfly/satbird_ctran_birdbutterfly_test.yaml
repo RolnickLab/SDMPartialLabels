@@ -1,9 +1,10 @@
 #where to save checkpoints
-save_path: "/network/scratch/t/tengmeli/SDMPartialLabels/exps"
+save_path: "experiments/baseline_joint_species_rtran_resnet18_RGBNIR_ENV"
+
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "/network/scratch/t/tengmeli/SDMPartialLabels/exps/1337/epoch=49-step=33449.ckpt"
+load_ckpt_path:  "/network/projects/ecosystem-embeddings/experiments/baseline_joint_species_rtran_resnet18_RGBNIR_ENV_new/1337/epoch=49-step=35499.ckpt" #"/network/projects/ecosystem-embeddings/experiments/baseline_joint_species_rtran_resnet18_RGBNIR_ENV/1337/last.ckpt"
 save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
-log_comet: True
+log_comet: true
 
 overfit_batches: 0.0
 # maximum number of epochs to train for
@@ -11,19 +12,17 @@ max_epochs: 50
 # base directory
 base_dir: ""
 
-dataloader_to_use: "SDMEnvMaskedDataset"
-
 comet:
   project_name: "SDMPartialLabels"
-  tags: ["MLP", "corrected_targets", "EnvNormalization", "satbird", "test"]
-  experiment_name: "baseline_MLP_RTran" # specify for training, or use to report test results, TODO: also use to resume training
+  tags: ["rtran", "172butterfly_species", "satbird+ satbutterflyv1 + satbutterflyv2"]
+  experiment_name: "baseline_MLP_RTran_birdbutterfly" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
+dataloader_to_use: "SDMEnvCombinedMaskedDataset"
 
 experiment:
   #TASK and name should always be ebird_classifier --> maybe remove it 
-  task: "birds" # "birds_butterflies"
-  
+  task: "ebird_classifier"
   name: "ebird_classifier"
   seed: 42
   module:
@@ -43,7 +42,7 @@ experiment:
 
 
 
-Rtran:
+Ctran:
     use: true
     # Resnet18 or Resnet50
     backbone: "MlpEncoder"
@@ -66,10 +65,9 @@ Rtran:
     # should the known values be masked out of the reported metrics or no
     mask_eval_metrics: True
 
-# During testing, eval family of birds (0), or family of butterflies (1)
-#or 0 for non songbirds and 1 for songbirds
 
-predict_family_of_species: 1
+# eval family of birds (0), or family of butterflies (1)
+predict_family_of_species: 0
 
 optimizer: "AdamW"  #"Adam", "AdamW", "SGD"
 
@@ -103,8 +101,6 @@ variables: &default_vars
     sat_means: &sat_means []
     sat_stds: &sat_stds []
 
-
-
 data:
   loaders:
     num_workers: 8
@@ -116,21 +112,21 @@ data:
        'bio_11', 'bio_12', 'bio_13', 'bio_14', 'bio_15', 'bio_16', 'bio_17',
        'bio_18', 'bio_19', 'bdticm', 'bldfie', 'cecsol', 'clyppt', 'orcdrc',
        'phihox', 'sltppt', 'sndppt']
-
-  #resolution of pedological and bioclimatic data in meters
-
+  
   files:
-    base: "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer"
-    train: ["train_split.csv"]
-    val: ["valid_split.csv"]
-    test: ["test_split.csv"]
+    base: "/network/projects/ecosystem-embeddings/"
+    train: ["SatBirdButterfly/bird_butterfly_train_env_fillna.csv"]
+    val: ["SatBirdButterfly/bird_butterfly_valid_env_fillna.csv"]
+    test: ["SatBirdButterfly/bird_butterfly_test_coloc_env_fillna.csv"]
 
-    targets_folder: ["targets"]
-    env_data_folder: ["environmental"]
-    images_folder: ["images"]
+    targets_folder: ["SatBird_data_v2/USA_summer/targets","SatButterfly_dataset/SatButterfly_v1/USA/butterfly_targets_v1.2","SatButterfly_dataset/SatButterfly_v2/USA/butterfly_targets_v1.2"]
+ 
+    
     correction_thresh: "range_maps.pkl" # range maps - threshold = False
 
-    species_list: "/network/projects/ecosystem-embeddings/SatBird_data_v2/species_list_USA.txt"
+    env_means: "SatButterfly_v2/USA/stats/env_means_SatBirdxSatButterfly.npy"
+    env_stds: "SatButterfly_v2/USA/stats/env_stds_SatBirdxSatButterfly.npy"
+    species_list: "/network/projects/ecosystem-embeddings/SatButterfly_v2/USA/species_list_USA_birds+butterflies.txt"
 
   correction_factor:
      thresh:  # to train with RM
@@ -139,11 +135,10 @@ data:
     type: "probs"  #binary for classification targets  or "probs" for regression (default should be "probs")
 
     # choose subset of birds : "ducks" for trying on species [37] or [2] for cooper's hawk (non passerine) "songbirds" (307 species) or None (full set 684 species) "not_songbirds"
-    subset:  
-
-  species: "all"
-  species_eval:
-  
-  total_species: 670
+    subset:
+  species: [670, 172]
+  species_eval: [670, 172]
+#  species: [ 670, 601]
+  total_species: 842  #1271  # list if more than one family of species, otherwise, normal count
 trainer:
   auto_scale_batch_size: False

@@ -80,7 +80,7 @@ def main(opts):
 
     datamodule = dataloader.SDMDataModule(config)
     datamodule.setup()
-    if config.Rtran.use:
+    if config.Ctran.use:
         task = CtranTrainer.CTranTrainer(config)
     else:
         task = MLPTrainer(config)

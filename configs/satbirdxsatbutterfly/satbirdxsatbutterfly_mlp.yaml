@@ -38,7 +38,7 @@ experiment:
     means_path: ""
     lr: 0.0001
 
-Rtran:
+Ctran:
     use: False
     # Resnet18 or Resnet50
     backbone: "MlpEncoder"

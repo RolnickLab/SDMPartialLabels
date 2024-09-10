@@ -6,7 +6,7 @@ from torch import nn
 
 from src.dataloaders.dataloader import *
 from src.losses import BCE, CustomCrossEntropyLoss, CustomFocalLoss, RMSLELoss
-from src.models.rtran import RTranModel
+from src.models.ctran import CTranModel
 from src.trainers.base import BaseTrainer
 
 
@@ -23,7 +23,7 @@ class CTranTrainer(BaseTrainer):
         self.criterion = self.__loss_mapping(self.config.losses.criterion)
 
         self.input_channels = 1
-        self.model = RTranModel(
+        self.model = CTranModel(
             num_classes=self.num_species,
             species_list=os.path.join(
                 self.config.data.files.base, self.config.data.files.species_list
