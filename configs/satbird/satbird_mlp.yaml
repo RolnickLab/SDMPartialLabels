@@ -1,7 +1,7 @@
 #where to save checkpoints
 save_path: "experiments_outputs/satbird_baseline_MLP_v0"
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "/home/mila/h/hager.radi/scratch/satbird_SDMPartialLabels/SDMPartialLabels/experiments_outputs/baseline_MLP/1337/epoch=47-step=32111.ckpt"
+load_ckpt_path: "/home/mila/h/hager.radi/scratch/satbird_SDMPartialLabels/SDMPartialLabels/experiments_outputs/satbird_baseline_MLP_v0/1337/last.ckpt"
 save_preds_path: ""
 
 # maximum number of epochs to train for

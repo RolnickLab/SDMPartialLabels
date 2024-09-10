@@ -341,7 +341,7 @@ class SDMDataModule(pl.LightningDataModule):
         self.predict_family = self.config.predict_family_of_species
         self.num_species = self.config.data.total_species
 
-        # if we are using either SatBird or SatButterly at a time
+        # if we are using either SatBird or SatButterfly at a time
         self.dataloader_to_use = self.config.dataloader_to_use
 
     def get_bird_targets(self, hotspots: list) -> np.array:
@@ -407,6 +407,50 @@ class SDMDataModule(pl.LightningDataModule):
                         )
                     )
                     target_butterfly = targ["probs"]
+                    df.loc[i, "species_to_exclude"] = 0
+
+                elif row["butterfly"] == 0:
+                    raise ValueError(
+                        "cannot have neither butterflies nor birds targets available"
+                    )
+
+            target = target_bird + target_butterfly
+            targets[i, :] = torch.Tensor(target)
+
+        return targets, np.array(df["species_to_exclude"]), np.array(df["hotspot_id"])
+
+    def get_bird_butterfly_targets_v1(self, df, species_set):
+        with open(os.path.join(self.data_base_dir, self.targets_file[0]), "rb") as pickle_file:
+            self.targets_folder_bird = pickle.load(pickle_file)
+
+        with open(os.path.join(self.data_base_dir, self.targets_file[0]), "rb") as pickle_file:
+            self.targets_folder_butterfly = pickle.load(pickle_file)
+
+        with open(os.path.join(self.data_base_dir, self.targets_file[0]), "rb") as pickle_file:
+            self.targets_folder_butterfly_colocated = pickle.load(pickle_file)
+
+        targets = torch.zeros([len(df), species_set[0] + species_set[1]])
+        # constructing targets
+
+        df["species_to_exclude"] = -1  # all species present
+
+        for i, row in df.iterrows():
+            hotspot_id = row["hotspot_id"]
+            target_bird = [-2] * species_set[0]
+            target_butterfly = [-2] * species_set[1]  # len(butterfly species)
+
+            if row["bird"] == 1:
+                target_bird = self.targets_folder_bird.get(hotspot_id, None)
+
+                if row["butterfly"] == 1:
+                    target_butterfly = self.targets_folder_butterfly_colocated.get(hotspot_id, None)
+
+                else:
+                    df.loc[i, "species_to_exclude"] = 1
+
+            else:
+                if row["butterfly"] == 1:
+                    target_butterfly = self.targets_folder_butterfly.get(hotspot_id, None)
                     df.loc[i, "species_to_exclude"] = 0
 
                 elif row["butterfly"] == 0:
