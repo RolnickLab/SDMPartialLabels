@@ -1,31 +1,25 @@
 """
-Trainer for the Rtran framework
+Trainer for the ctran framework
 """
 
-import pickle
+from torch import nn
 
-import pytorch_lightning as pl
-from torch import nn, optim
-
-from Rtran.dataloader import *
-from Rtran.losses import (BCE, CustomCrossEntropyLoss, CustomFocalLoss,
-                          RMSLELoss)
-from Rtran.metrics import get_metrics
-from Rtran.rtran import RTranModel
+from src.dataloaders.dataloader import *
+from src.losses import BCE, CustomCrossEntropyLoss, CustomFocalLoss, RMSLELoss
+from src.models.rtran import RTranModel
+from src.trainers.base import BaseTrainer
 
 
-class RegressionTransformerTask(pl.LightningModule):
-    def __init__(self, opts, **kwargs: Any) -> None:
+class CTranTrainer(BaseTrainer):
+    def __init__(self, config, **kwargs: Any) -> None:
         """
         opts: configurations
         """
-        super().__init__()
-        self.config = opts
+        super(CTranTrainer).__init__(config=config)
 
         self.num_species = self.config.data.total_species
 
         # model and optimizer utils
-        self.learning_rate = self.config.experiment.module.lr
         self.criterion = self.__loss_mapping(self.config.losses.criterion)
 
         self.input_channels = 1
@@ -44,29 +38,6 @@ class RegressionTransformerTask(pl.LightningModule):
 
         if self.config.experiment.module.resume:
             self.load_rtran_weights()
-
-        self.sigmoid_activation = nn.Sigmoid()
-        # self.load_resnet18_weights()
-        # if using range maps (RM)
-        if self.config.data.correction_factor.thresh:
-            with open(
-                os.path.join(
-                    self.config.data.files.base,
-                    self.config.data.files.correction_thresh,
-                ),
-                "rb",
-            ) as f:
-                self.RM_correction_data = pickle.load(f)
-
-        # metrics to report
-        metrics = get_metrics(self.config)
-        for name, value, _ in metrics:
-            setattr(self, "val_" + name, value)
-        for name, value, _ in metrics:
-            setattr(self, "train_" + name, value)
-        for name, value, _ in metrics:
-            setattr(self, "test_" + name, value)
-        self.metrics = metrics
 
     def load_resnet18_weights(self):
         ckpt = torch.load(self.config.experiment.module.resume)
@@ -283,92 +254,3 @@ class RegressionTransformerTask(pl.LightningModule):
             "BCE": BCE(),
         }
         return loss_mapping.get(loss_fn_name)
-
-    def configure_optimizers(self):
-        optimizer_mapping = {
-            "Adam": optim.Adam(
-                filter(lambda p: p.requires_grad, self.model.parameters()),
-                lr=self.learning_rate,
-                weight_decay=0.01,
-            ),
-            "AdamW": optim.AdamW(
-                filter(lambda p: p.requires_grad, self.model.parameters()),
-                lr=self.learning_rate,
-                weight_decay=0.1,
-            ),  # 0.1
-            "SGD": optim.SGD(
-                filter(lambda p: p.requires_grad, self.model.parameters()),
-                lr=self.learning_rate,
-                momentum=0.9,
-            ),
-        }
-        optimizer = optimizer_mapping.get(self.config.optimizer)
-
-        if self.config.scheduler.name == "ReduceLROnPlateau":
-            # scheduler_warmup = WarmupLinearSchedule(optimizer, 1, 300000)
-            scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-                optimizer,
-                factor=self.config.scheduler.reduce_lr_plateau.factor,
-                patience=self.config.scheduler.reduce_lr_plateau.lr_schedule_patience,
-            )
-            return {
-                "optimizer": optimizer,
-                "lr_scheduler": {
-                    "scheduler": scheduler,
-                    "monitor": "val_loss",
-                    "frequency": 1,
-                },
-            }
-        else:
-            return optimizer
-
-    def __log_metric(self, mode, pred, y, mask=None):
-        for name, _, scale in self.metrics:
-            nname = str(mode) + "_" + name
-            if name == "accuracy":
-                value = getattr(self, nname)(pred, y.type(torch.uint8))
-            elif name == "r2":
-                value = torch.mean(getattr(self, nname)(y, pred))
-            elif name == "mae" and mask != None:
-                value = getattr(self, nname)(y, pred, mask=mask)
-            elif name == "nonzero_mae" and mask != None:
-                value = getattr(self, nname)(y, pred, mask=mask)
-            elif name == "mse" and mask != None:
-                value = getattr(self, nname)(y, pred, mask=mask)
-            elif name == "nonzero_mse" and mask != None:
-                value = getattr(self, nname)(y, pred, mask=mask)
-            else:
-                value = getattr(self, nname)(y, pred)
-
-            self.log(nname, value, on_epoch=True)
-
-    def log_metrics(self, mode, pred, y, mask=None):
-        """
-        log metrics through logger
-        """
-
-        unknown_mask = None
-        if mask is not None:
-            unknown_mask = mask.clone()
-            if self.config.Rtran.mask_eval_metrics:
-                unknown_mask[mask == -1] = 1
-                unknown_mask[mask != -1] = 0
-            else:
-                unknown_mask[mask == -1] = 1
-                unknown_mask[mask == -2] = 0
-
-            loss = self.criterion(pred, y, mask=unknown_mask)
-
-            pred = pred * unknown_mask
-            y = y * unknown_mask
-
-        else:
-            loss = self.criterion(pred, y)
-
-        if self.config.data.target.type == "binary":
-            pred = self.sigmoid_activation(pred)
-            pred[pred >= 0.5] = 1
-            pred[pred < 0.5] = 0
-
-        self.__log_metric(mode, pred, y, mask=unknown_mask)
-        self.log(str(mode) + "_loss", loss, on_epoch=True)

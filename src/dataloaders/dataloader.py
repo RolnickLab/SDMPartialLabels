@@ -9,8 +9,8 @@ import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from Rtran.label_masking import get_unknown_mask_indices
-from Rtran.utils import json_load
+from src.dataloaders.label_masking import get_unknown_mask_indices
+from src.models.utils import json_load
 
 
 class EnvDataset(Dataset[Dict[str, Any]], abc.ABC):
@@ -420,13 +420,19 @@ class SDMDataModule(pl.LightningDataModule):
         return targets, np.array(df["species_to_exclude"]), np.array(df["hotspot_id"])
 
     def get_bird_butterfly_targets_v1(self, df, species_set):
-        with open(os.path.join(self.data_base_dir, self.targets_file[0]), "rb") as pickle_file:
+        with open(
+            os.path.join(self.data_base_dir, self.targets_file[0]), "rb"
+        ) as pickle_file:
             self.targets_folder_bird = pickle.load(pickle_file)
 
-        with open(os.path.join(self.data_base_dir, self.targets_file[0]), "rb") as pickle_file:
+        with open(
+            os.path.join(self.data_base_dir, self.targets_file[0]), "rb"
+        ) as pickle_file:
             self.targets_folder_butterfly = pickle.load(pickle_file)
 
-        with open(os.path.join(self.data_base_dir, self.targets_file[0]), "rb") as pickle_file:
+        with open(
+            os.path.join(self.data_base_dir, self.targets_file[0]), "rb"
+        ) as pickle_file:
             self.targets_folder_butterfly_colocated = pickle.load(pickle_file)
 
         targets = torch.zeros([len(df), species_set[0] + species_set[1]])
@@ -443,14 +449,18 @@ class SDMDataModule(pl.LightningDataModule):
                 target_bird = self.targets_folder_bird.get(hotspot_id, None)
 
                 if row["butterfly"] == 1:
-                    target_butterfly = self.targets_folder_butterfly_colocated.get(hotspot_id, None)
+                    target_butterfly = self.targets_folder_butterfly_colocated.get(
+                        hotspot_id, None
+                    )
 
                 else:
                     df.loc[i, "species_to_exclude"] = 1
 
             else:
                 if row["butterfly"] == 1:
-                    target_butterfly = self.targets_folder_butterfly.get(hotspot_id, None)
+                    target_butterfly = self.targets_folder_butterfly.get(
+                        hotspot_id, None
+                    )
                     df.loc[i, "species_to_exclude"] = 0
 
                 elif row["butterfly"] == 0:

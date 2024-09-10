@@ -5,8 +5,8 @@ import pandas as pd
 import pytest
 import torch
 
-from Rtran.dataloader import SDMMaskedDataset
 from src.config_utils import load_opts
+from src.dataloaders.dataloader import SDMMaskedDataset
 
 
 @pytest.fixture

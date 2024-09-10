@@ -1,9 +1,5 @@
-import os
-
-import numpy as np
-
-from Rtran.metrics import get_metrics
-from Rtran.models import SimpleMLP
+from src.metrics import get_metrics
+from src.models.models import SimpleMLP
 from src.trainers.base import BaseTrainer
 from src.utils import satbird_species_split
 

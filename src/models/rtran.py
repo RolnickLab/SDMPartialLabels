@@ -6,8 +6,8 @@ Code is based on the C-tran paper: https://github.com/QData/C-Tran
 import numpy as np
 import torch
 
-from Rtran.models import *
-from Rtran.utils import custom_replace, custom_replace_n, weights_init
+from src.models.baselines import *
+from src.models.utils import custom_replace, custom_replace_n, weights_init
 
 
 class RTranModel(nn.Module):

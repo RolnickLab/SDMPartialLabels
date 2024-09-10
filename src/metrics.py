@@ -4,7 +4,7 @@ import torch.nn as nn
 import torchmetrics
 from torchmetrics import Metric
 
-from Rtran.losses import CustomCrossEntropy
+from src.losses import CustomCrossEntropy
 
 
 class CustomKL(Metric):

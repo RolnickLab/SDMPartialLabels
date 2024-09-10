@@ -2,8 +2,8 @@ import pytorch_lightning as pl
 import torch
 from torch import nn, optim
 
-from Rtran.losses import CustomCrossEntropyLoss
-from Rtran.metrics import get_metrics
+from src.losses import CustomCrossEntropyLoss
+from src.metrics import get_metrics
 
 
 class BaseTrainer(pl.LightningModule):

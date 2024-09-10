@@ -4,7 +4,6 @@ To run: python train.py args.config=$CONFIG_FILE_PATH
 """
 
 import os
-from typing import Any, Dict, cast
 
 import hydra
 import pytorch_lightning as pl
@@ -13,10 +12,10 @@ from omegaconf import OmegaConf
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 
-import Rtran.dataloader as RtranData
-import Rtran.trainer as RtranTrainer
-from src.config_utils import load_opts
+import src.dataloaders.dataloader as dataloader
+import src.trainers.ctran_trainer as CtranTrainer
 from src.trainers.mlp_trainer import MLPTrainer
+from src.utils import load_opts
 
 
 @hydra.main(config_path="configs", config_name="hydra")
@@ -51,10 +50,10 @@ def main(opts):
         OmegaConf.save(config=config, f=fp)
     fp.close()
 
-    datamodule = RtranData.SDMDataModule(config)
+    datamodule = dataloader.SDMDataModule(config)
 
     if config.Rtran.use:
-        task = RtranTrainer.RegressionTransformerTask(config)
+        task = CtranTrainer.CTranTrainer(config)
     else:
         task = MLPTrainer(config)
 
