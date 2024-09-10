@@ -4,7 +4,6 @@ To run: python train.py args.config=$CONFIG_FILE_PATH
 """
 
 import os
-from typing import Any, Dict, cast
 
 import hydra
 import pytorch_lightning as pl
@@ -13,10 +12,10 @@ from omegaconf import OmegaConf
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 
-import Rtran.trainer as RtranTrainer
-import Rtran.dataloader as RtranData
-from src.base_trainer import BaseTrainer
-from src.utils.config_utils import load_opts
+import src.dataloaders.dataloader as dataloader
+import src.trainers.ctran_trainer as CtranTrainer
+from src.trainers.mlp_trainer import MLPTrainer
+from src.utils import load_opts
 
 
 @hydra.main(config_path="configs", config_name="hydra")
@@ -42,7 +41,6 @@ def main(opts):
     )
     config.base_dir = base_dir
 
-
     # set global seed
     pl.seed_everything(global_seed)
 
@@ -52,13 +50,14 @@ def main(opts):
         OmegaConf.save(config=config, f=fp)
     fp.close()
 
-    datamodule = RtranData.SDMDataModule(config)
-    if config.Rtran.use:
-        task = RtranTrainer.RegressionTransformerTask(config)
-    else:
-        task = BaseTrainer(config)
+    datamodule = dataloader.SDMDataModule(config)
 
-    trainer_args = cast(Dict[str, Any], OmegaConf.to_object(config.trainer))
+    if config.Ctran.use:
+        task = CtranTrainer.CTranTrainer(config)
+    else:
+        task = MLPTrainer(config)
+
+    trainer_args = {}
 
     if config.log_comet:
         if os.environ.get("COMET_API_KEY"):
@@ -86,33 +85,20 @@ def main(opts):
     )
 
     trainer_args["callbacks"] = [checkpoint_callback]
-    trainer_args["overfit_batches"] = config.overfit_batches  # 0 if not overfitting
     trainer_args["max_epochs"] = config.max_epochs
+    trainer_args["check_val_every_n_epoch"] = 4
 
     trainer = pl.Trainer(**trainer_args)
-    if config.log_comet:
-        trainer.logger.experiment.add_tags(list(config.comet.tags))
-    if config.auto_lr_find:
-        lr_finder = trainer.tuner.lr_find(task, datamodule=datamodule)
-
-        # Pick point based on plot, or get suggestion
-        new_lr = lr_finder.suggestion()
-
-        # update hparams of the model
-        task.hparams.learning_rate = new_lr
-        task.hparams.lr = new_lr
-        trainer.tune(model=task, datamodule=datamodule)
 
     # Run experiment
     trainer.fit(model=task, datamodule=datamodule)
     trainer.test(model=task, datamodule=datamodule)
 
     # logging the best checkpoint to comet ML
-    if config.log_comet:
-        print(checkpoint_callback.best_model_path)
-        trainer.logger.experiment.log_asset(
-            checkpoint_callback.best_model_path, file_name="best_checkpoint.ckpt"
-        )
+    print(checkpoint_callback.best_model_path)
+    trainer.logger.experiment.log_asset(
+        checkpoint_callback.best_model_path, file_name="best_checkpoint.ckpt"
+    )
 
 
 if __name__ == "__main__":
