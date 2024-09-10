@@ -87,6 +87,7 @@ def main(opts):
 
     trainer_args["callbacks"] = [checkpoint_callback]
     trainer_args["max_epochs"] = config.max_epochs
+    trainer_args["check_val_every_n_epoch"] = 4
 
     trainer = pl.Trainer(**trainer_args)
 
