@@ -1,7 +1,7 @@
-mode: "test" # "test"
+mode: "train" # "test"
 dataset_name: "sPlot"
 model:
-  name: "MaskedMLP"
+  name: "SimpleMLPMasked"
   input_dim: 27
   hidden_dim: 64
   output_dim: 3950
@@ -16,7 +16,7 @@ training:
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "MaskedMLP_onehotencoding" # specify for training, or use to report test results
+  experiment_name: "MaskedMLP_onehotencoding_v2" # specify for training, or use to report test results
   experiment_key: "" # use to report test results
   checkpoint_path: "./experiments_output"
   checkpoint_name: "last.ckpt"
