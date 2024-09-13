@@ -6,13 +6,13 @@ load_ckpt_path: ""
 save_preds_path: ""
 
 # maximum number of epochs to train for
-max_epochs: 100
+max_epochs: 50
 # base directory
 base_dir: ""
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: ["rtran", "172butterfly_species", "satbird+ satbutterflyv1 + satbutterflyv2"]
+  tags: ["rtran", "172butterfly_species", "satbird + satbutterflyv1 + satbutterflyv2"]
   experiment_name: "baseline_MLP_satbirdxsatbutterfly_v0" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
@@ -64,7 +64,7 @@ Ctran:
     mask_eval_metrics: True
 
 # eval family of birds (0), or family of butterflies (1)
-predict_family_of_species: -1
+predict_family_of_species: 0
 
 data:
   loaders:

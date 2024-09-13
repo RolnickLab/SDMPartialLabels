@@ -1,3 +1,5 @@
+import torch
+
 from src.metrics import get_metrics
 from src.models.baselines import SimpleMLP
 from src.trainers.base import BaseTrainer
@@ -13,18 +15,18 @@ class MLPTrainer(BaseTrainer):
             hidden_dim=self.config.experiment.module.hidden_dim,
             output_dim=self.config.data.total_species,
         )
-        self.class_indices_to_eval = None
+        self.class_indices_to_test = None
         out_num_classes = self.config.data.total_species
 
         if self.config.predict_family_of_species != -1:
-            self.class_indices_to_eval = eval_species_split(
+            self.class_indices_to_test = eval_species_split(
                 index=self.config.predict_family_of_species,
                 base_data_folder=self.config.data.files.base,
                 species_set=self.species_set,
             )
 
-        if self.class_indices_to_eval is not None:
-            out_num_classes = len(self.class_indices_to_eval)
+        if self.class_indices_to_test is not None:
+            out_num_classes = len(self.class_indices_to_test)
 
         print(f"Number of classes: {out_num_classes}")
 
@@ -57,10 +59,6 @@ class MLPTrainer(BaseTrainer):
 
         predictions = self.sigmoid_activation(self.model(data))
 
-        if self.class_indices_to_eval is not None:
-            predictions = predictions[:, self.class_indices_to_eval]
-            targets = targets[:, self.class_indices_to_eval]
-
         self.log_metrics(mode="val", pred=predictions, y=targets, mask=species_mask)
 
     def test_step(self, batch, batch_idx):
@@ -68,10 +66,13 @@ class MLPTrainer(BaseTrainer):
         targets = batch["targets"]
         species_mask = batch["species_mask"]
 
+        if not torch.eq(species_mask, 0).any():
+            species_mask = None
+
         predictions = self.sigmoid_activation(self.model(data))
 
-        if self.class_indices_to_eval is not None:
-            predictions = predictions[:, self.class_indices_to_eval]
-            targets = targets[:, self.class_indices_to_eval]
+        if self.class_indices_to_test is not None:
+            predictions = predictions[:, self.class_indices_to_test]
+            targets = targets[:, self.class_indices_to_test]
 
         self.log_metrics(mode="test", pred=predictions, y=targets, mask=species_mask)
