@@ -69,7 +69,7 @@ predict_family_of_species: -1
 data:
   loaders:
     num_workers: 8
-    batch_size: 128
+    batch_size: 256
 
   #o you want to use environmental data (pedological and bioclimatic (low res) data) #ped" or "bioclim" or both or empty list
   env: ['bio_1', 'bio_2',
