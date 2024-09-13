@@ -7,17 +7,27 @@ import numpy as np
 from omegaconf import DictConfig, OmegaConf
 
 
-def satbird_species_split(index: int, base_data_folder: str) -> np.ndarray:
-    songbird_indices = [
-        "stats/nonsongbird_indices.npy",
-        "stats/songbird_indices.npy",
-    ]
-    indices_to_predict = np.load(
-        os.path.join(
-            base_data_folder,
-            songbird_indices[index],
+def eval_species_split(
+    index: int, base_data_folder: str, species_set: tuple[int, int] = None
+) -> np.ndarray:
+    if species_set is None:
+        songbird_indices = [
+            "stats/nonsongbird_indices.npy",
+            "stats/songbird_indices.npy",
+        ]
+        indices_to_predict = np.load(
+            os.path.join(
+                base_data_folder,
+                songbird_indices[index],
+            )
         )
-    )
+    else:
+        if index == 0:
+            indices_to_predict = np.arange(0, species_set[0])
+        else:
+            indices_to_predict = np.arange(
+                species_set[0], species_set[0] + species_set[1]
+            )
 
     return indices_to_predict
 
