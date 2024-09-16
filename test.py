@@ -100,13 +100,13 @@ def main(opts):
 
     def test_task(task):
         trainer = pl.Trainer(**trainer_args)
-        val_results = trainer.validate(model=task, datamodule=datamodule)
+        # val_results = trainer.validate(model=task, datamodule=datamodule)
         test_results = trainer.test(
-            model=task, dataloaders=datamodule.test_dataloader(), verbose=True
+            model=task, datamodule=datamodule, verbose=True
         )
 
         print("Final test results: ", test_results)
-        return val_results, test_results
+        return test_results
 
     # if a single checkpoint is given
     if config.load_ckpt_path:
@@ -159,16 +159,11 @@ def main(opts):
                     checkpint_path=checkpoint_path_per_run_id,
                     save_preds_path=config.save_preds_path,
                 )
-                val_results, test_results = test_task(task)
+                test_results = test_task(task)
                 save_test_results_to_csv(
                     results=test_results[0],
-                    root_dir=os.path.join(config.base_dir, config.load_ckpt_path),
+                    root_dir=config.save_path,
                     file_name="test_results.csv",
-                )
-                save_test_results_to_csv(
-                    results=val_results[0],
-                    root_dir=os.path.join(config.base_dir, config.load_ckpt_path),
-                    file_name="val_results.csv",
                 )
 
     else:

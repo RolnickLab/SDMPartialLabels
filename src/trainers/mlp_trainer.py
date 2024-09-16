@@ -1,7 +1,9 @@
+import torch
+
 from src.metrics import get_metrics
-from src.models.models import SimpleMLP
+from src.models.baselines import SimpleMLP
 from src.trainers.base import BaseTrainer
-from src.utils import satbird_species_split
+from src.utils import eval_species_split
 
 
 class MLPTrainer(BaseTrainer):
@@ -13,20 +15,18 @@ class MLPTrainer(BaseTrainer):
             hidden_dim=self.config.experiment.module.hidden_dim,
             output_dim=self.config.data.total_species,
         )
-        self.indices_to_predict = None
+        self.class_indices_to_test = None
         out_num_classes = self.config.data.total_species
 
-        if (
-            self.config.predict_family_of_species != -1
-            and self.config.data.species is None
-        ):
-            self.indices_to_predict = satbird_species_split(
+        if self.config.predict_family_of_species != -1:
+            self.class_indices_to_test = eval_species_split(
                 index=self.config.predict_family_of_species,
                 base_data_folder=self.config.data.files.base,
+                species_set=self.species_set,
             )
 
-        if self.indices_to_predict is not None:
-            out_num_classes = len(self.indices_to_predict)
+        if self.class_indices_to_test is not None:
+            out_num_classes = len(self.class_indices_to_test)
 
         print(f"Number of classes: {out_num_classes}")
 
@@ -43,35 +43,36 @@ class MLPTrainer(BaseTrainer):
     def training_step(self, batch, batch_idx):
         data = batch["data"]
         targets = batch["targets"]
+        species_mask = batch["species_mask"]
 
         predictions = self.sigmoid_activation(self.model(data))
 
-        loss = self.loss_fn(pred=predictions, target=targets)
-
-        self.log_metrics(mode="train", pred=predictions, y=targets)
+        loss = self.loss_fn(pred=predictions, target=targets, mask=species_mask)
+        self.log_metrics(mode="train", pred=predictions, y=targets, mask=species_mask)
 
         return loss
 
     def validation_step(self, batch, batch_idx):
         data = batch["data"]
         targets = batch["targets"]
+        species_mask = batch["species_mask"]
 
         predictions = self.sigmoid_activation(self.model(data))
 
-        if self.indices_to_predict is not None:
-            predictions = predictions[:, self.indices_to_predict]
-            targets = targets[:, self.indices_to_predict]
-
-        self.log_metrics(mode="val", pred=predictions, y=targets)
+        self.log_metrics(mode="val", pred=predictions, y=targets, mask=species_mask)
 
     def test_step(self, batch, batch_idx):
         data = batch["data"]
         targets = batch["targets"]
+        species_mask = batch["species_mask"]
+
+        if not torch.eq(species_mask, 0).any():
+            species_mask = None
 
         predictions = self.sigmoid_activation(self.model(data))
 
-        if self.indices_to_predict is not None:
-            predictions = predictions[:, self.indices_to_predict]
-            targets = targets[:, self.indices_to_predict]
+        if self.class_indices_to_test is not None:
+            predictions = predictions[:, self.class_indices_to_test]
+            targets = targets[:, self.class_indices_to_test]
 
-        self.log_metrics(mode="test", pred=predictions, y=targets)
+        self.log_metrics(mode="test", pred=predictions, y=targets, mask=species_mask)

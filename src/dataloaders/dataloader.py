@@ -64,14 +64,14 @@ class SDMEnvDataset(EnvDataset):
         quantized_mask_bins=1,
     ) -> None:
         """
-        this dataloader handles dataset with masks for RTran model using env variables as inpu
+        this dataloader handles dataset with masks for Ctran model using env variables as inpu
         Parameters:
             data: tensor of input data num_hotspots x env variables
             targets: tensor of targets num_hotspots x num_species,
             mode : train|val|test
             target_type : "probs" or "binary"
             targets_folder: folder name for labels/targets
-            maximum_known_labels_ratio: known labels ratio for RTran
+            maximum_known_labels_ratio: known labels ratio for Ctran
             num_species: total number of species/classes to predict
             species_set: sets of species
             predict_family: -1 for none, 0 if we want to focus on predicting species_set[0], 1 if we want to predict species_set[1]
@@ -90,10 +90,14 @@ class SDMEnvDataset(EnvDataset):
         targets = self.targets[index]
         hotspot_id = self.hotspots[index]
 
+        # to exclude species that have no labels
+        species_mask = (targets != -2).int()
+
         return {
             "data": data,
             "targets": targets,
             "hotspot_id": hotspot_id,
+            "species_mask": species_mask,
         }
 
 
@@ -119,7 +123,7 @@ class SDMEnvCombinedMaskedDataset(EnvDataset):
             targets: tensor of targets num_hotspots x num_species,
             exclude: for each hotspot, indicator of species not to consider in the masking proportion because no data is available
             mode : train|val|test
-            maximum_known_labels_ratio: known labels ratio for RTran
+            maximum_known_labels_ratio: known labels ratio for Ctran
             num_species: total number of species/classes to predict
             species_set: set with different species sizes
             predict_family: -1 for none, 0 if we want to focus on predicting species_set[0], 1 if we want to predict species_set[1]
@@ -200,14 +204,14 @@ class SDMEnvMaskedDataset(EnvDataset):
         quantized_mask_bins=1,
     ) -> None:
         """
-        this dataloader handles dataset with masks for RTran model using env variables as inpu
+        this dataloader handles dataset with masks for Ctran model using env variables as inpu
         Parameters:
             data: tensor of input data num_hotspots x env variables
             targets: tensor of targets num_hotspots x num_species,
             mode : train|val|test
             target_type : "probs" or "binary"
             targets_folder: folder name for labels/targets
-            maximum_known_labels_ratio: known labels ratio for RTran
+            maximum_known_labels_ratio: known labels ratio for Ctran
             num_species: total number of species/classes to predict
             species_set: sets of species
             predict_family: -1 for none, 0 if we want to focus on predicting species_set[0], 1 if we want to predict species_set[1]
@@ -354,122 +358,51 @@ class SDMDataModule(pl.LightningDataModule):
         return np.array(values)
 
     def get_bird_butterfly_targets(self, df, species_set):
+        target_files = ["bird", "butterfly", "colocated"]
+        target_dict = {}
 
-        (
-            self.targets_folder_bird,
-            self.targets_folder_butterfly,
-            self.targets_folder_butterfly_colocated,
-        ) = self.targets_folder
+        for idx, file_key in enumerate(target_files):
+            with open(
+                os.path.join(self.data_base_dir, self.targets_file[idx]), "rb"
+            ) as pickle_file:
+                target_dict[file_key] = pickle.load(pickle_file)
 
-        has_bird = df["bird"]
-        has_butterfly = df["butterfly"]
+        df["species_to_exclude"] = -1  # Initialize to -1 for all species present
 
-        targets = torch.zeros([len(df), species_set[0] + species_set[1]])
-        # constructing targets
-
-        df["species_to_exclude"] = -1  # all species present
-
-        for i, row in df.iterrows():
+        def construct_target(row):
             hotspot_id = row["hotspot_id"]
             target_bird = [-2] * species_set[0]
-            target_butterfly = [-2] * species_set[1]  # len(butterfly species)
+            target_butterfly = [-2] * species_set[1]
+            species_to_exclude = -1
 
+            # Check bird and butterfly presence
             if row["bird"] == 1:
-                targ = json_load(
-                    os.path.join(
-                        self.data_base_dir,
-                        self.targets_folder_bird,
-                        hotspot_id + ".json",
+                target_bird = target_dict["bird"].get(hotspot_id, target_bird)
+
+                if row["butterfly"] == 1:
+                    target_butterfly = target_dict["colocated"].get(
+                        hotspot_id, target_butterfly
                     )
+                else:
+                    species_to_exclude = 1  # Only bird present
+
+            elif row["butterfly"] == 1:
+                target_butterfly = target_dict["butterfly"].get(
+                    hotspot_id, target_butterfly
                 )
-                target_bird = targ["probs"]
-
-                if row["butterfly"] == 1:
-                    targ = json_load(
-                        os.path.join(
-                            self.data_base_dir,
-                            self.targets_folder_butterfly_colocated,
-                            hotspot_id + ".json",
-                        )
-                    )
-                    target_butterfly = targ["probs"]
-
-                else:
-                    df.loc[i, "species_to_exclude"] = 1
-
+                species_to_exclude = 0  # Only butterfly present
             else:
-                if row["butterfly"] == 1:
-                    targ = json_load(
-                        os.path.join(
-                            self.data_base_dir,
-                            self.targets_folder_butterfly,
-                            hotspot_id + ".json",
-                        )
-                    )
-                    target_butterfly = targ["probs"]
-                    df.loc[i, "species_to_exclude"] = 0
+                raise ValueError(
+                    "Cannot have neither butterflies nor birds targets available"
+                )
 
-                elif row["butterfly"] == 0:
-                    raise ValueError(
-                        "cannot have neither butterflies nor birds targets available"
-                    )
+            return list(target_bird) + list(target_butterfly), species_to_exclude
 
-            target = target_bird + target_butterfly
-            targets[i, :] = torch.Tensor(target)
-
-        return targets, np.array(df["species_to_exclude"]), np.array(df["hotspot_id"])
-
-    def get_bird_butterfly_targets_v1(self, df, species_set):
-        with open(
-            os.path.join(self.data_base_dir, self.targets_file[0]), "rb"
-        ) as pickle_file:
-            self.targets_folder_bird = pickle.load(pickle_file)
-
-        with open(
-            os.path.join(self.data_base_dir, self.targets_file[0]), "rb"
-        ) as pickle_file:
-            self.targets_folder_butterfly = pickle.load(pickle_file)
-
-        with open(
-            os.path.join(self.data_base_dir, self.targets_file[0]), "rb"
-        ) as pickle_file:
-            self.targets_folder_butterfly_colocated = pickle.load(pickle_file)
-
-        targets = torch.zeros([len(df), species_set[0] + species_set[1]])
-        # constructing targets
-
-        df["species_to_exclude"] = -1  # all species present
-
-        for i, row in df.iterrows():
-            hotspot_id = row["hotspot_id"]
-            target_bird = [-2] * species_set[0]
-            target_butterfly = [-2] * species_set[1]  # len(butterfly species)
-
-            if row["bird"] == 1:
-                target_bird = self.targets_folder_bird.get(hotspot_id, None)
-
-                if row["butterfly"] == 1:
-                    target_butterfly = self.targets_folder_butterfly_colocated.get(
-                        hotspot_id, None
-                    )
-
-                else:
-                    df.loc[i, "species_to_exclude"] = 1
-
-            else:
-                if row["butterfly"] == 1:
-                    target_butterfly = self.targets_folder_butterfly.get(
-                        hotspot_id, None
-                    )
-                    df.loc[i, "species_to_exclude"] = 0
-
-                elif row["butterfly"] == 0:
-                    raise ValueError(
-                        "cannot have neither butterflies nor birds targets available"
-                    )
-
-            target = target_bird + target_butterfly
-            targets[i, :] = torch.Tensor(target)
+        # Construct the target matrix and species exclusion column using `apply`
+        df["target"], df["species_to_exclude"] = zip(
+            *df.apply(construct_target, axis=1)
+        )
+        targets = torch.stack(df["target"].apply(lambda x: torch.Tensor(x)).to_list())
 
         return targets, np.array(df["species_to_exclude"]), np.array(df["hotspot_id"])
 
@@ -491,15 +424,19 @@ class SDMDataModule(pl.LightningDataModule):
         val_data = (val_data - normalization_means) / (normalization_stds + 1e-8)
         test_data = (test_data - normalization_means) / (normalization_stds + 1e-8)
 
-        if self.dataloader_to_use == "SDMEnvCombinedDataset":
+        if self.config.data.species is not None:
             train_targets, exclude_train, train_hotspots = (
-                self.get_bird_butterfly_targets(self.df_train, self.config.data.species)
+                self.get_bird_butterfly_targets(
+                    self.df_train, self.config.data.species
+                )
             )
             val_targets, exclude_val, val_hotspots = self.get_bird_butterfly_targets(
                 self.df_val, self.config.data.species
             )
-            test_targets, exclude_test, test_hotspots = self.get_bird_butterfly_targets(
-                self.df_test, self.config.data.species
+            test_targets, exclude_test, test_hotspots = (
+                self.get_bird_butterfly_targets(
+                    self.df_test, self.config.data.species
+                )
             )
 
         else:
@@ -515,12 +452,12 @@ class SDMDataModule(pl.LightningDataModule):
             hotspots=train_hotspots,
             data_base_dir=self.data_base_dir,
             mode="train",
-            maximum_known_labels_ratio=self.config.Rtran.train_known_ratio,
+            maximum_known_labels_ratio=self.config.Ctran.train_known_ratio,
             num_species=self.num_species,
             species_set=self.config.data.species,
             species_set_eval=self.config.data.species_eval,
             predict_family=self.predict_family,
-            quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
+            quantized_mask_bins=self.config.Ctran.quantized_mask_bins,
         )
 
         self.all_val_dataset = globals()[self.dataloader_to_use](
@@ -530,12 +467,12 @@ class SDMDataModule(pl.LightningDataModule):
             hotspots=val_hotspots,
             data_base_dir=self.data_base_dir,
             mode="val",
-            maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
+            maximum_known_labels_ratio=self.config.Ctran.eval_known_ratio,
             num_species=self.num_species,
             species_set=self.config.data.species,
             species_set_eval=self.config.data.species_eval,
             predict_family=self.predict_family,
-            quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
+            quantized_mask_bins=self.config.Ctran.quantized_mask_bins,
         )
 
         self.all_test_dataset = globals()[self.dataloader_to_use](
@@ -545,12 +482,12 @@ class SDMDataModule(pl.LightningDataModule):
             hotspots=test_hotspots,
             data_base_dir=self.data_base_dir,
             mode="test",
-            maximum_known_labels_ratio=self.config.Rtran.eval_known_ratio,
+            maximum_known_labels_ratio=self.config.Ctran.eval_known_ratio,
             num_species=self.num_species,
             species_set=self.config.data.species,
             species_set_eval=self.config.data.species_eval,
             predict_family=self.predict_family,
-            quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
+            quantized_mask_bins=self.config.Ctran.quantized_mask_bins,
         )
 
     def train_dataloader(self) -> DataLoader[Any]:
