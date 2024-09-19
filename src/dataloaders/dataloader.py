@@ -91,13 +91,13 @@ class SDMEnvDataset(EnvDataset):
         hotspot_id = self.hotspots[index]
 
         # to exclude species that have no labels
-        species_mask = (targets != -2).int()
+        available_species_mask = (targets != -2).int()
 
         return {
             "data": data,
             "targets": targets,
             "hotspot_id": hotspot_id,
-            "species_mask": species_mask,
+            "available_species_mask": available_species_mask,
         }
 
 
