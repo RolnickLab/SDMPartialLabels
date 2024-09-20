@@ -13,7 +13,8 @@ class BaseTrainer(pl.LightningModule):
         self.loss_fn = CustomCrossEntropyLoss()
         self.config = config
         self.learning_rate = self.config.experiment.module.lr
-        self.species_set = self.config.data.species
+        self.num_species = self.config.data.total_species
+        self.class_indices_to_test = None
 
         # metrics to report
         metrics = get_metrics(self.config)
@@ -62,7 +63,7 @@ class BaseTrainer(pl.LightningModule):
         unknown_mask = None
         if mask is not None:
             unknown_mask = mask.clone()
-            if self.config.Rtran.use:
+            if self.config.Rtran.use and self.config.Rtran.eval_known_ratio != 0:
                 unknown_mask[mask == -1] = 1
                 unknown_mask[mask != -1] = 0
 

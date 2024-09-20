@@ -56,14 +56,10 @@ Ctran:
     quantized_mask_bins: 4
     # use positional encoding
     use_positional_encoding: True
-    # use the actual regression labels as input to the model and multiply with the embeddings (true or false)
-    scale_embeddings_by_labels: False
     # max ratio of unknown labels during training
     train_known_ratio: 0.75
     # what known ratios do we consider when testing
     eval_known_ratio: 0.0 # [1.0, 0.9, 0.8, 0.5]
-    # should the known values be masked out of the reported metrics or no
-    mask_eval_metrics: True
 
 
 # eval family of birds (0), or family of butterflies (1)
@@ -127,18 +123,7 @@ data:
     env_stds: "SatButterfly_v2/USA/stats/env_stds_SatBirdxSatButterfly.npy"
     species_list: "/network/projects/ecosystem-embeddings/SatButterfly_v2/USA/species_list_USA_birds+butterflies.txt"
 
-  correction_factor:
-     thresh:  # to train with RM
-
-  target:
-    type: "probs"  #binary for classification targets  or "probs" for regression (default should be "probs")
-
-    # choose subset of birds : "ducks" for trying on species [37] or [2] for cooper's hawk (non passerine) "songbirds" (307 species) or None (full set 684 species) "not_songbirds"
-    subset:
-
-  species: [670, 172]
-#  species: [ 670, 601]
-  species_eval: [670, 172]
-  total_species: 842  #1271  # list if more than one family of species, otherwise, normal count
-trainer:
-  auto_scale_batch_size: False
+  # when combining two different taxa
+  multi_taxa: True
+  per_taxa_species_count: [670, 172]
+  total_species: 842

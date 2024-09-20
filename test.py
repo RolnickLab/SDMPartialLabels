@@ -94,9 +94,7 @@ def main(opts):
 
     def test_task(task):
         trainer = pl.Trainer(**trainer_args)
-        test_results = trainer.test(
-            model=task, datamodule=datamodule, verbose=True
-        )
+        test_results = trainer.test(model=task, datamodule=datamodule, verbose=True)
         print("Final test results: ", test_results)
         return test_results
 

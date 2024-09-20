@@ -8,9 +8,12 @@ from omegaconf import DictConfig, OmegaConf
 
 
 def eval_species_split(
-    index: int, base_data_folder: str, species_set: tuple[int, int] = None
+    index: int,
+    base_data_folder: str,
+    multi_taxa: bool,
+    per_taxa_species_count: list[int] = None,
 ) -> np.ndarray:
-    if species_set is None:
+    if not multi_taxa:
         songbird_indices = [
             "stats/nonsongbird_indices.npy",
             "stats/songbird_indices.npy",
@@ -23,10 +26,11 @@ def eval_species_split(
         )
     else:
         if index == 0:
-            indices_to_predict = np.arange(0, species_set[0])
+            indices_to_predict = np.arange(0, per_taxa_species_count[0])
         else:
             indices_to_predict = np.arange(
-                species_set[0], species_set[0] + species_set[1]
+                per_taxa_species_count[0],
+                per_taxa_species_count[0] + per_taxa_species_count[1],
             )
 
     return indices_to_predict

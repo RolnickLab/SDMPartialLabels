@@ -13,22 +13,21 @@ class MLPTrainer(BaseTrainer):
         self.model = SimpleMLP(
             input_dim=self.config.experiment.module.input_dim,
             hidden_dim=self.config.experiment.module.hidden_dim,
-            output_dim=self.config.data.total_species,
+            output_dim=self.num_species,
         )
-        self.class_indices_to_test = None
-        out_num_classes = self.config.data.total_species
 
         if self.config.predict_family_of_species != -1:
             self.class_indices_to_test = eval_species_split(
                 index=self.config.predict_family_of_species,
                 base_data_folder=self.config.data.files.base,
-                species_set=self.species_set,
+                multi_taxa=self.config.data.multi_taxa,
+                per_taxa_species_count=self.config.data.per_taxa_species_count,
             )
 
         if self.class_indices_to_test is not None:
-            out_num_classes = len(self.class_indices_to_test)
+            self.num_species = len(self.class_indices_to_test)
 
-        print(f"Number of classes: {out_num_classes}")
+        print(f"Number of classes: {self.num_species}")
 
         # metrics to report
         metrics = get_metrics(self.config)
@@ -47,8 +46,12 @@ class MLPTrainer(BaseTrainer):
 
         predictions = self.sigmoid_activation(self.model(data))
 
-        loss = self.loss_fn(pred=predictions, target=targets, mask=available_species_mask)
-        self.log_metrics(mode="train", pred=predictions, y=targets, mask=available_species_mask)
+        loss = self.loss_fn(
+            pred=predictions, target=targets, mask=available_species_mask
+        )
+        self.log_metrics(
+            mode="train", pred=predictions, y=targets, mask=available_species_mask
+        )
 
         return loss
 
@@ -59,7 +62,9 @@ class MLPTrainer(BaseTrainer):
 
         predictions = self.sigmoid_activation(self.model(data))
 
-        self.log_metrics(mode="val", pred=predictions, y=targets, mask=available_species_mask)
+        self.log_metrics(
+            mode="val", pred=predictions, y=targets, mask=available_species_mask
+        )
 
     def test_step(self, batch, batch_idx):
         data = batch["data"]
@@ -75,4 +80,6 @@ class MLPTrainer(BaseTrainer):
             predictions = predictions[:, self.class_indices_to_test]
             targets = targets[:, self.class_indices_to_test]
 
-        self.log_metrics(mode="test", pred=predictions, y=targets, mask=available_species_mask)
+        self.log_metrics(
+            mode="test", pred=predictions, y=targets, mask=available_species_mask
+        )
