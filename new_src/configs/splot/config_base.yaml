@@ -9,13 +9,13 @@ model:
 
 training:
   learning_rate: 1e-3
-  max_epochs: 10
+  max_epochs: 20
   accelerator: "gpu"
   devices: 1
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "Simple_MLP_baseline_splot_v0" # specify for training, or use to report test results
+  experiment_name: "Simple_MLP_baseline_splot_v0_run2" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
   checkpoint_path: "./experiments_output"
   checkpoint_name: "last.ckpt"
