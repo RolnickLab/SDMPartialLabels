@@ -15,7 +15,7 @@ class CTranTrainer(BaseTrainer):
         """
         opts: configurations
         """
-        super(CTranTrainer).__init__(config=config)
+        super(CTranTrainer, self).__init__(config)
 
         self.num_species = self.config.data.total_species
 
@@ -28,12 +28,12 @@ class CTranTrainer(BaseTrainer):
             species_list=os.path.join(
                 self.config.data.files.base, self.config.data.files.species_list
             ),
-            backbone=self.config.Rtran.backbone,
-            pretrained_backbone=self.config.Rtran.pretrained_backbone,
-            quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
+            backbone=self.config.Ctran.backbone,
+            pretrained_backbone=self.config.Ctran.pretrained_backbone,
+            quantized_mask_bins=self.config.Ctran.quantized_mask_bins,
             input_channels=self.input_channels,
-            d_hidden=self.config.Rtran.features_size,
-            use_pos_encoding=self.config.Rtran.use_positional_encoding,
+            d_hidden=self.config.Ctran.features_size,
+            use_pos_encoding=self.config.Ctran.use_positional_encoding,
         )
 
         if self.config.experiment.module.resume:
@@ -113,7 +113,7 @@ class CTranTrainer(BaseTrainer):
 
         print(mask.unique())
         if (
-            self.config.Rtran.masked_loss
+            self.config.Ctran.masked_loss
         ):  # to consider unknown labels only for the loss
             unknown_mask = mask.clone()
             unknown_mask[mask != -1] = 0
@@ -175,7 +175,7 @@ class CTranTrainer(BaseTrainer):
             y_pred = y_pred * range_maps_correction_data.int()
             y = y * range_maps_correction_data.int()
 
-        if self.config.Rtran.mask_eval_metrics:
+        if self.config.Ctran.mask_eval_metrics:
             self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask)
         elif self.config.data.species is not None:
             if len(self.config.data.species) > 1:
@@ -226,7 +226,7 @@ class CTranTrainer(BaseTrainer):
 
         if (
             self.config.data.species is not None and len(self.config.data.species) > 1
-        ) or self.config.Rtran.mask_eval_metrics:
+        ) or self.config.Ctran.mask_eval_metrics:
             self.log_metrics(mode="test", pred=y_pred, y=y, mask=eval_mask)
 
         else:
