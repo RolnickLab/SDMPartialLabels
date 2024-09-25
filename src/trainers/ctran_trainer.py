@@ -71,7 +71,7 @@ class CTranTrainer(BaseTrainer):
         self.model.load_state_dict(model_dict)
 
     def training_step(self, batch: Dict[str, Any], batch_idx: int):
-
+        #import pdb; pdb.set_trace()
         hotspot_id = batch["hotspot_id"]
 
         x = batch["data"]
@@ -130,7 +130,7 @@ class CTranTrainer(BaseTrainer):
             self.log("train_loss", loss, on_epoch=True)
             if self.config.data.species is not None:
                 if len(self.config.data.species) > 1:
-                    self.log_metrics(mode="train", pred=y_pred, y=y, mask=mask)
+                    self.log_metrics(mode="train", pred=y_pred, y=y, mask=unknown_mask)
             else:
                 self.log_metrics(mode="train", pred=y_pred, y=y)
 
@@ -174,12 +174,26 @@ class CTranTrainer(BaseTrainer):
             )
             y_pred = y_pred * range_maps_correction_data.int()
             y = y * range_maps_correction_data.int()
+            
+        if (
+            self.config.Ctran.masked_loss
+        ):  # to consider unknown labels only for the loss
+            unknown_mask = mask.clone()
+            unknown_mask[mask != -1] = 0
+            unknown_mask[mask == -1] = 1
+        elif -2 in mask:  # to mask out species with no targets from the loss
+            unknown_mask = mask.clone()
+            unknown_mask[mask == -2] = 0
+            unknown_mask[mask == -1] = 1
+        else:
+            unknown_mask = None
+
 
         if self.config.Ctran.mask_eval_metrics:
-            self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask)
+            self.log_metrics(mode="val", pred=y_pred, y=y, mask=unknown_mask)
         elif self.config.data.species is not None:
             if len(self.config.data.species) > 1:
-                self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask)
+                self.log_metrics(mode="val", pred=y_pred, y=y, mask=unknown_mask)
             else:
                 self.log_metrics(mode="val", pred=y_pred, y=y)
 
