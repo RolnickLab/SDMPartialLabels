@@ -62,7 +62,7 @@ class BaseTrainer(pl.LightningModule):
         unknown_mask = None
         if mask is not None:
             unknown_mask = mask.clone()
-            if self.config.Rtran.use:
+            if self.config.Ctran.use:
                 unknown_mask[mask == -1] = 1
                 unknown_mask[mask != -1] = 0
 
