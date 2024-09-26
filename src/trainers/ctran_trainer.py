@@ -71,7 +71,6 @@ class CTranTrainer(BaseTrainer):
         self.model.load_state_dict(model_dict)
 
     def training_step(self, batch: Dict[str, Any], batch_idx: int):
-        #import pdb; pdb.set_trace()
         hotspot_id = batch["hotspot_id"]
 
         x = batch["data"]
