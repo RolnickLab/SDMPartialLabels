@@ -35,7 +35,7 @@ class CTranTrainer(BaseTrainer):
 
         # if eval_known_rate == 0, everything is unknown, but we want to predict certain families
         if (
-            self.config.Rtran.eval_max_ratio == 0
+            self.config.Rtran.eval_known_ratio == 0
             and self.config.predict_family_of_species != -1
         ):
             self.class_indices_to_test = eval_species_split(
@@ -65,8 +65,9 @@ class CTranTrainer(BaseTrainer):
             unknown_mask[mask == -1] = 1
 
         loss = self.criterion(y_pred, y, mask=unknown_mask)
+        self.log("train_loss", loss, on_epoch=True)
+
         if batch_idx % 50 == 0:
-            self.log("train_loss", loss, on_epoch=True)
             self.log_metrics(mode="train", pred=y_pred, y=y, mask=mask)
 
         return loss

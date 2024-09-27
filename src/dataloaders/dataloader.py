@@ -153,7 +153,7 @@ class SDMEnvMaskedDataset(EnvDataset):
         mask = targets.clone()
 
         if self.mode in ["test"] and self.maximum_known_labels_ratio == 0:
-            mask = mask * -1
+            mask = torch.full_like(mask, -1)
         else:
             # constructing known / unknown mask
             unk_mask_indices = get_unknown_mask_indices(
@@ -173,6 +173,7 @@ class SDMEnvMaskedDataset(EnvDataset):
         if self.quantized_mask_bins > 1:
             num_bins = self.quantized_mask_bins
             mask_q = torch.where(mask > 0, torch.ceil(mask * num_bins) / num_bins, mask)
+            mask[mask > 0] = 1
         else:
             mask[mask > 0] = 1
             mask_q = mask
