@@ -90,6 +90,7 @@ class CTranTrainer(BaseTrainer):
         if self.class_indices_to_test is not None:
             y_pred = y_pred[:, self.class_indices_to_test]
             y = y[:, self.class_indices_to_test]
+            mask = mask[:, self.class_indices_to_test]
 
         self.log_metrics(mode="test", pred=y_pred, y=y, mask=mask)
 
