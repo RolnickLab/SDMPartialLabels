@@ -71,7 +71,6 @@ class CTranTrainer(BaseTrainer):
         self.model.load_state_dict(model_dict)
 
     def training_step(self, batch: Dict[str, Any], batch_idx: int):
-
         hotspot_id = batch["hotspot_id"]
 
         x = batch["data"]
@@ -174,6 +173,8 @@ class CTranTrainer(BaseTrainer):
             )
             y_pred = y_pred * range_maps_correction_data.int()
             y = y * range_maps_correction_data.int()
+            
+        
 
         if self.config.Ctran.mask_eval_metrics:
             self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask)

@@ -118,18 +118,14 @@ def main(opts):
                 save_preds_path=config.save_preds_path,
             )
 
-            val_results, test_results = test_task(task)
+            test_results = test_task(task)
 
             save_test_results_to_csv(
                 results=test_results[0],
-                root_dir=os.path.join(config.base_dir, config.load_ckpt_path),
+                root_dir=config.save_path,
                 file_name="test_results.csv",
             )
-            save_test_results_to_csv(
-                results=val_results[0],
-                root_dir=os.path.join(config.base_dir, config.load_ckpt_path),
-                file_name="val_results.csv",
-            )
+            
         else:
             # get the number of experiments based on folders given
             n_runs = len(

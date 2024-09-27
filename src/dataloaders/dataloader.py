@@ -115,6 +115,7 @@ class SDMEnvCombinedMaskedDataset(EnvDataset):
         species_set_eval=None,
         predict_family=-1,
         quantized_mask_bins=1,
+        data_base_dir=None
     ) -> None:
         """
         this dataloader handles all datasets together SatBird + SatButterfly_v1 + SatButterfly_v2( co-located with some of SatBird positions)
@@ -131,7 +132,7 @@ class SDMEnvCombinedMaskedDataset(EnvDataset):
         """
 
         super().__init__()
-
+        self.data_base_dir=data_base_dir
         self.data = data
         self.targets = targets
         self.hotspots = hotspots
@@ -162,6 +163,7 @@ class SDMEnvCombinedMaskedDataset(EnvDataset):
             absent_species=species_to_exclude,
             species_set=self.species_set,
             predict_family_of_species=self.predict_family_of_species,
+            data_base_dir=None
         )
 
         mask = targets.clone()
