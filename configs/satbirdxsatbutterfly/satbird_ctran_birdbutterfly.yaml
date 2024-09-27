@@ -89,10 +89,6 @@ data:
 
     targets_file: ["SatBird_data_v2/USA_summer/satbird_usa_summer_targets.pkl","SatButterfly_dataset/SatButterfly_v1/USA/butterfly_all_targets_v1.2.pkl","SatButterfly_dataset/SatButterfly_v2/USA/butterfly_all_targets_v1.2.pkl"]
 
-    env_means: "SatButterfly_v2/USA/stats/env_means_SatBirdxSatButterfly.npy"
-    env_stds: "SatButterfly_v2/USA/stats/env_stds_SatBirdxSatButterfly.npy"
-    species_list: "/network/projects/ecosystem-embeddings/SatButterfly_v2/USA/species_list_USA_birds+butterflies.txt"
-
   multi_taxa: True
   per_taxa_species_count: [670, 172]
   total_species: 842

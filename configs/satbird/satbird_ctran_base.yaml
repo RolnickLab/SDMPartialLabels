@@ -85,13 +85,7 @@ data:
     val: ["valid_split.csv"]
     test: ["test_split.csv"]
 
-    targets_folder: ["targets"]
-    env_data_folder: ["environmental"]
-    correction_thresh: "range_maps.pkl" # range maps - threshold = False
-
-    env_means: "stats/env_means.npy"
-    env_stds: "stats/env_stds.npy"
-    species_list: "/network/projects/ecosystem-embeddings/SatBird_data_v2/species_list_USA.txt"
+    targets_file: ["SatBird_data_v2/USA_summer/satbird_usa_summer_targets.pkl"]
 
   multi_taxa: False
   per_taxa_species_count: [670]

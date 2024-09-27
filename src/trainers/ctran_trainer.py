@@ -16,15 +16,13 @@ class CTranTrainer(BaseTrainer):
         """
         opts: configurations
         """
-        super(CTranTrainer).__init__(config=config)
+        super(CTranTrainer, self).__init__(config)
+
         self.criterion = self.__loss_mapping(self.config.losses.criterion)
 
         self.input_channels = 1
         self.model = CTranModel(
             num_classes=self.num_species,
-            species_list=os.path.join(
-                self.config.data.files.base, self.config.data.files.species_list
-            ),
             backbone=self.config.Ctran.backbone,
             pretrained_backbone=self.config.Ctran.pretrained_backbone,
             quantized_mask_bins=self.config.Ctran.quantized_mask_bins,
@@ -35,7 +33,7 @@ class CTranTrainer(BaseTrainer):
 
         # if eval_known_rate == 0, everything is unknown, but we want to predict certain families
         if (
-            self.config.Rtran.eval_known_ratio == 0
+            self.config.Ctran.eval_known_ratio == 0
             and self.config.predict_family_of_species != -1
         ):
             self.class_indices_to_test = eval_species_split(

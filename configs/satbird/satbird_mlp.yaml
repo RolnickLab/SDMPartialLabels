@@ -81,8 +81,6 @@ data:
 
     targets_file: ["satbird_usa_summer_targets.pkl"]
 
-    species_list: "/network/projects/ecosystem-embeddings/SatBird_data_v2/species_list_USA.txt"
-
   multi_taxa: False
   per_taxa_species_count: [670]
   total_species: 670

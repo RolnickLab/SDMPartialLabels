@@ -324,13 +324,13 @@ class SDMDataModule(pl.LightningDataModule):
 
         if self.config.data.multi_taxa:
             train_targets = self.get_bird_butterfly_targets(
-                self.df_train, self.config.data.species
+                self.df_train, self.config.data.per_taxa_species_count
             )
             val_targets = self.get_bird_butterfly_targets(
-                self.df_val, self.config.data.species
+                self.df_val, self.config.data.per_taxa_species_count
             )
             test_targets = self.get_bird_butterfly_targets(
-                self.df_test, self.config.data.species
+                self.df_test, self.config.data.per_taxa_species_count
             )
         else:
             train_targets = self.get_bird_targets(train_hotspots)

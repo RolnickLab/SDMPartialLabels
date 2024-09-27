@@ -85,7 +85,6 @@ data:
                    "SatButterfly_dataset/SatButterfly_v1/USA/butterfly_all_targets_v1.2.pkl",
                    "SatButterfly_dataset/SatButterfly_v2/USA/butterfly_all_targets_v1.2.pkl"]
 
-    species_list: "/network/projects/ecosystem-embeddings/SatButterfly_v2/USA/species_list_USA_birds+butterflies.txt"
   # when combining two different taxa
   multi_taxa: True
   per_taxa_species_count: [670, 172]
