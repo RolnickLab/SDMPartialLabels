@@ -18,7 +18,7 @@ comet:
   experiment_name: "baseline_MLP_RTran_birdbutterfly" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
-dataloader_to_use: "SDMEnvCombinedMaskedDataset"
+dataloader_to_use: "SDMEnvMaskedDataset"
 
 experiment:
   #TASK and name should always be ebird_classifier --> maybe remove it 
@@ -57,7 +57,7 @@ Ctran:
     # max ratio of unknown labels during training
     train_known_ratio: 0.75
     # what known ratios do we consider when testing
-    eval_known_ratio: 0.0 # [1.0, 0.9, 0.8, 0.5]
+    eval_known_ratio: 1 # [1.0, 0.9, 0.8, 0.5]
 
 
 # eval family of birds (0), or family of butterflies (1)
