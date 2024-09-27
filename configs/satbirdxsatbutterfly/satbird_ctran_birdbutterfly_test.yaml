@@ -1,8 +1,8 @@
 #where to save checkpoints
-save_path: "experiments/baseline_joint_species_rtran_resnet18_RGBNIR_ENV"
+save_path: "/network/projects/ecosystem-embeddings/experiments/baseline_meli_dev_branch_ctran"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path:  "/network/projects/ecosystem-embeddings/experiments/baseline_joint_species_rtran_resnet18_RGBNIR_ENV_new/1337/epoch=49-step=35499.ckpt" #"/network/projects/ecosystem-embeddings/experiments/baseline_joint_species_rtran_resnet18_RGBNIR_ENV/1337/last.ckpt"
+load_ckpt_path:  "/network/projects/ecosystem-embeddings/experiments/baseline_meli_dev_branch_ctran/1337/last.ckpt" #"/network/projects/ecosystem-embeddings/experiments/baseline_joint_species_rtran_resnet18_RGBNIR_ENV/1337/last.ckpt"
 save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
 log_comet: true
 
@@ -83,9 +83,11 @@ data:
   
   files:
     base: "/network/projects/ecosystem-embeddings/"
-    train: ["SatBirdButterfly/bird_butterfly_train_env_fillna.csv"]
-    val: ["SatBirdButterfly/bird_butterfly_valid_env_fillna.csv"]
-    test: ["SatBirdButterfly/bird_butterfly_test_coloc_env_fillna.csv"]
+    train: ["SatBirdButterfly/train_split_fillna.csv"]
+    val: ["SatBirdButterfly/valid_split_fillna.csv"]
+    test: ["SatBirdButterfly/test_split_fillna.csv"]
+    
+    targets_file: ["SatBird_data_v2/USA_summer/satbird_usa_summer_targets.pkl","SatButterfly_dataset/SatButterfly_v1/USA/butterfly_all_targets_v1.2.pkl","SatButterfly_dataset/SatButterfly_v2/USA/butterfly_all_targets_v1.2.pkl"]
 
     targets_folder: ["SatBird_data_v2/USA_summer/targets","SatButterfly_dataset/SatButterfly_v1/USA/butterfly_targets_v1.2","SatButterfly_dataset/SatButterfly_v2/USA/butterfly_targets_v1.2"]
 

@@ -2,7 +2,7 @@
 save_path: "experiments_output/baseline_MLP_satbirdxsatbutterfly_colocated_only"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: ""
+load_ckpt_path: "SDMPartialLabels/experiments_outputs/baseline_MLP_satbirdxsatbutterfly_v0/1337/last.ckpt"
 save_preds_path: ""
 
 # maximum number of epochs to train for
@@ -76,9 +76,9 @@ data:
   
   files:
     base: "/network/projects/ecosystem-embeddings/"
-    train: ["SatBirdButterfly/train_split_fillna_colocated_only.csv"]
-    val: ["SatBirdButterfly/valid_split_fillna_colocated_only.csv"]
-    test: ["SatBirdButterfly/test_split_fillna_colocated_only.csv"]
+    train: ["SatBirdButterfly/bird_butterfly_train_env_fillna.csv"]
+    val: ["SatBirdButterfly/bird_butterfly_valid_env_fillna.csv"]
+    test: ["SatBirdButterfly/test_split_fillna.csv"]
 
     # it has to be in this order [bird, butterfly, colocated]
     targets_file: ["SatBird_data_v2/USA_summer/satbird_usa_summer_targets.pkl",

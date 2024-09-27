@@ -4,7 +4,7 @@ To run: python train.py args.config=$CONFIG_FILE_PATH
 """
 
 import os
-
+import comet_ml
 import hydra
 import pytorch_lightning as pl
 from hydra.utils import get_original_cwd

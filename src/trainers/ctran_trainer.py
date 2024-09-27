@@ -25,12 +25,12 @@ class CTranTrainer(BaseTrainer):
             species_list=os.path.join(
                 self.config.data.files.base, self.config.data.files.species_list
             ),
-            backbone=self.config.Rtran.backbone,
-            pretrained_backbone=self.config.Rtran.pretrained_backbone,
-            quantized_mask_bins=self.config.Rtran.quantized_mask_bins,
+            backbone=self.config.Ctran.backbone,
+            pretrained_backbone=self.config.Ctran.pretrained_backbone,
+            quantized_mask_bins=self.config.Ctran.quantized_mask_bins,
             input_channels=self.input_channels,
-            d_hidden=self.config.Rtran.features_size,
-            use_pos_encoding=self.config.Rtran.use_positional_encoding,
+            d_hidden=self.config.Ctran.features_size,
+            use_pos_encoding=self.config.Ctran.use_positional_encoding,
         )
 
         # if eval_known_rate == 0, everything is unknown, but we want to predict certain families

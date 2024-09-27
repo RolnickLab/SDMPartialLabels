@@ -111,7 +111,7 @@ def main(opts):
 
             save_test_results_to_csv(
                 results=test_results[0],
-                root_dir=os.path.join(config.base_dir, config.load_ckpt_path),
+                root_dir=config.save_path,
                 file_name="test_results.csv",
             )
         else:
