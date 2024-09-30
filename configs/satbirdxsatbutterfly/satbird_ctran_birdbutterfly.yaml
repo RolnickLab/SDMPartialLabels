@@ -59,7 +59,6 @@ Ctran:
     # what known ratios do we consider when testing
     eval_known_ratio: 0 # 0 or 1
 
-
 # eval family of birds (0), or family of butterflies (1)
 predict_family_of_species: -1
 

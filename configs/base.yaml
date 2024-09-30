@@ -41,8 +41,6 @@ experiment:
 # Should be -1 during training, During testing, eval family of birds (0), or family of butterflies (1) | in SatBird only, eval family of non-songbirds (0), or songbirds (1)
 predict_family_of_species: -1
 
-use_ctran: False
-
 optimizer: "Adam"  #"Adam"
 
 losses:
@@ -64,14 +62,6 @@ scheduler:
     max_epochs: 100
   cyclical:
     warmup_epochs: 10
-
-variables: &default_vars
-    ped_means: &ped_means []
-    ped_std: &ped_std []
-    bioclim_means: &bioclim_means []
-    bioclim_std: &bioclim_std []
-    sat_means: &sat_means []
-    sat_stds: &sat_stds []
 
 data:
   loaders:
@@ -123,71 +113,5 @@ data:
 
     # choose subset of birds : "ducks" for trying on species [37] or [2] for cooper's hawk (non passerine) "songbirds" (307 species) or None (full set 684 species) "not_songbirds"
     subset:
-
-  #normalization: None
-  transforms:
-    - name: matchres
-      ignore: false
-      subset: ["bioclim", "ped"]
-      target_size: [64, 64]
-      custom_means: [*bioclim_means, *ped_means]
-
-    - name: crop
-      ignore: false
-      p: 1
-      ignore_band: ["bioclim", "ped"] #["bioclim", "ped"]
-      center: true # disable randomness, crop around the image's center
-      height: 64
-      width: 64
-    - name: hflip
-      ignore: "val"
-      p: 0.5
-    - name: vflip
-      ignore: "val"
-      p: 0.5
-    - name: normalize
-      normalize_by_255: False
-      ignore: False
-      maxchan: false
-      subset: ["sat"]
-      custom: [*sat_means, *sat_stds]
-
-    - name: normalize
-      normalize_by_255: False
-      ignore: False
-      maxchan: false
-      subset: ["bioclim"]
-      custom: [*bioclim_means, *bioclim_std]
-    - name: normalize
-      normalize_by_255: False
-      ignore: true
-      maxchan: False
-      subset: ["ped"]
-      custom: [*ped_means, *ped_std]
-    - name: randomnoise
-      ignore: "val"
-      std: 0.01
-      max_noise: 0.05
-      p: 0.35
-
-    - name: blur
-      ignore: "val"
-      p: 0.5
-      val: 0.1
-
-    - name: rotate
-      ignore: "val"
-      p: 0.5
-      val: 15
-
-    - name: randomcontrast
-      ignore: "val"
-      p: 0.35
-      val: 2
-
-    - name: randombrightness
-      ignore: "val"
-      p: 0.3
-      val: 2
 
   total_species: 670
