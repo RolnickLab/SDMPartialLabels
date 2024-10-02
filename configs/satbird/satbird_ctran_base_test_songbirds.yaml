@@ -91,7 +91,8 @@ data:
     val: ["valid_split.csv"]
     test: ["test_split.csv"]
 
-    targets_file: ["SatBird_data_v2/USA_summer/satbird_usa_summer_targets.pkl"]
+    targets_file: ["satbird_usa_summer_targets.pkl"]
+    satbird_species_indices_path: "stats"
 
   multi_taxa: False
   per_taxa_species_count: [670]

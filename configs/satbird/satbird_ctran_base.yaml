@@ -1,5 +1,5 @@
 #where to save checkpoints
-save_path: "/network/scratch/t/tengmeli/SDMPartialLabels/exps"
+save_path: "experiments_outputs/ctran_dummy"
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 load_ckpt_path: ""
 save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
@@ -85,7 +85,9 @@ data:
     val: ["valid_split.csv"]
     test: ["test_split.csv"]
 
-    targets_file: ["SatBird_data_v2/USA_summer/satbird_usa_summer_targets.pkl"]
+    targets_file: ["satbird_usa_summer_targets.pkl"]
+
+    satbird_species_indices_path: "stats"
 
   multi_taxa: False
   per_taxa_species_count: [670]

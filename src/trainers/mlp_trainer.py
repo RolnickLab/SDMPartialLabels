@@ -1,3 +1,5 @@
+import os
+
 import torch
 
 from src.metrics import get_metrics
@@ -19,7 +21,10 @@ class MLPTrainer(BaseTrainer):
         if self.config.predict_family_of_species != -1:
             self.class_indices_to_test = eval_species_split(
                 index=self.config.predict_family_of_species,
-                base_data_folder=self.config.data.files.base,
+                base_data_folder=os.path.join(
+                    self.config.data.files.base,
+                    self.config.data.files.satbird_species_indices_path,
+                ),
                 multi_taxa=self.config.data.multi_taxa,
                 per_taxa_species_count=self.config.data.per_taxa_species_count,
             )
@@ -44,6 +49,9 @@ class MLPTrainer(BaseTrainer):
         targets = batch["targets"]
         available_species_mask = batch["available_species_mask"]
 
+        if not torch.eq(available_species_mask, 0).any():
+            available_species_mask = None
+
         predictions = self.sigmoid_activation(self.model(data))
 
         loss = self.loss_fn(
@@ -59,6 +67,9 @@ class MLPTrainer(BaseTrainer):
         data = batch["data"]
         targets = batch["targets"]
         available_species_mask = batch["available_species_mask"]
+
+        if not torch.eq(available_species_mask, 0).any():
+            available_species_mask = None
 
         predictions = self.sigmoid_activation(self.model(data))
 

@@ -35,7 +35,7 @@ def multi_species_masking(per_taxa_species_count: list[int]):
 
 def random_species_masking(available_species_mask, max_known):
     non_zero_indices = torch.nonzero(available_species_mask, as_tuple=False).flatten()
-    num_labels = len(available_species_mask)
+    num_labels = len(non_zero_indices)
     num_known = random.randint(
         0, int(num_labels * max_known)
     )  # known: 0, 0.75l -> unknown: l, 0.25l
@@ -52,8 +52,8 @@ def songbird_masking(index, data_base_dir):
     index 1: songbirds
     """
     songbird_indices = [
-        "stats/nonsongbird_indices.npy",
-        "stats/songbird_indices.npy",
+        "nonsongbird_indices.npy",
+        "songbird_indices.npy",
     ]
     unk_mask_indices = np.load(os.path.join(data_base_dir, songbird_indices[index]))
     return unk_mask_indices
@@ -142,8 +142,8 @@ def get_unknown_mask_indices(
             unk_mask_indices = multi_species_masking(
                 per_taxa_species_count=per_taxa_species_count,
             )
-        elif available_species_index == 0 or (
-            available_species_index == -1 and multi_taxa
+        elif (available_species_index == 0 and multi_taxa) or (
+            available_species_index == -1 and not multi_taxa
         ):  # butterflies missing for multi-taxa or SatBird only for non multi-taxa
             unk_mask_indices = bird_species_masking(
                 per_taxa_species_count=per_taxa_species_count,
@@ -151,7 +151,9 @@ def get_unknown_mask_indices(
                 available_species_index=available_species_index,
                 data_base_dir=data_base_dir,
             )
-        elif available_species_index == 1:  # birds missing for multi-taxa
+        elif (
+            available_species_index == 1 and multi_taxa
+        ):  # birds missing for multi-taxa
             unk_mask_indices = butterfly_species_masking(
                 per_taxa_species_count=per_taxa_species_count,
                 max_known=max_known,

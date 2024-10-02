@@ -184,7 +184,7 @@ class SDMEnvMaskedDataset(EnvDataset):
             "hotspot_id": hotspot_id,
             "available_species_mask": available_species_mask,
             "mask": mask.long(),
-            "mask_q": mask_q.long(),
+            "mask_q": mask_q,
         }
 
 
@@ -341,7 +341,9 @@ class SDMDataModule(pl.LightningDataModule):
             data=torch.tensor(train_data, dtype=torch.float32),
             targets=torch.tensor(train_targets, dtype=torch.float32),
             hotspots=train_hotspots,
-            data_base_dir=self.data_base_dir,
+            data_base_dir=os.path.join(
+                self.data_base_dir, self.config.data.files.satbird_species_indices_path
+            ),
             mode="train",
             maximum_known_labels_ratio=self.config.Ctran.train_known_ratio,
             num_species=self.num_species,
@@ -355,7 +357,9 @@ class SDMDataModule(pl.LightningDataModule):
             data=torch.tensor(val_data, dtype=torch.float32),
             targets=torch.tensor(val_targets, dtype=torch.float32),
             hotspots=val_hotspots,
-            data_base_dir=self.data_base_dir,
+            data_base_dir=os.path.join(
+                self.data_base_dir, self.config.data.files.satbird_species_indices_path
+            ),
             mode="val",
             maximum_known_labels_ratio=self.config.Ctran.eval_known_ratio,
             num_species=self.num_species,
@@ -369,7 +373,9 @@ class SDMDataModule(pl.LightningDataModule):
             data=torch.tensor(test_data, dtype=torch.float32),
             targets=torch.tensor(test_targets, dtype=torch.float32),
             hotspots=test_hotspots,
-            data_base_dir=self.data_base_dir,
+            data_base_dir=os.path.join(
+                self.data_base_dir, self.config.data.files.satbird_species_indices_path
+            ),
             mode="test",
             maximum_known_labels_ratio=self.config.Ctran.eval_known_ratio,
             num_species=self.num_species,

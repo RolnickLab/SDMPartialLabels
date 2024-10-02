@@ -38,7 +38,10 @@ class CTranTrainer(BaseTrainer):
         ):
             self.class_indices_to_test = eval_species_split(
                 index=self.config.predict_family_of_species,
-                base_data_folder=self.config.data.files.base,
+                base_data_folder=os.path.join(
+                    self.config.data.files.base,
+                    self.config.data.files.satbird_species_indices_path,
+                ),
                 multi_taxa=self.config.data.multi_taxa,
                 per_taxa_species_count=self.config.data.per_taxa_species_count,
             )
@@ -52,17 +55,10 @@ class CTranTrainer(BaseTrainer):
         x = batch["data"]
         y = batch["targets"]
         mask = batch["mask"].long()
-        unknown_mask = batch["available_species_mask"].long()
 
         y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
-        if (
-            self.config.Ctran.masked_loss
-        ):  # to consider unknown labels only for the loss
-            unknown_mask = mask.clone()
-            unknown_mask[mask != -1] = 0
-            unknown_mask[mask == -1] = 1
 
-        loss = self.criterion(y_pred, y, mask=unknown_mask)
+        loss = self.criterion(y_pred, y, mask=batch["available_species_mask"].long())
         self.log("train_loss", loss, on_epoch=True)
 
         if batch_idx % 50 == 0:

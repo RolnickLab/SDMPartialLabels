@@ -80,6 +80,7 @@ data:
     test: ["test_split.csv"]
 
     targets_file: ["satbird_usa_summer_targets.pkl"]
+    satbird_species_indices_path: "stats"
 
   multi_taxa: False
   per_taxa_species_count: [670]

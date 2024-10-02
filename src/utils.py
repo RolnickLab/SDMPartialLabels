@@ -15,8 +15,8 @@ def eval_species_split(
 ) -> np.ndarray:
     if not multi_taxa:
         songbird_indices = [
-            "stats/nonsongbird_indices.npy",
-            "stats/songbird_indices.npy",
+            "nonsongbird_indices.npy",
+            "songbird_indices.npy",
         ]
         indices_to_predict = np.load(
             os.path.join(
