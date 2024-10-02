@@ -1,5 +1,5 @@
 #where to save checkpoints
-save_path: "experiments_outputs/baseline_MLP_satbirdxsatbutterfly_v0"
+save_path: "experiments_outputs/baseline_MLP_satbirdxsatbutterfly_v1"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 load_ckpt_path: "SDMPartialLabels/experiments_outputs/baseline_MLP_satbirdxsatbutterfly_v0/1337/last.ckpt"
@@ -54,14 +54,10 @@ Ctran:
     quantized_mask_bins: 4
     # use positional encoding
     use_positional_encoding: True
-    # use the actual regression labels as input to the model and multiply with the embeddings (true or false)
-    scale_embeddings_by_labels: False
     # max ratio of unknown labels during training
     train_known_ratio: 0.75
     # what known ratios do we consider when testing
     eval_known_ratio: 0.0 # [1.0, 0.9, 0.8, 0.5]
-    # should the known values be masked out of the reported metrics or no
-    mask_eval_metrics: True
 
 # eval family of birds (0), or family of butterflies (1)
 predict_family_of_species: -1
@@ -80,16 +76,18 @@ data:
   
   files:
     base: "/network/projects/ecosystem-embeddings/"
-    train: ["SatBirdButterfly/bird_butterfly_train_env_fillna.csv"]
-    val: ["SatBirdButterfly/bird_butterfly_valid_env_fillna.csv"]
+    train: ["SatBirdButterfly/train_split_fillna.csv"]
+    val: ["SatBirdButterfly/valid_split_fillna.csv"]
     test: ["SatBirdButterfly/test_split_fillna.csv"]
 
+    # it has to be in this order [bird, butterfly, colocated]
     targets_file: ["SatBird_data_v2/USA_summer/satbird_usa_summer_targets.pkl",
                    "SatButterfly_dataset/SatButterfly_v1/USA/butterfly_all_targets_v1.2.pkl",
                    "SatButterfly_dataset/SatButterfly_v2/USA/butterfly_all_targets_v1.2.pkl"]
 
-    species_list: "/network/projects/ecosystem-embeddings/SatButterfly_v2/USA/species_list_USA_birds+butterflies.txt"
+    satbird_species_indices_path: "SatBird_data_v2/USA_summer/stats"
 
-  species: [670, 172]
-  species_eval:
-  total_species: 842  #1271  # list if more than one family of species, otherwise, normal count
+  # when combining two different taxa
+  multi_taxa: True
+  per_taxa_species_count: [670, 172]
+  total_species: 842

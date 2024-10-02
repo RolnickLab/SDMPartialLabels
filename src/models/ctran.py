@@ -14,7 +14,6 @@ class CTranModel(nn.Module):
     def __init__(
         self,
         num_classes,
-        species_list,
         backbone="MlpEncoder",
         pretrained_backbone=False,
         quantized_mask_bins=1,

@@ -10,7 +10,6 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 from src.dataloaders.label_masking import get_unknown_mask_indices
-from src.models.utils import json_load
 
 
 class EnvDataset(Dataset[Dict[str, Any]], abc.ABC):
@@ -52,13 +51,12 @@ class SDMEnvDataset(EnvDataset):
         self,
         data,
         targets,
-        exclude,
         hotspots,
         data_base_dir,
         mode="train",
         maximum_known_labels_ratio=0.5,
-        species_set=None,
-        species_set_eval=None,
+        per_taxa_species_count=None,
+        multi_taxa=False,
         num_species=670,
         predict_family=-1,
         quantized_mask_bins=1,
@@ -73,8 +71,8 @@ class SDMEnvDataset(EnvDataset):
             targets_folder: folder name for labels/targets
             maximum_known_labels_ratio: known labels ratio for Ctran
             num_species: total number of species/classes to predict
-            species_set: sets of species
-            predict_family: -1 for none, 0 if we want to focus on predicting species_set[0], 1 if we want to predict species_set[1]
+            per_taxa_species_count: sets of species
+            predict_family: -1 for none, 0 if we want to focus on predicting per_taxa_species_count[0], 1 if we want to predict per_taxa_species_count[1]
             quantized_mask_bins: how many bins to quantize the positive (>0) encounter rates
         """
         super().__init__()
@@ -91,103 +89,14 @@ class SDMEnvDataset(EnvDataset):
         hotspot_id = self.hotspots[index]
 
         # to exclude species that have no labels
-        species_mask = (targets != -2).int()
+        available_species_mask = (targets != -2).int()
 
         return {
             "data": data,
             "targets": targets,
             "hotspot_id": hotspot_id,
-            "species_mask": species_mask,
+            "available_species_mask": available_species_mask,
         }
-
-
-class SDMEnvCombinedMaskedDataset(EnvDataset):
-    def __init__(
-        self,
-        data,
-        targets,
-        hotspots,
-        exclude,
-        mode="train",
-        maximum_known_labels_ratio=0.5,
-        num_species=842,
-        species_set=None,
-        species_set_eval=None,
-        predict_family=-1,
-        quantized_mask_bins=1,
-        data_base_dir=None
-    ) -> None:
-        """
-        this dataloader handles all datasets together SatBird + SatButterfly_v1 + SatButterfly_v2( co-located with some of SatBird positions)
-        Parameters:
-            data: tensor of input data num_hotspots x env variables
-            targets: tensor of targets num_hotspots x num_species,
-            exclude: for each hotspot, indicator of species not to consider in the masking proportion because no data is available
-            mode : train|val|test
-            maximum_known_labels_ratio: known labels ratio for Ctran
-            num_species: total number of species/classes to predict
-            species_set: set with different species sizes
-            predict_family: -1 for none, 0 if we want to focus on predicting species_set[0], 1 if we want to predict species_set[1]
-            quantized_mask_bins: how many bins to quantize the positive (>0) encounter rates
-        """
-
-        super().__init__()
-        self.data_base_dir=data_base_dir
-        self.data = data
-        self.targets = targets
-        self.hotspots = hotspots
-        self.exclude = exclude
-        self.mode = mode
-        self.num_species = num_species
-        self.species_set = species_set
-
-        self.maximum_known_labels_ratio = maximum_known_labels_ratio
-        self.predict_family_of_species = predict_family
-        self.quantized_mask_bins = quantized_mask_bins
-
-    def __len__(self):
-        return self.data.shape[0]
-
-    def __getitem__(self, index: int) -> Dict[str, Any]:
-
-        data = self.data[index]
-        targets = self.targets[index]
-        hotspot_id = self.hotspots[index]
-        species_to_exclude = self.exclude[index]
-
-        # constructing mask for R-tran
-        unk_mask_indices = get_unknown_mask_indices(
-            num_labels=self.num_species,
-            mode=self.mode,
-            max_known=self.maximum_known_labels_ratio,
-            absent_species=species_to_exclude,
-            species_set=self.species_set,
-            predict_family_of_species=self.predict_family_of_species,
-            data_base_dir=None
-        )
-
-        mask = targets.clone()
-        mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
-
-        if self.quantized_mask_bins > 1:
-            num_bins = self.quantized_mask_bins
-            mask_q = torch.where(mask > 0, torch.ceil(mask * num_bins) / num_bins, mask)
-        else:
-            mask[mask > 0] = 1
-            mask_q = mask
-
-        mask[mask > 0] = 1
-
-        item_ = {
-            "data": data,
-            "hotspot_id": hotspot_id,
-            "targets": targets,
-            "mask": mask.long(),
-            "eval_mask": mask.long(),
-            "mask_q": mask_q.long(),
-        }
-
-        return item_
 
 
 class SDMEnvMaskedDataset(EnvDataset):
@@ -199,8 +108,8 @@ class SDMEnvMaskedDataset(EnvDataset):
         data_base_dir,
         mode="train",
         maximum_known_labels_ratio=0.5,
-        species_set=None,
-        species_set_eval=None,
+        per_taxa_species_count=None,
+        multi_taxa=False,
         num_species=670,
         predict_family=-1,
         quantized_mask_bins=1,
@@ -211,24 +120,22 @@ class SDMEnvMaskedDataset(EnvDataset):
             data: tensor of input data num_hotspots x env variables
             targets: tensor of targets num_hotspots x num_species,
             mode : train|val|test
-            target_type : "probs" or "binary"
-            targets_folder: folder name for labels/targets
             maximum_known_labels_ratio: known labels ratio for Ctran
             num_species: total number of species/classes to predict
-            species_set: sets of species
-            predict_family: -1 for none, 0 if we want to focus on predicting species_set[0], 1 if we want to predict species_set[1]
+            per_taxa_species_count: sets of species
+            predict_family: -1 for none, 0 if we want to focus on predicting per_taxa_species_count[0], 1 if we want to predict per_taxa_species_count[1]
             quantized_mask_bins: how many bins to quantize the positive (>0) encounter rates
         """
         super().__init__()
         self.data = data
-        self.data_base_dir = data_base_dir
         self.targets = targets
         self.hotspots = hotspots
+        self.data_base_dir = data_base_dir
         self.mode = mode
         self.num_species = num_species
         self.maximum_known_labels_ratio = maximum_known_labels_ratio
-        self.species_set = species_set
-        self.species_set_eval = species_set_eval
+        self.per_taxa_species_count = per_taxa_species_count
+        self.multi_taxa = (multi_taxa,)
         self.predict_family_of_species = predict_family
         self.quantized_mask_bins = quantized_mask_bins
 
@@ -239,49 +146,45 @@ class SDMEnvMaskedDataset(EnvDataset):
         data = self.data[index]
         targets = self.targets[index]
         hotspot_id = self.hotspots[index]
-        # constructing mask for R-tran
-        unk_mask_indices = get_unknown_mask_indices(
-            num_labels=self.num_species,
-            mode=self.mode,
-            max_known=self.maximum_known_labels_ratio,
-            species_set=self.species_set,
-            predict_family_of_species=self.predict_family_of_species,
-            data_base_dir=self.data_base_dir,
-        )
 
-        eval_mask_indices = get_unknown_mask_indices(
-            num_labels=self.num_species,
-            mode=self.mode,
-            max_known=0.0,
-            species_set=self.species_set_eval,
-            predict_family_of_species=self.predict_family_of_species,
-            data_base_dir=self.data_base_dir,
-        )
+        # to exclude species that have no labels
+        available_species_mask = (targets != -2).int()
 
         mask = targets.clone()
-        mask.scatter_(dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0)
 
-        eval_mask = targets.clone()
-        eval_mask.scatter_(
-            dim=0, index=torch.Tensor(eval_mask_indices).long(), value=-1.0
-        )
+        if self.mode in ["test"] and self.maximum_known_labels_ratio == 0:
+            mask = torch.full_like(mask, -1)
+        else:
+            # constructing known / unknown mask
+            unk_mask_indices = get_unknown_mask_indices(
+                num_labels=self.num_species,
+                mode=self.mode,
+                max_known=self.maximum_known_labels_ratio,
+                available_species_mask=available_species_mask,
+                multi_taxa=self.multi_taxa,
+                per_taxa_species_count=self.per_taxa_species_count,
+                predict_family_of_species=self.predict_family_of_species,
+                data_base_dir=self.data_base_dir,
+            )
+            mask.scatter_(
+                dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0
+            )
 
         if self.quantized_mask_bins > 1:
             num_bins = self.quantized_mask_bins
             mask_q = torch.where(mask > 0, torch.ceil(mask * num_bins) / num_bins, mask)
+            mask[mask > 0] = 1
         else:
             mask[mask > 0] = 1
             mask_q = mask
-
-            eval_mask[eval_mask > 0] = 1
 
         return {
             "data": data,
             "targets": targets,
             "hotspot_id": hotspot_id,
+            "available_species_mask": available_species_mask,
             "mask": mask.long(),
-            "eval_mask": mask.long(),
-            "mask_q": mask_q.long(),
+            "mask_q": mask_q,
         }
 
 
@@ -359,7 +262,7 @@ class SDMDataModule(pl.LightningDataModule):
         values = [data_dict.get(key, None) for key in hotspots]
         return np.array(values)
 
-    def get_bird_butterfly_targets(self, df, species_set):
+    def get_bird_butterfly_targets(self, df, per_taxa_species_count):
         target_files = ["bird", "butterfly", "colocated"]
         target_dict = {}
 
@@ -373,9 +276,8 @@ class SDMDataModule(pl.LightningDataModule):
 
         def construct_target(row):
             hotspot_id = row["hotspot_id"]
-            target_bird = [-2] * species_set[0]
-            target_butterfly = [-2] * species_set[1]
-            species_to_exclude = -1
+            target_bird = [-2] * per_taxa_species_count[0]
+            target_butterfly = [-2] * per_taxa_species_count[1]
 
             # Check bird and butterfly presence
             if row["bird"] == 1:
@@ -385,28 +287,22 @@ class SDMDataModule(pl.LightningDataModule):
                     target_butterfly = target_dict["colocated"].get(
                         hotspot_id, target_butterfly
                     )
-                else:
-                    species_to_exclude = 1  # Only bird present
 
             elif row["butterfly"] == 1:
                 target_butterfly = target_dict["butterfly"].get(
                     hotspot_id, target_butterfly
                 )
-                species_to_exclude = 0  # Only butterfly present
             else:
                 raise ValueError(
                     "Cannot have neither butterflies nor birds targets available"
                 )
 
-            return list(target_bird) + list(target_butterfly), species_to_exclude
+            return list(target_bird) + list(target_butterfly)
 
-        # Construct the target matrix and species exclusion column using `apply`
-        df["target"], df["species_to_exclude"] = zip(
-            *df.apply(construct_target, axis=1)
-        )
+        # Construct the target matrix column using `apply`
+        df["target"] = df.apply(construct_target, axis=1)
         targets = torch.stack(df["target"].apply(lambda x: torch.Tensor(x)).to_list())
-
-        return targets, np.array(df["species_to_exclude"]), np.array(df["hotspot_id"])
+        return targets
 
     def setup(self, stage: Optional[str] = None) -> None:
         """create the train/test/val splits"""
@@ -426,38 +322,33 @@ class SDMDataModule(pl.LightningDataModule):
         val_data = (val_data - normalization_means) / (normalization_stds + 1e-8)
         test_data = (test_data - normalization_means) / (normalization_stds + 1e-8)
 
-        if self.config.data.species is not None:
-            train_targets, exclude_train, train_hotspots = (
-                self.get_bird_butterfly_targets(
-                    self.df_train, self.config.data.species
-                )
+        if self.config.data.multi_taxa:
+            train_targets = self.get_bird_butterfly_targets(
+                self.df_train, self.config.data.per_taxa_species_count
             )
-            val_targets, exclude_val, val_hotspots = self.get_bird_butterfly_targets(
-                self.df_val, self.config.data.species
+            val_targets = self.get_bird_butterfly_targets(
+                self.df_val, self.config.data.per_taxa_species_count
             )
-            test_targets, exclude_test, test_hotspots = (
-                self.get_bird_butterfly_targets(
-                    self.df_test, self.config.data.species
-                )
+            test_targets = self.get_bird_butterfly_targets(
+                self.df_test, self.config.data.per_taxa_species_count
             )
-
         else:
             train_targets = self.get_bird_targets(train_hotspots)
             val_targets = self.get_bird_targets(val_hotspots)
             test_targets = self.get_bird_targets(test_hotspots)
-            exclude_train, exclude_val, exclude_test = None, None, None
 
         self.all_train_dataset = globals()[self.dataloader_to_use](
             data=torch.tensor(train_data, dtype=torch.float32),
             targets=torch.tensor(train_targets, dtype=torch.float32),
-            exclude=exclude_train,
             hotspots=train_hotspots,
-            data_base_dir=self.data_base_dir,
+            data_base_dir=os.path.join(
+                self.data_base_dir, self.config.data.files.satbird_species_indices_path
+            ),
             mode="train",
             maximum_known_labels_ratio=self.config.Ctran.train_known_ratio,
             num_species=self.num_species,
-            species_set=self.config.data.species,
-            species_set_eval=self.config.data.species_eval,
+            multi_taxa=self.config.data.multi_taxa,
+            per_taxa_species_count=self.config.data.per_taxa_species_count,
             predict_family=self.predict_family,
             quantized_mask_bins=self.config.Ctran.quantized_mask_bins,
         )
@@ -465,14 +356,15 @@ class SDMDataModule(pl.LightningDataModule):
         self.all_val_dataset = globals()[self.dataloader_to_use](
             data=torch.tensor(val_data, dtype=torch.float32),
             targets=torch.tensor(val_targets, dtype=torch.float32),
-            exclude=exclude_val,
             hotspots=val_hotspots,
-            data_base_dir=self.data_base_dir,
+            data_base_dir=os.path.join(
+                self.data_base_dir, self.config.data.files.satbird_species_indices_path
+            ),
             mode="val",
             maximum_known_labels_ratio=self.config.Ctran.eval_known_ratio,
             num_species=self.num_species,
-            species_set=self.config.data.species,
-            species_set_eval=self.config.data.species_eval,
+            multi_taxa=self.config.data.multi_taxa,
+            per_taxa_species_count=self.config.data.per_taxa_species_count,
             predict_family=self.predict_family,
             quantized_mask_bins=self.config.Ctran.quantized_mask_bins,
         )
@@ -480,14 +372,15 @@ class SDMDataModule(pl.LightningDataModule):
         self.all_test_dataset = globals()[self.dataloader_to_use](
             data=torch.tensor(test_data, dtype=torch.float32),
             targets=torch.tensor(test_targets, dtype=torch.float32),
-            exclude=exclude_test,
             hotspots=test_hotspots,
-            data_base_dir=self.data_base_dir,
+            data_base_dir=os.path.join(
+                self.data_base_dir, self.config.data.files.satbird_species_indices_path
+            ),
             mode="test",
             maximum_known_labels_ratio=self.config.Ctran.eval_known_ratio,
             num_species=self.num_species,
-            species_set=self.config.data.species,
-            species_set_eval=self.config.data.species_eval,
+            multi_taxa=self.config.data.multi_taxa,
+            per_taxa_species_count=self.config.data.per_taxa_species_count,
             predict_family=self.predict_family,
             quantized_mask_bins=self.config.Ctran.quantized_mask_bins,
         )

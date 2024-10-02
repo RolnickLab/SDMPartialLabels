@@ -22,14 +22,8 @@ from src.utils import load_opts
 hydra_config_path = Path(__file__).resolve().parent / "configs/hydra.yaml"
 
 
-def load_existing_checkpoint(task, base_dir, checkpint_path, save_preds_path):
+def load_existing_checkpoint(task, base_dir, checkpint_path):
     print("Loading existing checkpoint")
-    # try:
-    #     task = task.load_from_checkpoint(os.path.join(base_dir, checkpint_path),
-    #                                      save_preds_path=save_preds_path)
-
-    # to prevent older models from failing, because there are new keys in conf
-    # except:
     task.load_state_dict(
         torch.load(os.path.join(base_dir, checkpint_path))["state_dict"]
     )
@@ -100,11 +94,7 @@ def main(opts):
 
     def test_task(task):
         trainer = pl.Trainer(**trainer_args)
-        # val_results = trainer.validate(model=task, datamodule=datamodule)
-        test_results = trainer.test(
-            model=task, datamodule=datamodule, verbose=True
-        )
-
+        test_results = trainer.test(model=task, datamodule=datamodule, verbose=True)
         print("Final test results: ", test_results)
         return test_results
 
@@ -115,7 +105,6 @@ def main(opts):
                 task=task,
                 base_dir="",
                 checkpint_path=config.load_ckpt_path,
-                save_preds_path=config.save_preds_path,
             )
 
             test_results = test_task(task)
@@ -125,7 +114,6 @@ def main(opts):
                 root_dir=config.save_path,
                 file_name="test_results.csv",
             )
-            
         else:
             # get the number of experiments based on folders given
             n_runs = len(
@@ -153,7 +141,6 @@ def main(opts):
                     task=task,
                     base_dir=config.base_dir,
                     checkpint_path=checkpoint_path_per_run_id,
-                    save_preds_path=config.save_preds_path,
                 )
                 test_results = test_task(task)
                 save_test_results_to_csv(

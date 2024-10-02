@@ -13,7 +13,8 @@ class BaseTrainer(pl.LightningModule):
         self.loss_fn = CustomCrossEntropyLoss()
         self.config = config
         self.learning_rate = self.config.experiment.module.lr
-        self.species_set = self.config.data.species
+        self.num_species = self.config.data.total_species
+        self.class_indices_to_test = None
 
         # metrics to report
         metrics = get_metrics(self.config)

@@ -39,8 +39,6 @@ experiment:
     means_path: ""
     lr: 0.0001
 
-
-
 Ctran:
     use: true
     # Resnet18 or Resnet50
@@ -55,14 +53,10 @@ Ctran:
     quantized_mask_bins: 4
     # use positional encoding
     use_positional_encoding: True
-    # use the actual regression labels as input to the model and multiply with the embeddings (true or false)
-    scale_embeddings_by_labels: False
     # max ratio of unknown labels during training
     train_known_ratio: 0.75
     # what known ratios do we consider when testing
     eval_known_ratio: 0.0 # [1.0, 0.9, 0.8, 0.5]
-    # should the known values be masked out of the reported metrics or no
-    mask_eval_metrics: True
 
 # During testing, eval family of birds (0), or family of butterflies (1)
 #or 0 for non songbirds and 1 for songbirds
@@ -73,34 +67,6 @@ optimizer: "AdamW"  #"Adam", "AdamW", "SGD"
 losses:
 #scale attribute is just for plotting if the values are very small
   criterion: "CE" #or MAE or MSE or Focal or RMSLE  (loss to choose for optim )
-
-#auto lr will only work if there is only one optimizer
-auto_lr_find: False
-scheduler:
-  name: "ReduceLROnPlateau" #"" for no schuler, "ReduceLROnPlateau" #"ReduceLROnPlateau" or "StepLR" "WarmUp"
-  reduce_lr_plateau:
-    factor: 0.5
-    lr_schedule_patience: 20
-  step_lr:
-    step_size: 100
-    gamma: 0.5
-  warmup:
-    warmup_epochs: 5
-    max_epochs: 100
-
-  cyclical:
-    warmup_epochs: 10
-
-variables: &default_vars
-    ped_means: &ped_means []
-    ped_std: &ped_std []
-    bioclim_means: &bioclim_means []
-    bioclim_std: &bioclim_std []
-
-    sat_means: &sat_means []
-    sat_stds: &sat_stds []
-
-
 
 data:
   loaders:
@@ -122,24 +88,9 @@ data:
     val: ["valid_split.csv"]
     test: ["test_split.csv"]
 
-    targets_folder: ["targets"]
-    env_data_folder: ["environmental"]
-    images_folder: ["images"]
-    correction_thresh: "range_maps.pkl" # range maps - threshold = False
+    targets_file: ["satbird_usa_summer_targets.pkl"]
+    satbird_species_indices_path: "stats"
 
-    species_list: "/network/projects/ecosystem-embeddings/SatBird_data_v2/species_list_USA.txt"
-
-  correction_factor:
-     thresh:  # to train with RM
-
-  target:
-    type: "probs"  #binary for classification targets  or "probs" for regression (default should be "probs")
-
-    # choose subset of birds : "ducks" for trying on species [37] or [2] for cooper's hawk (non passerine) "songbirds" (307 species) or None (full set 684 species) "not_songbirds"
-    subset:  
-
-  species: "all"
-  species_eval:
+  multi_taxa: False
+  per_taxa_species_count: [670]
   total_species: 670
-trainer:
-  auto_scale_batch_size: False
