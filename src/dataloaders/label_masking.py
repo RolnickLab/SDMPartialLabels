@@ -184,7 +184,7 @@ def get_unknown_mask_indices(
         elif (
             predict_family_of_species == 1 and not multi_taxa
         ):  # songbirds to eval in SatBird only setup
-            unk_mask_indices = songbird_masking(index=0, data_base_dir=data_base_dir)
+            unk_mask_indices = songbird_masking(index=1, data_base_dir=data_base_dir)
         else:  # random unknown indices over all available species
             unk_mask_indices = random_species_masking(
                 available_species_mask=available_species_mask, max_known=max_known
