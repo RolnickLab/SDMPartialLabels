@@ -135,7 +135,7 @@ class SDMEnvMaskedDataset(EnvDataset):
         self.num_species = num_species
         self.maximum_known_labels_ratio = maximum_known_labels_ratio
         self.per_taxa_species_count = per_taxa_species_count
-        self.multi_taxa = (multi_taxa,)
+        self.multi_taxa = multi_taxa
         self.predict_family_of_species = predict_family
         self.quantized_mask_bins = quantized_mask_bins
 
