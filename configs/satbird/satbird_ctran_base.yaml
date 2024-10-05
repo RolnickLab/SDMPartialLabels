@@ -3,13 +3,6 @@ save_path: "experiments_outputs/ctran_dummy"
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 load_ckpt_path: ""
 save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
-log_comet: True
-
-overfit_batches: 0.0
-# maximum number of epochs to train for
-max_epochs: 50
-# base directory
-base_dir: ""
 
 dataloader_to_use: "SDMEnvMaskedDataset"
 
@@ -19,40 +12,23 @@ comet:
   experiment_name: "baseline_MLP_RTran" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
-experiment:
-  #TASK and name should always be ebird_classifier --> maybe remove it 
-  task: "ebird_classifier"
-  name: "ebird_classifier"
-  seed: 42
-  module:
-    #choose model : "resnet18" "resnet50" "inceptionv3" "linear" (just a linear model)
-    model: "MlpEncoder"
-    #"linear" or "linear_net" for a 2 layer MLP
-    fc: "linear"
-    #use pretrained weights ( torchvision )
-    pretrained: False
-    # resume training from another model (transfer learning), set empty if training from scratch
-    resume: ""
-    freeze: False
-    #initializes biases of the output layer sothat sigmoid(bias) = mean over the training set for each species
-    init_bias: ""
-    means_path: ""
-    lr: 0.0001
+model:
+  name: "CTranModel"
+  input_dim: 27
+  hidden_dim: 512
+  backbone: "MlpEncoder"
 
-Ctran:
+training:
+  seed: 1337
+  lr: 0.0001
+  max_epochs: 50
+
+partial_labels:
     use: true
-    # Resnet18 or Resnet50
-    backbone: "MlpEncoder"
-    # use ImageNet pretrained weights
-    pretrained_backbone: False
-    # size of hidden feature vector: should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
-    features_size: 512
     # mask known labels out of the loss (true or false)
     masked_loss: False
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
     quantized_mask_bins: 4
-    # use positional encoding
-    use_positional_encoding: True
     # max ratio of unknown labels during training
     train_known_ratio: 0.75
     # what known ratios do we consider when testing
@@ -60,12 +36,6 @@ Ctran:
 
 # During testing, eval family of birds (0), or family of butterflies (1)
 predict_family_of_species: -1
-
-optimizer: "AdamW"  #"Adam", "AdamW", "SGD"
-
-losses:
-#scale attribute is just for plotting if the values are very small
-  criterion: "CE" #or MAE or MSE or Focal or RMSLE  (loss to choose for optim )
 
 data:
   loaders:

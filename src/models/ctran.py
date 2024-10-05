@@ -15,7 +15,6 @@ class CTranModel(nn.Module):
         self,
         num_classes,
         backbone="MlpEncoder",
-        pretrained_backbone=False,
         quantized_mask_bins=1,
         input_channels=1,
         n_layers=4,

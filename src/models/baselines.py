@@ -30,20 +30,18 @@ class SimpleMLPMasked(nn.Module):
         input_channels,
         d_hidden,
         num_classes,
+        quantized_mask_bins=3,
         backbone=None,
-        attention_layers=2,
-        heads=2,
-        num_unique_mask_values=3,
     ):
         super(SimpleMLPMasked, self).__init__()
 
-        self.num_unique_mask_values = num_unique_mask_values
+        self.num_unique_mask_values = quantized_mask_bins
 
         self.layer_1 = nn.Linear(input_channels + (self.num_unique_mask_values * num_classes), d_hidden)
         self.layer_2 = nn.Linear(d_hidden, d_hidden)
         self.out_layer = nn.Linear(d_hidden, num_classes)
 
-    def forward(self, x, mask):
+    def forward(self, x, mask, mask_q=None):
         mask = mask.long()
         one_hot_mask = F.one_hot(mask, num_classes=self.num_unique_mask_values).float()  # One-hot encoding
         one_hot_mask_flattened = one_hot_mask.view(mask.size(0), -1)  # Flatten to (batch_size, num_classes * 3)

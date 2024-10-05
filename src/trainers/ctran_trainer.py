@@ -7,6 +7,7 @@ from torch import nn
 from src.dataloaders.dataloader import *
 from src.losses import BCE, CustomCrossEntropyLoss, CustomFocalLoss, RMSLELoss
 from src.models.ctran import CTranModel
+from src.models.baselines import SimpleMLPMasked
 from src.trainers.base import BaseTrainer
 from src.utils import eval_species_split
 
@@ -20,20 +21,17 @@ class CTranTrainer(BaseTrainer):
 
         self.criterion = self.__loss_mapping(self.config.losses.criterion)
 
-        self.input_channels = 1
-        self.model = CTranModel(
+        self.model = globals()[self.config.model.name](
+            input_channels=self.config.model.input_dim,
+            d_hidden=self.config.model.hidden_dim,
             num_classes=self.num_species,
-            backbone=self.config.Ctran.backbone,
-            pretrained_backbone=self.config.Ctran.pretrained_backbone,
-            quantized_mask_bins=self.config.Ctran.quantized_mask_bins,
-            input_channels=self.input_channels,
-            d_hidden=self.config.Ctran.features_size,
-            use_pos_encoding=self.config.Ctran.use_positional_encoding,
+            backbone=self.config.model.backbone,
+            quantized_mask_bins=self.config.partial_labels.quantized_mask_bins,
         )
 
         # if eval_known_rate == 0, everything is unknown, but we want to predict certain families
         if (
-            self.config.Ctran.eval_known_ratio == 0
+            self.config.partial_labels.eval_known_ratio == 0
             and self.config.predict_family_of_species != -1
         ):
             self.class_indices_to_test = eval_species_split(

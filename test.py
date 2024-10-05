@@ -16,7 +16,7 @@ from pytorch_lightning.loggers import CometLogger
 
 import src.dataloaders.dataloader as dataloader
 import src.trainers.ctran_trainer as CtranTrainer
-from src.trainers.mlp_trainer import MLPTrainer
+from src.trainers.baseline_trainer import BaselineTrainer
 from src.utils import load_opts
 
 hydra_config_path = Path(__file__).resolve().parent / "configs/hydra.yaml"
@@ -56,9 +56,7 @@ def main(opts):
     print("hydra_opts", hydra_opts)
     args = hydra_opts.pop("args", None)
 
-    base_dir = args["base_dir"]
-    if not base_dir:
-        base_dir = get_original_cwd()
+    base_dir = get_original_cwd()
 
     config_path = os.path.join(base_dir, args["config"])
     default_config = os.path.join(base_dir, "configs/defaults.yaml")
@@ -67,17 +65,17 @@ def main(opts):
     config.base_dir = base_dir
 
     run_id = args["run_id"]
-    global_seed = get_seed(run_id, config.program.seed)
+    global_seed = get_seed(run_id, config.training.seed)
 
     config.save_path = os.path.join(base_dir, config.save_path, str(global_seed))
-    pl.seed_everything(config.program.seed)
+    pl.seed_everything(config.training.seed)
 
     datamodule = dataloader.SDMDataModule(config)
     datamodule.setup()
     if config.Ctran.use:
         task = CtranTrainer.CTranTrainer(config)
     else:
-        task = MLPTrainer(config)
+        task = BaselineTrainer(config)
 
     trainer_args = {}
 
@@ -123,7 +121,7 @@ def main(opts):
             for run_id in range(1, n_runs + 1):
                 # get path of a single experiment
                 run_id_path = os.path.join(
-                    config.load_ckpt_path, str(get_seed(run_id, config.program.seed))
+                    config.load_ckpt_path, str(get_seed(run_id, config.training.seed))
                 )
                 # get path of the best checkpoint (not last)
                 files = os.listdir(os.path.join(config.base_dir, run_id_path))
