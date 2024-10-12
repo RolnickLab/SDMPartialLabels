@@ -14,7 +14,7 @@ class CTranModel(nn.Module):
     def __init__(
         self,
         num_classes,
-        backbone="MlpEncoder",
+        backbone="SimpleMLPBackbone",
         pretrained_backbone=False,
         quantized_mask_bins=1,
         input_channels=1,
@@ -24,6 +24,7 @@ class CTranModel(nn.Module):
         heads=4,
         dropout=0.2,
         use_pos_encoding=False,
+        num_layers = 2
     ):
         """
         pos_emb is false by default
@@ -47,7 +48,9 @@ class CTranModel(nn.Module):
         self.n_embedding_state = self.quantized_mask_bins + 2
 
         self.backbone = globals()[backbone](
-            d_in=input_channels, d_out=d_hidden, dropout=dropout, n_layers=n_layers
+            input_channels=input_channels, pretrained=False, hidden_dim=d_hidden, num_layers=num_layers
+            #input_dim=input_channels, hidden_dim=d_hidden, output_dim=d_hidden
+            #d_in=input_channels, d_out=d_hidden, dropout=dropout, n_layers=n_layers
         )
 
         # Env embed layer
