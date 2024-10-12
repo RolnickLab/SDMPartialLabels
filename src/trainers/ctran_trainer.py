@@ -29,6 +29,11 @@ class CTranTrainer(BaseTrainer):
             input_channels=self.input_channels,
             d_hidden=self.config.Ctran.features_size,
             use_pos_encoding=self.config.Ctran.use_positional_encoding,
+            attention_layers=self.config.Ctran.attention_layers,
+            heads=self.config.Ctran.heads,
+            dropout=self.config.Ctran.dropout,
+            num_layers = self.config.Ctran.num_layers
+          
         )
 
         # if eval_known_rate == 0, everything is unknown, but we want to predict certain families
