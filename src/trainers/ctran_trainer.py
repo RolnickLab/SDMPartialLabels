@@ -32,8 +32,9 @@ class CTranTrainer(BaseTrainer):
             attention_layers=self.config.Ctran.attention_layers,
             heads=self.config.Ctran.heads,
             dropout=self.config.Ctran.dropout,
-            num_layers = self.config.Ctran.num_layers
-          
+            num_layers = self.config.Ctran.num_layers,
+            tokenize_state=self.config.Ctran.tokenize_state, 
+            use_unknown_token = self.config.Ctran.use_unknown_token
         )
 
         # if eval_known_rate == 0, everything is unknown, but we want to predict certain families
@@ -59,40 +60,40 @@ class CTranTrainer(BaseTrainer):
     def training_step(self, batch: Dict[str, Any], batch_idx: int):
         x = batch["data"]
         y = batch["targets"]
-        mask = batch["mask"].long()
-
+        mask = batch["mask"] #.long()
         y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
 
         loss = self.criterion(y_pred, y, mask=batch["available_species_mask"].long())
         self.log("train_loss", loss, on_epoch=True)
 
         if batch_idx % 50 == 0:
-            self.log_metrics(mode="train", pred=y_pred, y=y, mask=mask)
+            mask[mask > 0] = 1
+            self.log_metrics(mode="train", pred=y_pred, y=y, mask=mask.long())
 
         return loss
 
     def validation_step(self, batch: Dict[str, Any], batch_idx: int) -> None:
         x = batch["data"]
         y = batch["targets"]
-        mask = batch["mask"].long()
+        mask = batch["mask"]#.long()
 
         y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
-
-        self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask)
+        mask[mask > 0] = 1
+        self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask.long())
 
     def test_step(self, batch: Dict[str, Any], batch_idx: int) -> None:
         """Test step"""
         x = batch["data"]
         y = batch["targets"]
-        mask = batch["mask"].long()
-
+        mask = batch["mask"]#.long()
+        
         y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
 
         if self.class_indices_to_test is not None:
             y_pred = y_pred[:, self.class_indices_to_test]
             y = y[:, self.class_indices_to_test]
-            mask = mask[:, self.class_indices_to_test]
-
+            mask = mask[:, self.class_indices_to_test].long()
+        mask[mask > 0] = 1
         self.log_metrics(mode="test", pred=y_pred, y=y, mask=mask)
 
         # saving model predictions

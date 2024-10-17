@@ -1,5 +1,5 @@
 #where to save checkpoints
-save_path: "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran/birdxbutterflies_envencoder_hid512"
+save_path: "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran/birdxbutterflies_removebinning_fix_useunknowntoken"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 load_ckpt_path: ""
@@ -14,8 +14,8 @@ base_dir: ""
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: ["rtran", "172butterfly_species", "satbird+ satbutterflyv1 + satbutterflyv2"]
-  experiment_name: "baseline_CTran_birdbutterfly_hid512_layers" # specify for training, or use to report test results, TODO: also use to resume training
+  tags: ["rtran", "removebinning", "172butterfly_species", "satbird+ satbutterflyv1 + satbutterflyv2"]
+  experiment_name: "baseline_CTran_birdbutterfly_removebinning_fix_useunknowntoken" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 dataloader_to_use: "SDMEnvMaskedDataset"
@@ -51,7 +51,7 @@ Ctran:
     # mask known labels out of the loss (true or false)
     masked_loss: False
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
-    quantized_mask_bins: 4
+    quantized_mask_bins: 0
     # use positional encoding
     use_positional_encoding: True
     attention_layers: 3
@@ -61,7 +61,9 @@ Ctran:
     train_known_ratio: 0.75
     # what known ratios do we consider when testing
     eval_known_ratio: 0 # 0 or 1
-    num_layers: 2
+    num_layers: 6
+    tokenize_state: True
+    use_unknown_token: True
 
 
 # eval family of birds (0), or family of butterflies (1)

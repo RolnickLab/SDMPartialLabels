@@ -174,16 +174,23 @@ class SDMEnvMaskedDataset(EnvDataset):
             num_bins = self.quantized_mask_bins
             mask_q = torch.where(mask > 0, torch.ceil(mask * num_bins) / num_bins, mask)
             mask[mask > 0] = 1
+            mask = mask.long()
+        elif self.quantized_mask_bins ==0:
+            mask = mask
+            mask_q = mask.detach().clone()
+          
+            mask_q[mask_q > 0] = 1
         else:
             mask[mask > 0] = 1
             mask_q = mask
+            mask = mask.long()
 
         return {
             "data": data,
             "targets": targets,
             "hotspot_id": hotspot_id,
             "available_species_mask": available_species_mask,
-            "mask": mask.long(),
+            "mask": mask,
             "mask_q": mask_q,
         }
 

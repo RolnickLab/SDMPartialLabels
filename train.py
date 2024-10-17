@@ -24,7 +24,7 @@ def main(opts):
     args = hydra_opts.pop("args", None)
 
     base_dir = args["base_dir"]
-    run_id = args["run_id"]
+    run_id = 1 #args["run_id"]
     if not base_dir:
         base_dir = get_original_cwd()
 
@@ -40,16 +40,17 @@ def main(opts):
         config.comet.experiment_name + "_seed_" + str(global_seed)
     )
     config.base_dir = base_dir
-
+    
     # set global seed
     pl.seed_everything(global_seed)
-
+    #config.save_path = args["save_path"]
+    #config.Ctran.num_layers = args["num_layers"]
     if not os.path.exists(config.save_path):
         os.makedirs(config.save_path)
     with open(os.path.join(config.save_path, "config.yaml"), "w") as fp:
         OmegaConf.save(config=config, f=fp)
     fp.close()
-
+    
     datamodule = dataloader.SDMDataModule(config)
 
     if config.Ctran.use:
