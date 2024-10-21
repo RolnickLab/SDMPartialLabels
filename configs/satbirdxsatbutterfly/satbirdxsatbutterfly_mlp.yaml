@@ -23,6 +23,7 @@ training:
   seed: 1337
   lr: 0.0001
   max_epochs: 50
+  accelerator: "cpu"
 
 partial_labels:
     use: false

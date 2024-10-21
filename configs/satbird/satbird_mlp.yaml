@@ -22,6 +22,7 @@ training:
   seed: 1337
   lr: 0.0001
   max_epochs: 50
+  accelerator: "cpu"
 
 partial_labels:
     use: false
@@ -50,7 +51,7 @@ data:
        'phihox', 'sltppt', 'sndppt']
   
   files:
-    base: "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer"
+    base: "/Users/hagerradi/Projects/SDMPartialLabels/data/SatBird"
     train: ["train_split.csv"]
     val: ["valid_split.csv"]
     test: ["test_split.csv"]

@@ -101,14 +101,16 @@ def custom_replace(tensor, on_neg_1, on_zero, on_one):
     return res
 
 
-def custom_replace_n(tensor):
+def custom_replace_n(data: torch.tensor, n: int):
     """
     replacing unique values with their index
     """
-    res = tensor.clone()
-    unique_vals = torch.unique(tensor)
-    for i, val in enumerate(unique_vals):
-        res[tensor == val] = i
+    original_values = torch.arange(0, 1, 1/n) + 1/n
+    original_values = torch.cat((torch.tensor([-1, 0]), original_values), dim=0)
+    new_values = torch.arange(0, n + 2, 1)
+    res = data.clone()
+    for original_value, new_value in zip(original_values, new_values):
+        res[data == original_value] = new_value
 
     return res
 

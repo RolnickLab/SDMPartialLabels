@@ -15,7 +15,7 @@ from omegaconf import OmegaConf
 from pytorch_lightning.loggers import CometLogger
 
 import src.dataloaders.dataloader as dataloader
-import src.trainers.ctran_trainer as CtranTrainer
+import src.trainers.sdm_partial_trainer as SDMPartialTrainer
 from src.trainers.baseline_trainer import BaselineTrainer
 from src.utils import load_opts
 
@@ -72,12 +72,13 @@ def main(opts):
 
     datamodule = dataloader.SDMDataModule(config)
     datamodule.setup()
-    if config.Ctran.use:
-        task = CtranTrainer.CTranTrainer(config)
+    if config.partial_labels.use:
+        task = SDMPartialTrainer.SDMPartialTrainer(config)
     else:
         task = BaselineTrainer(config)
 
     trainer_args = {}
+    trainer_args["accelerator"] = config.training.accelerator
 
     if config.comet.experiment_key:
         comet_logger = CometLogger(

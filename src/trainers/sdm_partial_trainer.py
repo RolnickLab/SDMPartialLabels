@@ -12,12 +12,12 @@ from src.trainers.base import BaseTrainer
 from src.utils import eval_species_split
 
 
-class CTranTrainer(BaseTrainer):
+class SDMPartialTrainer(BaseTrainer):
     def __init__(self, config, **kwargs: Any) -> None:
         """
         opts: configurations
         """
-        super(CTranTrainer, self).__init__(config)
+        super(SDMPartialTrainer, self).__init__(config)
 
         self.criterion = self.__loss_mapping(self.config.losses.criterion)
 

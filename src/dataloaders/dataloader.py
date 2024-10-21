@@ -67,7 +67,6 @@ class SDMEnvDataset(EnvDataset):
             data: tensor of input data num_hotspots x env variables
             targets: tensor of targets num_hotspots x num_species,
             mode : train|val|test
-            target_type : "probs" or "binary"
             targets_folder: folder name for labels/targets
             maximum_known_labels_ratio: known labels ratio for Ctran
             num_species: total number of species/classes to predict
@@ -201,7 +200,6 @@ class SDMDataModule(pl.LightningDataModule):
         self.num_workers = self.config.data.loaders.num_workers
         self.data_base_dir = self.config.data.files.base
         self.targets_file = self.config.data.files.targets_file
-        self.target_type = self.config.data.target.type
 
         # combining multiple train files
         self.df_train = pd.read_csv(

@@ -13,7 +13,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 
 import src.dataloaders.dataloader as dataloader
-import src.trainers.ctran_trainer as CtranTrainer
+import src.trainers.sdm_partial_trainer as SDMPartialTrainer
 from src.trainers.baseline_trainer import BaselineTrainer
 from src.utils import load_opts
 
@@ -52,7 +52,7 @@ def main(opts):
     datamodule = dataloader.SDMDataModule(config)
 
     if config.partial_labels.use:
-        task = CtranTrainer.CTranTrainer(config)
+        task = SDMPartialTrainer.SDMPartialTrainer(config)
     else:
         task = BaselineTrainer(config)
 
@@ -84,9 +84,9 @@ def main(opts):
     )
 
     trainer_args["callbacks"] = [checkpoint_callback]
-    trainer_args["max_epochs"] = config.max_epochs
+    trainer_args["max_epochs"] = config.training.max_epochs
     trainer_args["check_val_every_n_epoch"] = 4
-    trainer_args["accelerator"] = "gpu"
+    trainer_args["accelerator"] = config.training.accelerator
 
     trainer = pl.Trainer(**trainer_args)
 

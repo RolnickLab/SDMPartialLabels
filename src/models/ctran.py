@@ -101,7 +101,7 @@ class CTranModel(nn.Module):
         mask[mask == -2] = -1
         if self.quantized_mask_bins > 1:
             mask_q[mask_q == -2] = -1
-            label_feat_vec = custom_replace_n(mask_q).long()
+            label_feat_vec = custom_replace_n(mask_q, self.quantized_mask_bins).long()
         else:
             label_feat_vec = custom_replace(mask, 0, 1, 2).long()
 

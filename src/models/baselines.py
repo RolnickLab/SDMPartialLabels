@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 
-from src.models.utils import init_first_layer_weights
+from src.models.utils import custom_replace_n
 
 
 class SimpleMLP(nn.Module):
@@ -30,21 +30,21 @@ class SimpleMLPMasked(nn.Module):
         input_channels,
         d_hidden,
         num_classes,
-        quantized_mask_bins=3,
+        quantized_mask_bins=1,
         backbone=None,
     ):
         super(SimpleMLPMasked, self).__init__()
 
         self.num_unique_mask_values = quantized_mask_bins
 
-        self.layer_1 = nn.Linear(input_channels + (self.num_unique_mask_values * num_classes), d_hidden)
+        self.layer_1 = nn.Linear(input_channels + ((self.num_unique_mask_values + 2) * num_classes), d_hidden)
         self.layer_2 = nn.Linear(d_hidden, d_hidden)
         self.out_layer = nn.Linear(d_hidden, num_classes)
 
     def forward(self, x, mask, mask_q=None):
-        mask = mask.long()
-        one_hot_mask = F.one_hot(mask, num_classes=self.num_unique_mask_values).float()  # One-hot encoding
-        one_hot_mask_flattened = one_hot_mask.view(mask.size(0), -1)  # Flatten to (batch_size, num_classes * 3)
+        mask_q = custom_replace_n(mask_q, self.num_unique_mask_values).long()
+        one_hot_mask = F.one_hot(mask_q, num_classes=self.num_unique_mask_values + 2).float()  # One-hot encoding
+        one_hot_mask_flattened = one_hot_mask.view(mask_q.size(0), -1)  # Flatten to (batch_size, num_classes * 3)
 
         x_combined = torch.cat((x, one_hot_mask_flattened), dim=1)
         x = F.relu(self.layer_1(x_combined))
