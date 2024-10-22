@@ -8,13 +8,13 @@ from src.trainers.base import BaseTrainer
 from src.utils import eval_species_split
 
 
-class MLPTrainer(BaseTrainer):
+class BaselineTrainer(BaseTrainer):
     def __init__(self, config):
-        super(MLPTrainer, self).__init__(config)
+        super(BaselineTrainer, self).__init__(config)
 
         self.model = SimpleMLP(
-            input_dim=self.config.experiment.module.input_dim,
-            hidden_dim=self.config.experiment.module.hidden_dim,
+            input_dim=self.config.model.input_dim,
+            hidden_dim=self.config.model.hidden_dim,
             output_dim=self.num_species,
         )
 
