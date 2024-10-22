@@ -2,7 +2,7 @@
 save_path: "experiments_outputs/baseline_MaskedMLP_satbirdxsatbutterfly_v0"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: ""
+load_ckpt_path: "/Users/hagerradi/Projects/SDMPartialLabels/experiments_outputs/baseline_MaskedMLP_satbirdxsatbutterfly_v0/1337/epoch=47-step=17040.ckpt"
 save_preds_path: ""
 
 comet:
@@ -11,7 +11,7 @@ comet:
   experiment_name: "baseline_MaskedMLP_satbirdxsatbutterfly_v0" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
-dataloader_to_use: "SDMEnvDataset"
+dataloader_to_use: "SDMEnvMaskedDataset"
 
 model:
   name: "SimpleMLPMasked"
@@ -26,7 +26,7 @@ training:
   accelerator: "cpu"
 
 partial_labels:
-    use: false
+    use: true
     # mask known labels out of the loss (true or false)
     masked_loss: False
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
@@ -62,7 +62,7 @@ data:
                    "SatButterfly_dataset/SatButterfly_v1/USA/butterfly_all_targets_v1.2.pkl",
                    "SatButterfly_dataset/SatButterfly_v2/USA/butterfly_all_targets_v1.2.pkl"]
 
-    satbird_species_indices_path: "SatBird_data_v2/USA_summer/stats"
+    satbird_species_indices_path: "SatBird/stats"
 
   # when combining two different taxa
   multi_taxa: True

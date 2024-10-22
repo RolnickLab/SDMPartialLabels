@@ -41,7 +41,8 @@ class SimpleMLPMasked(nn.Module):
         self.layer_2 = nn.Linear(d_hidden, d_hidden)
         self.out_layer = nn.Linear(d_hidden, num_classes)
 
-    def forward(self, x, mask, mask_q=None):
+    def forward(self, x, mask, mask_q):
+        mask_q[mask_q == -2] = -1
         mask_q = custom_replace_n(mask_q, self.num_unique_mask_values).long()
         one_hot_mask = F.one_hot(mask_q, num_classes=self.num_unique_mask_values + 2).float()  # One-hot encoding
         one_hot_mask_flattened = one_hot_mask.view(mask_q.size(0), -1)  # Flatten to (batch_size, num_classes * 3)
