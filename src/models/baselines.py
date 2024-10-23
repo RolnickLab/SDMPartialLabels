@@ -2,13 +2,12 @@
 NN models
 Code is based on the C-tran paper: https://github.com/QData/C-Tran
 """
-
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision.models as models
 from torch import Tensor
 
-from src.models.utils import init_first_layer_weights
+from src.models.utils import custom_replace_n
 
 
 class SimpleMLP(nn.Module):
@@ -24,6 +23,39 @@ class SimpleMLP(nn.Module):
         x = self.layer_3(x)
         return x
 
+    
+class SimpleMLPMasked(nn.Module):
+    def __init__(
+        self,
+        input_channels,
+        d_hidden,
+        num_classes,
+        quantized_mask_bins=1,
+        backbone=None,
+    ):
+        super(SimpleMLPMasked, self).__init__()
+
+        self.num_unique_mask_values = quantized_mask_bins
+
+        self.layer_1 = nn.Linear(input_channels + ((self.num_unique_mask_values + 2) * num_classes), d_hidden)
+        self.layer_2 = nn.Linear(d_hidden, d_hidden)
+        self.out_layer = nn.Linear(d_hidden, num_classes)
+
+    def forward(self, x, mask_q):
+        mask_q[mask_q == -2] = -1
+        mask_q = torch.where(mask_q > 0, torch.ceil(mask_q * self.num_unique_mask_values) / self.num_unique_mask_values, mask_q)
+        mask_q = custom_replace_n(mask_q, self.num_unique_mask_values).long()
+        one_hot_mask = F.one_hot(mask_q, num_classes=self.num_unique_mask_values + 2).float()  # One-hot encoding
+        one_hot_mask_flattened = one_hot_mask.view(mask_q.size(0), -1)  # Flatten to (batch_size, num_classes * 3)
+
+        x_combined = torch.cat((x, one_hot_mask_flattened), dim=1)
+        x = F.relu(self.layer_1(x_combined))
+        x = F.relu(self.layer_2(x))
+        x = self.out_layer(x)
+        return x
+
+
+
 class SimpleMLPBackbone(nn.Module):
     def __init__(self, input_channels, pretrained=False, hidden_dim=64, num_layers=2):
         super(SimpleMLPBackbone, self).__init__()
@@ -32,13 +64,14 @@ class SimpleMLPBackbone(nn.Module):
         for i in range(1, num_layers):
             setattr(self, f'layer_{i+1}',  nn.Linear(hidden_dim, hidden_dim))
 
+
     def forward(self, x):
         x = F.relu(self.layer_1(x))
         for i in range(1, self.num_layers-1):
             x = F.relu(getattr(self, f'layer_{i+1}')(x))
         x = getattr(self, f'layer_{self.num_layers}')(x)
         return x
-    
+
 class PredHead(nn.Module):
 
     def __init__(self, d_in: int, d_out: int) -> None:
@@ -92,160 +125,6 @@ class MLP(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         return self.head(self.mlp_encoder(x))
-
-
-class Resnet18(nn.Module):
-    def __init__(self, input_channels=3, pretrained=True):
-        super(Resnet18, self).__init__()
-        self.x_input_channels = input_channels
-        self.pretrained_backbone = pretrained
-
-        self.freeze_base = False
-        self.unfreeze_base_l4 = False
-
-        self.base_network = models.resnet18(pretrained=self.pretrained_backbone)
-        original_in_channels = self.base_network.conv1.in_channels
-
-        # if input is not RGB
-        if self.x_input_channels != original_in_channels:
-            original_weights = self.base_network.conv1.weight.data.clone()
-            self.base_network.conv1 = nn.Conv2d(
-                self.x_input_channels,
-                64,
-                kernel_size=(7, 7),
-                stride=(2, 2),
-                padding=(3, 3),
-                bias=False,
-            )
-            if self.pretrained_backbone:
-                self.base_network.conv1.weight.data[:, :original_in_channels, :, :] = (
-                    original_weights
-                )
-                self.base_network.conv1.weight.data = init_first_layer_weights(
-                    self.x_input_channels, original_weights
-                )
-
-        if self.freeze_base:
-            for param in self.base_network.parameters():
-                param.requires_grad = False
-
-    def forward(self, images):
-        x = self.base_network.conv1(images)
-        x = self.base_network.bn1(x)
-        x = self.base_network.relu(x)
-        x = self.base_network.maxpool(x)
-        x = self.base_network.layer1(x)
-        x = self.base_network.layer2(x)
-        x = self.base_network.layer3(x)
-        x = self.base_network.layer4(x)
-        # x = self.base_network.avgpool(x)
-        return x
-
-
-class Resnet50(nn.Module):
-    def __init__(self, input_channels=3, pretrained=True):
-        super(Resnet50, self).__init__()
-        self.x_input_channels = input_channels
-        self.pretrained_backbone = pretrained
-
-        self.freeze_base = False
-        self.unfreeze_base_l4 = False
-
-        self.base_network = models.resnet50(pretrained=self.pretrained_backbone)
-        original_in_channels = self.base_network.conv1.in_channels
-
-        # if input is not RGB
-        if self.x_input_channels != original_in_channels:
-            original_weights = self.base_network.conv1.weight.data.clone()
-            self.base_network.conv1 = nn.Conv2d(
-                self.x_input_channels,
-                64,
-                kernel_size=(7, 7),
-                stride=(2, 2),
-                padding=(3, 3),
-                bias=False,
-            )
-            if self.pretrained_backbone:
-                self.base_network.conv1.weight.data[:, :original_in_channels, :, :] = (
-                    original_weights
-                )
-                self.base_network.conv1.weight.data = init_first_layer_weights(
-                    self.x_input_channels, original_weights
-                )
-
-        if self.freeze_base:
-            for param in self.base_network.parameters():
-                param.requires_grad = False
-        elif self.unfreeze_base_l4:
-            for p in self.base_network.layer4.parameters():
-                p.requires_grad = True
-
-        # TODO: use avgpool layer: original is AdaptiveAvgPool2d(output_size=(1, 1))
-        self.base_network.avgpool = nn.AvgPool2d(kernel_size=7, stride=1, padding=0)
-
-    def forward(self, images):
-        x = self.base_network.conv1(images)
-        x = self.base_network.bn1(x)
-        x = self.base_network.relu(x)
-        x = self.base_network.maxpool(x)
-        x = self.base_network.layer1(x)
-        x = self.base_network.layer2(x)
-        x = self.base_network.layer3(x)
-        x = self.base_network.layer4(x)
-        return x
-
-
-class Resnet101(nn.Module):
-    def __init__(self, input_channels=3, pretrained=True):
-        super(Resnet101, self).__init__()
-        self.x_input_channels = input_channels
-        self.pretrained_backbone = pretrained
-
-        self.freeze_base = False
-        self.unfreeze_base_l4 = False
-
-        self.base_network = models.resnet101(pretrained=self.pretrained_backbone)
-        original_in_channels = self.base_network.conv1.in_channels
-
-        # if input is not RGB
-        if self.x_input_channels != original_in_channels:
-            original_weights = self.base_network.conv1.weight.data.clone()
-            self.base_network.conv1 = nn.Conv2d(
-                self.x_input_channels,
-                64,
-                kernel_size=(7, 7),
-                stride=(2, 2),
-                padding=(3, 3),
-                bias=False,
-            )
-            if self.pretrained_backbone:
-                self.base_network.conv1.weight.data[:, :original_in_channels, :, :] = (
-                    original_weights
-                )
-                self.base_network.conv1.weight.data = init_first_layer_weights(
-                    self.x_input_channels, original_weights
-                )
-
-        if self.freeze_base:
-            for param in self.base_network.parameters():
-                param.requires_grad = False
-        elif self.unfreeze_base_l4:
-            for p in self.base_network.layer4.parameters():
-                p.requires_grad = True
-
-        self.base_network.avgpool = nn.AvgPool2d(kernel_size=7, stride=1, padding=0)
-
-    def forward(self, images):
-        x = self.base_network.conv1(images)
-        x = self.base_network.bn1(x)
-        x = self.base_network.relu(x)
-        x = self.base_network.maxpool(x)
-        x = self.base_network.layer1(x)
-        x = self.base_network.layer2(x)
-        x = self.base_network.layer3(x)
-        x = self.base_network.layer4(x)
-        # x = self.base_network.avgpool(x)
-        return x
 
 
 class SelfAttnLayer(nn.Module):

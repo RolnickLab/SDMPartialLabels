@@ -1,195 +1,108 @@
-save_path: ""
-load_ckpt : ""
-#log the experiment to comet ? 
+#where to save checkpoints
+save_path:
+load_ckpt_path:
+save_preds_path:
+
+dataloader_to_use:
+
 log_comet: true
-save_preds_path: ""
-#overfit batches (for debugging)
-overfit_debug: false
-#number of batches to overfit on 
-overfit_batches: 0
-
-#use location?
-loc:
-  use: false
-  #if false, loc network and image network are trained separately and the output multipliesd as in the geopriors paper.
-  #else, we concatenate features from the two subnetworks and a part is trained jointly
-  concat: false
-  #use elevation data for z in location (for now, leave as False, until elevation data is integrated)
-  elev: false
-  #take into account number of available checklists at a hotspot (leave False for now)
-  num_checklists: false
-  
 comet:
-  project_name: "env_ecosystem" #"ecosystem-duck"
-  tags: ["test_run"]
+  project_name:
+  tags:
+  experiment_name: "" # specify for training, or use to report test results, TODO: also use to resume training
+  experiment_key: "" # use to report test results,
 
-experiment:
-  task: "ebird_classifier"
-  name: "ebird_classifier"
-  seed: 42
+model:
+  name:
+  input_dim:
+  hidden_dim:
+  backbone:
 
-  module:
-    model: "resnet18"
-    pretrained: True
-    transfer_weights: ""
-    init_bias: "means"
-    means_path: ""
-    lr: 0.001
-    resume: ""
-    freeze: false
-    use_weighted_loss: False
-    loss_weight: "log" #"log", "nchklists"
+training:
+  seed: 1337
+  lr:
+  max_epochs: 50
 
-# Should be -1 during training, During testing, eval family of birds (0), or family of butterflies (1) | in SatBird only, eval family of non-songbirds (0), or songbirds (1)
-predict_family_of_species: 0
-
-Ctran:
-    use: False
-    # Resnet18 or Resnet50
-    backbone:
-    # use ImageNet pretrained weights
-    pretrained_backbone:
-    # size of hidden feature vector: should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
-    features_size:
+partial_labels:
+    use: false
     # mask known labels out of the loss (true or false)
-    masked_loss:
+    masked_loss: False
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
-    quantized_mask_bins:
-    # use positional encoding
-    use_positional_encoding:
-    # use the actual regression labels as input to the model and multiply with the embeddings (true or false)
-    scale_embeddings_by_labels:
+    quantized_mask_bins: 4
     # max ratio of unknown labels during training
-    train_unknown_ratio:
+    train_known_ratio: 0.75
     # what known ratios do we consider when testing
-    eval_unknown_ratio:
-    # should the known values be masked out of the reported metrics or no
-    mask_eval_metrics:
-    # eval family of birds (0), or family of butterflies (1)
-    predict_family_of_species:
-
-optimizer: "SGD"  #"Adam"
-
-scheduler: 
-  name: "StepLR" #"ReduceLROnPlateau" #"ReduceLROnPlateau" #or "StepLR" "WarmUp"
-  reduce_lr_plateau:
-    factor: 0.1
-    lr_schedule_patience: 5
-  step_lr:
-    step_size: 10 
-    gamma: 0.5
-  warmup:
-    warmup_epochs: 10
-    max_epochs: 500
-    
-  cyclical:
-    warmup_epochs: 10
+    eval_known_ratio: 0.0 # [1.0, 0.9, 0.8, 0.5]
 
 data:
   loaders:
-    num_workers: 4
-    batch_size: 8
-  #What kind of satellite input ? "refl" for "raw" reflectance values or "img" for 0-255 values (only supported for "rgb" and "nir" bands)
-  datatype: "refl" 
-  
-  bands: ["r", "g", "b", "nir"]
-  res: 10 
-  
-  env: [] #["bioclim", "ped"]
-  env_var_sizes: [] #[19, 8]
+    num_workers: 8
+    batch_size: 256
 
-  multiscale : [512,224]
-  multiscale_bands: ['landuse','sats']    #choices: [landuse ,sat]
-  multiscale_agg: 'features'    #choices [features, vectors]
-  ped: 
-      #pedological rasters
-      res: 250
-  bioclim: 
-      #bioclim 
-      res: 1000
+  #o you want to use environmental data (pedological and bioclimatic (low res) data) #ped" or "bioclim" or both or empty list
+  env: ['bio_1', 'bio_2',
+       'bio_3', 'bio_4', 'bio_5', 'bio_6', 'bio_7', 'bio_8', 'bio_9', 'bio_10',
+       'bio_11', 'bio_12', 'bio_13', 'bio_14', 'bio_15', 'bio_16', 'bio_17',
+       'bio_18', 'bio_19', 'bdticm', 'bldfie', 'cecsol', 'clyppt', 'orcdrc',
+       'phihox', 'sltppt', 'sndppt']
+
   files:
-    base: ""
-    train: ""
-    val: ""
-    test: ""
+    base:
+    train:
+    val:
+    test:
 
-    targets_folder: ""
-    env_data_folder: ""
-    images_folder: ""
-    correction_thresh: "" # range maps - threshold = False
+    # it has to be in this order [bird, butterfly, colocated]
+    targets_file:
 
-    rgbnir_means: ""
-    rgbnir_stds: ""
+    satbird_species_indices_path:
 
-    rgb_means: ""
-    rgb_stds: ""
+  # when combining two different taxa
+  multi_taxa:
+  per_taxa_species_count:
+  total_species:
 
-    env_means: ""
-    env_stds: ""
-
-  correction_factor:
-     thresh:  # to train with RM
-
-  target:
-    type: "probs"  #binary or probs
-    # choose subset of birds : "ducks" for trying on species [37] or "songbirds" (307 species) or None (full set 684 species)
-    subset:
-
-  species: []
-  total_species: 684
-    
-program: # These are the arguments that define how the train.py script works
-  seed: 1337
-  output_dir: output
-  data_dir: data
-  log_dir: logs
-  overwrite: False
-  
 losses:
 #scale attribute is just for plotting if the values are very small
   criterion: "CE" #or MAE or MSE  (loss to choosefor optim )
-  ce:
-    ignore: False
-      #weights on the cross entropy
+
+metrics:
+  - name: ce
+    ignore: True
+    #weights on the cross entropy
     lambd_pres: 1
     lambd_abs: 1
-  metrics:
-    - name: ce
-      ignore: True
-      #weights on the cross entropy
-      lambd_pres: 1
-      lambd_abs: 1
-      scale : 1
-    - name: mae
-      ignore: False
-      scale: 10
-    - name: nonzero_mae
-      ignore: False
-      scale: 10
-    - name: mse
-      ignore: False
-      scale: 10
-    - name: nonzero_mse
-      ignore: False
-      scale: 10
-    - name: topk
-      ignore: False
-      scale: 1
-    - name: topk2
-      ignore: False
-      scale: 1
-    - name: r2
-      ignore: True #False
-      scale: 1
-    - name: kl
-      ignore: False
-      scale : 1
-    - name: accuracy
-      ignore: True
-      scale: 1
-    - name: top10
-      ignore: False
-      scale: 1
-    - name: top30
-      ignore: False
-      scale: 1
+    scale : 1
+  - name: mae
+    ignore: False
+    scale: 10
+  - name: nonzero_mae
+    ignore: False
+    scale: 10
+  - name: mse
+    ignore: False
+    scale: 10
+  - name: nonzero_mse
+    ignore: False
+    scale: 10
+  - name: topk
+    ignore: False
+    scale: 1
+  - name: topk2
+    ignore: False
+    scale: 1
+  - name: r2
+    ignore: True #False
+    scale: 1
+  - name: kl
+    ignore: False
+    scale : 1
+  - name: accuracy
+    ignore: True
+    scale: 1
+  - name: top10
+    ignore: False
+    scale: 1
+  - name: top30
+    ignore: False
+    scale: 1

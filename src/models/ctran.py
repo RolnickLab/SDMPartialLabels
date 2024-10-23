@@ -15,16 +15,13 @@ class CTranModel(nn.Module):
     def __init__(
         self,
         num_classes,
-        backbone="SimpleMLPBackbone",
-        pretrained_backbone=False,
+        backbone="MlpEncoder",
         quantized_mask_bins=1,
         input_channels=1,
-        n_layers=4,
         d_hidden=512,
         attention_layers=3,
         heads=4,
         dropout=0.2,
-        use_pos_encoding=False,
         num_layers = 2,
         tokenize_state=False,
         use_unknown_token = False
@@ -41,14 +38,10 @@ class CTranModel(nn.Module):
         attention_layers: number of attention layes
         heads: number of attention heads
         dropout: dropout ratio
-        use_pos_encoding: flag to use positional encoding or not
-        
         use_unknown_token: add special parameter to encode unknown state when state is linearly tokenized
         """
         super(CTranModel, self).__init__()
         self.d_hidden = d_hidden  # this should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
-        self.use_pos_encoding = use_pos_encoding
-
         self.quantized_mask_bins = quantized_mask_bins
         self.n_embedding_state = self.quantized_mask_bins + 2
         self.use_unknown_token = use_unknown_token
@@ -103,7 +96,7 @@ class CTranModel(nn.Module):
         self.self_attn_layers.apply(weights_init)
         self.output_linear.apply(weights_init)
 
-    def forward(self, images, mask, mask_q=None):
+    def forward(self, images, mask_q):
         images = images.type(torch.float32)
         z_features = self.backbone(
             images.unsqueeze(-1)
@@ -116,26 +109,21 @@ class CTranModel(nn.Module):
             const_label_input
         )  # LxD # (128, 670, 512)
 
-        mask[mask == -2] = -1
-        if not self.tokenize_state:
-
-            if self.quantized_mask_bins > 1:
-                mask_q[mask_q == -2] = -1
-                label_feat_vec = custom_replace_n(mask_q).long()
-            else:
-                label_feat_vec = custom_replace(mask, 0, 1, 2).long()
-            state_embeddings = self.state_embeddings(label_feat_vec)
-        else: 
+        if self.quantized_mask_bins >= 1:
+            mask_q[mask_q == -2] = -1
+            mask_q = torch.where(mask_q > 0, torch.ceil(mask_q * self.quantized_mask_bins) / self.quantized_mask_bins, mask_q)
+            label_feat_vec = custom_replace_n(mask_q, self.quantized_mask_bins).long()
+        elif self.quantized_mask_bins == 0:
+            mask_q[mask_q == -2] = -1 
             
-            label_feat_vec = mask
                     
             #if self.tokenize_state, masks should have been constructed with quantized_bins=0
             # Get state embeddings
-            state_embeddings = self.state_embeddings(label_feat_vec)  # (128, 670, 512)
+            state_embeddings = self.state_embeddings(mask_q)  # (128, 670, 512)
             if self.use_unknown_token: 
                 batch_size = state_embeddings.shape[0]
                 unknown_tokens = self.mask_tokens.unsqueeze(0).expand(batch_size, -1, -1)
-                expanded_mask = (mask<0).unsqueeze(-1).expand(-1, -1,self.d_hidden)  # Shape: (batch_size, num_classes, hidden_dim)
+                expanded_mask = (mask_q<0).unsqueeze(-1).expand(-1, -1,self.d_hidden)  # Shape: (batch_size, num_classes, hidden_dim)
                 state_embeddings = torch.where(expanded_mask, unknown_tokens, state_embeddings)
 
         # Add state embeddings to label embeddings

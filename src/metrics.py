@@ -331,7 +331,7 @@ def get_metric(metric):
 
 def get_metrics(config):
     metrics = []
-    for m in config.losses.metrics:
+    for m in config.metrics:
         metrics.append((m.name, get_metric(m), m.scale))
     metrics = [(a, b, c) for (a, b, c) in metrics if b is not None]
     return metrics

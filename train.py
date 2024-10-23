@@ -13,8 +13,8 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 
 import src.dataloaders.dataloader as dataloader
-import src.trainers.ctran_trainer as CtranTrainer
-from src.trainers.mlp_trainer import MLPTrainer
+import src.trainers.sdm_partial_trainer as SDMPartialTrainer
+from src.trainers.baseline_trainer import BaselineTrainer
 from src.utils import load_opts
 
 
@@ -23,16 +23,15 @@ def main(opts):
     hydra_opts = dict(OmegaConf.to_container(opts))
     args = hydra_opts.pop("args", None)
 
-    base_dir = args["base_dir"]
-    run_id = 1 #args["run_id"]
-    if not base_dir:
-        base_dir = get_original_cwd()
+    run_id = args["run_id"]
+
+    base_dir = get_original_cwd()
 
     config_path = os.path.join(base_dir, args["config"])
     default_config = os.path.join(base_dir, "configs/defaults.yaml")
 
     config = load_opts(config_path, default=default_config, commandline_opts=hydra_opts)
-    global_seed = (run_id * (config.program.seed + (run_id - 1))) % (2**31 - 1)
+    global_seed = (run_id * (config.training.seed + (run_id - 1))) % (2**31 - 1)
 
     # naming experiment folders with seed information
     config.save_path = os.path.join(base_dir, config.save_path, str(global_seed))
@@ -53,10 +52,10 @@ def main(opts):
     
     datamodule = dataloader.SDMDataModule(config)
 
-    if config.Ctran.use:
-        task = CtranTrainer.CTranTrainer(config)
+    if config.partial_labels.use:
+        task = SDMPartialTrainer.SDMPartialTrainer(config)
     else:
-        task = MLPTrainer(config)
+        task = BaselineTrainer(config)
 
     trainer_args = {}
 
@@ -86,9 +85,9 @@ def main(opts):
     )
 
     trainer_args["callbacks"] = [checkpoint_callback]
-    trainer_args["max_epochs"] = config.max_epochs
+    trainer_args["max_epochs"] = config.training.max_epochs
     trainer_args["check_val_every_n_epoch"] = 4
-    trainer_args["accelerator"] = "gpu"
+    trainer_args["accelerator"] = config.training.accelerator
 
     trainer = pl.Trainer(**trainer_args)
 

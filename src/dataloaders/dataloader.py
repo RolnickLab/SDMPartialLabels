@@ -67,7 +67,6 @@ class SDMEnvDataset(EnvDataset):
             data: tensor of input data num_hotspots x env variables
             targets: tensor of targets num_hotspots x num_species,
             mode : train|val|test
-            target_type : "probs" or "binary"
             targets_folder: folder name for labels/targets
             maximum_known_labels_ratio: known labels ratio for Ctran
             num_species: total number of species/classes to predict
@@ -170,27 +169,15 @@ class SDMEnvMaskedDataset(EnvDataset):
                 dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0
             )
 
-        if self.quantized_mask_bins > 1:
-            num_bins = self.quantized_mask_bins
-            mask_q = torch.where(mask > 0, torch.ceil(mask * num_bins) / num_bins, mask)
-            mask[mask > 0] = 1
-            mask = mask.long()
-        elif self.quantized_mask_bins ==0:
-            mask = mask
-            mask_q = mask.detach().clone()
-          
-            mask_q[mask_q > 0] = 1
-        else:
-            mask[mask > 0] = 1
-            mask_q = mask
-            mask = mask.long()
+        mask_q = mask.clone()
+        mask[mask > 0] = 1
 
         return {
             "data": data,
             "targets": targets,
             "hotspot_id": hotspot_id,
             "available_species_mask": available_species_mask,
-            "mask": mask,
+            "mask": mask.long(),
             "mask_q": mask_q,
         }
 
@@ -203,12 +190,11 @@ class SDMDataModule(pl.LightningDataModule):
     def __init__(self, opts) -> None:
         super().__init__()
         self.config = opts
-        self.seed = self.config.program.seed
+        self.seed = self.config.training.seed
         self.batch_size = self.config.data.loaders.batch_size
         self.num_workers = self.config.data.loaders.num_workers
         self.data_base_dir = self.config.data.files.base
         self.targets_file = self.config.data.files.targets_file
-        self.target_type = self.config.data.target.type
 
         # combining multiple train files
         self.df_train = pd.read_csv(
@@ -352,12 +338,12 @@ class SDMDataModule(pl.LightningDataModule):
                 self.data_base_dir, self.config.data.files.satbird_species_indices_path
             ),
             mode="train",
-            maximum_known_labels_ratio=self.config.Ctran.train_known_ratio,
+            maximum_known_labels_ratio=self.config.partial_labels.train_known_ratio,
             num_species=self.num_species,
             multi_taxa=self.config.data.multi_taxa,
             per_taxa_species_count=self.config.data.per_taxa_species_count,
             predict_family=self.predict_family,
-            quantized_mask_bins=self.config.Ctran.quantized_mask_bins,
+            quantized_mask_bins=self.config.partial_labels.quantized_mask_bins,
         )
 
         self.all_val_dataset = globals()[self.dataloader_to_use](
@@ -368,12 +354,12 @@ class SDMDataModule(pl.LightningDataModule):
                 self.data_base_dir, self.config.data.files.satbird_species_indices_path
             ),
             mode="val",
-            maximum_known_labels_ratio=self.config.Ctran.eval_known_ratio,
+            maximum_known_labels_ratio=self.config.partial_labels.eval_known_ratio,
             num_species=self.num_species,
             multi_taxa=self.config.data.multi_taxa,
             per_taxa_species_count=self.config.data.per_taxa_species_count,
             predict_family=self.predict_family,
-            quantized_mask_bins=self.config.Ctran.quantized_mask_bins,
+            quantized_mask_bins=self.config.partial_labels.quantized_mask_bins,
         )
 
         self.all_test_dataset = globals()[self.dataloader_to_use](
@@ -384,12 +370,12 @@ class SDMDataModule(pl.LightningDataModule):
                 self.data_base_dir, self.config.data.files.satbird_species_indices_path
             ),
             mode="test",
-            maximum_known_labels_ratio=self.config.Ctran.eval_known_ratio,
+            maximum_known_labels_ratio=self.config.partial_labels.eval_known_ratio,
             num_species=self.num_species,
             multi_taxa=self.config.data.multi_taxa,
             per_taxa_species_count=self.config.data.per_taxa_species_count,
             predict_family=self.predict_family,
-            quantized_mask_bins=self.config.Ctran.quantized_mask_bins,
+            quantized_mask_bins=self.config.partial_labels.quantized_mask_bins,
         )
 
     def train_dataloader(self) -> DataLoader[Any]:

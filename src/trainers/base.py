@@ -12,7 +12,7 @@ class BaseTrainer(pl.LightningModule):
         self.sigmoid_activation = nn.Sigmoid()
         self.loss_fn = CustomCrossEntropyLoss()
         self.config = config
-        self.learning_rate = self.config.experiment.module.lr
+        self.learning_rate = self.config.training.lr
         self.num_species = self.config.data.total_species
         self.class_indices_to_test = None
 
@@ -63,7 +63,7 @@ class BaseTrainer(pl.LightningModule):
         unknown_mask = None
         if mask is not None:
             unknown_mask = mask.clone()
-            if self.config.Ctran.use:
+            if self.config.partial_labels.use:
                 unknown_mask[mask == -1] = 1
                 unknown_mask[mask != -1] = 0
 
