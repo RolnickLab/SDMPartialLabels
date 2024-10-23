@@ -85,7 +85,7 @@ class CTranModel(nn.Module):
         self.self_attn_layers.apply(weights_init)
         self.output_linear.apply(weights_init)
 
-    def forward(self, images, mask, mask_q=None):
+    def forward(self, images, mask_q):
         images = images.type(torch.float32)
         z_features = self.backbone(
             images.unsqueeze(-1)
@@ -98,12 +98,13 @@ class CTranModel(nn.Module):
             const_label_input
         )  # LxD # (128, 670, 512)
 
-        mask[mask == -2] = -1
-        if self.quantized_mask_bins > 1:
+        if self.quantized_mask_bins >= 1:
             mask_q[mask_q == -2] = -1
+            mask_q = torch.where(mask_q > 0, torch.ceil(mask_q * self.quantized_mask_bins) / self.quantized_mask_bins, mask_q)
             label_feat_vec = custom_replace_n(mask_q, self.quantized_mask_bins).long()
-        else:
-            label_feat_vec = custom_replace(mask, 0, 1, 2).long()
+        elif self.quantized_mask_bins == 0:
+            #TODO species tokenization here using mask_q
+            pass
 
         # Get state embeddings
         state_embeddings = self.state_embeddings(label_feat_vec)  # (128, 670, 512)

@@ -169,13 +169,8 @@ class SDMEnvMaskedDataset(EnvDataset):
                 dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0
             )
 
-        if self.quantized_mask_bins > 1:
-            num_bins = self.quantized_mask_bins
-            mask_q = torch.where(mask > 0, torch.ceil(mask * num_bins) / num_bins, mask)
-            mask[mask > 0] = 1
-        else:
-            mask[mask > 0] = 1
-            mask_q = mask
+        mask_q = mask.clone()
+        mask[mask > 0] = 1
 
         return {
             "data": data,

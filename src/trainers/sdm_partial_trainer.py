@@ -54,7 +54,7 @@ class SDMPartialTrainer(BaseTrainer):
         y = batch["targets"]
         mask = batch["mask"].long()
 
-        y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
+        y_pred = self.sigmoid_activation(self.model(x, batch["mask_q"]))
 
         loss = self.criterion(y_pred, y, mask=batch["available_species_mask"].long())
         self.log("train_loss", loss, on_epoch=True)
@@ -69,7 +69,7 @@ class SDMPartialTrainer(BaseTrainer):
         y = batch["targets"]
         mask = batch["mask"].long()
 
-        y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
+        y_pred = self.sigmoid_activation(self.model(x, batch["mask_q"]))
 
         self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask)
 
@@ -79,7 +79,7 @@ class SDMPartialTrainer(BaseTrainer):
         y = batch["targets"]
         mask = batch["mask"].long()
 
-        y_pred = self.sigmoid_activation(self.model(x, mask.clone(), batch["mask_q"]))
+        y_pred = self.sigmoid_activation(self.model(x, batch["mask_q"]))
 
         if self.class_indices_to_test is not None:
             y_pred = y_pred[:, self.class_indices_to_test]
