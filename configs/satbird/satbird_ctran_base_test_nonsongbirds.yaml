@@ -17,9 +17,9 @@ model:
   input_dim: 27
   hidden_dim: 512
   backbone: "SimpleMLPBackbone"
-  num_layers: 6
-  attention_layers: 3
-  heads: 4
+  n_backbone_layers: 6
+  n_attention_layers: 3
+  n_heads: 4
   dropout: 0
 
 

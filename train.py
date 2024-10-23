@@ -42,8 +42,6 @@ def main(opts):
     
     # set global seed
     pl.seed_everything(global_seed)
-    #config.save_path = args["save_path"]
-    #config.Ctran.num_layers = args["num_layers"]
     if not os.path.exists(config.save_path):
         os.makedirs(config.save_path)
     with open(os.path.join(config.save_path, "config.yaml"), "w") as fp:
