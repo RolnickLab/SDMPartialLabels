@@ -68,8 +68,8 @@ class CTranModel(nn.Module):
 
         # State Embeddings
         self.tokenize_state = tokenize_state
-        if tokenize_state:
-            self.state_embeddings = SpeciesTokenizer(num_classes, d_hidden, tokenization="linear")
+        if tokenize_state is not None:
+            self.state_embeddings = SpeciesTokenizer(num_classes, d_hidden, tokenization=self.tokenize_state)
             #tokens to symbolize unknown (instead of passing -1 to the species tokenizer, there is a special species specific mask token for unknown)
             self.mask_tokens = nn.Parameter(torch.Tensor(num_classes,d_hidden))
             for parameter in [self.mask_tokens]:

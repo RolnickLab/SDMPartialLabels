@@ -1,5 +1,5 @@
 #where to save checkpoints
-save_path: "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran/birdxbutterflies_removebinning_fix_useunknowntoken"
+save_path: "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran/birdxbutterflies_512hdim_fix_periodic_useunknowntoken"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 load_ckpt_path: ""
@@ -15,7 +15,7 @@ base_dir: ""
 comet:
   project_name: "SDMPartialLabels"
   tags: ["rtran", "removebinning", "172butterfly_species", "satbird+ satbutterflyv1 + satbutterflyv2"]
-  experiment_name: "baseline_CTran_birdbutterfly_removebinning_fix_useunknowntoken" # specify for training, or use to report test results, TODO: also use to resume training
+  experiment_name: "baseline_CTran_birdbutterfly_512hdim_fix_periodic_useunknowntoken" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 dataloader_to_use: "SDMEnvMaskedDataset"
@@ -49,7 +49,7 @@ Ctran:
     # size of hidden feature vector: should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
     features_size: 512
     # mask known labels out of the loss (true or false)
-    masked_loss: False
+    masked_loss: True
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
     quantized_mask_bins: 0
     # use positional encoding
@@ -62,7 +62,7 @@ Ctran:
     # what known ratios do we consider when testing
     eval_known_ratio: 0 # 0 or 1
     num_layers: 6
-    tokenize_state: True
+    tokenize_state: "periodic"
     use_unknown_token: True
 
 

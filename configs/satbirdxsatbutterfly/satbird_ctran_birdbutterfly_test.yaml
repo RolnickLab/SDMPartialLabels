@@ -51,7 +51,7 @@ Ctran:
     # mask known labels out of the loss (true or false)
     masked_loss: False
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
-    quantized_mask_bins: 4
+    quantized_mask_bins: 0
     # use positional encoding
     use_positional_encoding: True
     # max ratio of unknown labels during training
@@ -62,6 +62,8 @@ Ctran:
     heads: 4
     dropout: 0
     # max ratio of unknown labels during training
+    tokenize_state: True
+    use_unknown_token: True
 
 # eval family of birds (0), or family of butterflies (1)
 predict_family_of_species: 0

@@ -53,7 +53,7 @@ def get_seed(run_id, fixed_seed):
 @hydra.main(config_path="configs", config_name="hydra")
 def main(opts):
     hydra_opts = dict(OmegaConf.to_container(opts))
-    print("hydra_opts", hydra_opts)
+    #print("hydra_opts", hydra_opts)
     args = hydra_opts.pop("args", None)
 
     base_dir = args["base_dir"]
@@ -65,7 +65,9 @@ def main(opts):
 
     config = load_opts(config_path, default=default_config, commandline_opts=hydra_opts)
     config.base_dir = base_dir
-
+    config.load_ckpt_path = args["load_ckpt_path"]
+    config.Ctran.num_layers = args["num_layers"]
+    config.Ctran.eval_known_ratio = args["eval_known_ratio"]
     run_id = args["run_id"]
     global_seed = get_seed(run_id, config.program.seed)
 
@@ -122,9 +124,9 @@ def main(opts):
             # loop over all seeds
             for run_id in range(1, n_runs + 1):
                 # get path of a single experiment
-                run_id_path = os.path.join(
-                    config.load_ckpt_path, str(get_seed(run_id, config.program.seed))
-                )
+                run_id_path = config.load_ckpt_path #os.path.join(
+                    #config.load_ckpt_path, str(get_seed(run_id, config.program.seed))
+                #)
                 # get path of the best checkpoint (not last)
                 files = os.listdir(os.path.join(config.base_dir, run_id_path))
                 best_checkpoint_file_name = [
