@@ -126,8 +126,8 @@ class CTranModel(nn.Module):
                 expanded_mask = (mask_q<0).unsqueeze(-1).expand(-1, -1,self.d_hidden)  # Shape: (batch_size, num_classes, hidden_dim)
                 state_embeddings = torch.where(expanded_mask, unknown_tokens, state_embeddings)
 
-        # Add state embeddings to label embeddings
-        init_label_embeddings += state_embeddings
+            # Add state embeddings to label embeddings
+            init_label_embeddings += state_embeddings
         # concatenate images features to label embeddings
         embeddings = torch.cat(
             (z_features, init_label_embeddings), 1
