@@ -19,10 +19,10 @@ class CTranModel(nn.Module):
         quantized_mask_bins=1,
         input_channels=1,
         d_hidden=512,
-        attention_layers=3,
-        heads=4,
+        n_attention_layers=3,
+        n_heads=4,
         dropout=0.2,
-        num_layers = 2,
+        n_backbone_layers = 2,
         tokenize_state=False,
         use_unknown_token = False
     ):
@@ -35,8 +35,8 @@ class CTranModel(nn.Module):
         quantized_mask_bins (should be >= 1): how many bins to use for the positive encounter rate > 0
         input_channels: number of input channels for satellite data
         d_hidden: embedding dimension / hidden layer dimention
-        attention_layers: number of attention layes
-        heads: number of attention heads
+        n_attention_layers: number of attention layes
+        n_heads: number of attention heads
         dropout: dropout ratio
         use_unknown_token: add special parameter to encode unknown state when state is linearly tokenized
         """
@@ -46,7 +46,7 @@ class CTranModel(nn.Module):
         self.n_embedding_state = self.quantized_mask_bins + 2
         self.use_unknown_token = use_unknown_token
         self.backbone = globals()[backbone](
-            input_channels=input_channels, pretrained=False, hidden_dim=d_hidden, num_layers=num_layers
+            input_channels=input_channels, pretrained=False, hidden_dim=d_hidden, n_backbone_layers=n_backbone_layers
             #input_dim=input_channels, hidden_dim=d_hidden, output_dim=d_hidden
             #d_in=input_channels, d_out=d_hidden, dropout=dropout, n_layers=n_layers
         )
@@ -76,8 +76,8 @@ class CTranModel(nn.Module):
         # Transformer
         self.self_attn_layers = nn.ModuleList(
             [
-                SelfAttnLayer(self.d_hidden, heads, dropout)
-                for _ in range(attention_layers)
+                SelfAttnLayer(self.d_hidden, n_heads, dropout)
+                for _ in range(n_attention_layers)
             ]
         )
         self.dense_layer = torch.nn.Linear(num_classes, self.d_hidden)

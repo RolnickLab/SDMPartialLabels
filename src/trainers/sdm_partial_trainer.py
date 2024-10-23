@@ -26,10 +26,10 @@ class SDMPartialTrainer(BaseTrainer):
             num_classes=self.num_species,
             backbone=self.config.model.backbone,
             quantized_mask_bins=self.config.partial_labels.quantized_mask_bins,
-            attention_layers=self.config.model.attention_layers,
-            heads=self.config.model.heads,
+            n_attention_layers=self.config.model.n_attention_layers,
+            n_heads=self.config.model.n_heads,
             dropout=self.config.model.dropout,
-            num_layers = self.config.model.num_layers,
+            n_backbone_layers = self.config.model.n_backbone_layers,
             tokenize_state=self.config.partial_labels.tokenize_state, 
             use_unknown_token = self.config.partial_labels.use_unknown_token
 
@@ -67,7 +67,6 @@ class SDMPartialTrainer(BaseTrainer):
         self.log("train_loss", loss, on_epoch=True)
 
         if batch_idx % 50 == 0:
-            mask[mask > 0] = 1
             self.log_metrics(mode="train", pred=y_pred, y=y, mask=mask.long())
 
         return loss
@@ -95,7 +94,6 @@ class SDMPartialTrainer(BaseTrainer):
             y_pred = y_pred[:, self.class_indices_to_test]
             y = y[:, self.class_indices_to_test]
             mask = mask[:, self.class_indices_to_test]
-        mask[mask > 0] = 1
         mask = mask.long()
         self.log_metrics(mode="test", pred=y_pred, y=y, mask=mask)
 
