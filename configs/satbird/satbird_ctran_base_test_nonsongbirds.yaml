@@ -16,7 +16,12 @@ model:
   name: "CTranModel"
   input_dim: 27
   hidden_dim: 512
-  backbone: "MlpEncoder"
+  backbone: "SimpleMLPBackbone"
+  num_layers: 6
+  attention_layers: 3
+  heads: 4
+  dropout: 0
+
 
 training:
   seed: 1337
@@ -30,18 +35,12 @@ partial_labels:
     masked_loss: False
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
     quantized_mask_bins: 4
-<<<<<<< HEAD
-    # use positional encoding
-    use_positional_encoding: True
-    attention_layers: 3
-    heads: 4
-    dropout: 0
-=======
->>>>>>> meli-dev
     # max ratio of unknown labels during training
     train_known_ratio: 0.75
     # what known ratios do we consider when testing
     eval_known_ratio: 1 # [1.0, 0.9, 0.8, 0.5]
+    tokenize_state:  
+    use_unknown_token: True
 
 # During testing, eval family of birds (0), or family of butterflies (1)
 predict_family_of_species: 0

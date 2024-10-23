@@ -16,7 +16,11 @@ model:
   name: "CTranModel"
   input_dim: 27
   hidden_dim: 512
-  backbone: "MlpEncoder"
+  backbone: "SimpleMLPBackbone"
+  num_layers: 6
+  attention_layers: 3
+  heads: 4
+  dropout: 0
 
 training:
   seed: 1337
@@ -34,10 +38,9 @@ partial_labels:
     train_known_ratio: 0.75
     # what known ratios do we consider when testing
     eval_known_ratio: 0.0 # [1.0, 0.9, 0.8, 0.5]
-    attention_layers: 3
-    heads: 4
-    dropout: 0.2
-    # max ratio of 
+    tokenize_state:  
+    use_unknown_token: True
+
 
 # During testing, eval family of birds (0), or family of butterflies (1)
 predict_family_of_species: -1
