@@ -1,5 +1,5 @@
 #where to save checkpoints
-save_path: "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran/birdxbutterflies_512hdim_fix_periodic_useunknowntoken"
+save_path: "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran/birdxbutterflies_256hdim_linear"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 load_ckpt_path: ""
@@ -8,7 +8,7 @@ save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline
 comet:
   project_name: "SDMPartialLabels"
   tags: ["rtran", "removebinning", "172butterfly_species", "satbird+ satbutterflyv1 + satbutterflyv2"]
-  experiment_name: "baseline_CTran_birdbutterfly_512hdim_fix_periodic_useunknowntoken" # specify for training, or use to report test results, TODO: also use to resume training
+  experiment_name: "baseline_CTran_birdxbutterflies_256hdim_linear" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 dataloader_to_use: "SDMEnvMaskedDataset"
@@ -16,10 +16,10 @@ dataloader_to_use: "SDMEnvMaskedDataset"
 
 model:
   name: "CTranModel"
-  input_dim: 27
-  hidden_dim: 512
-  backbone: "MlpEncoder" #SimpleMLPBackbone
-  num_layers: 6
+  input_dim: 1
+  hidden_dim: 256
+  backbone: "SimpleMLPBackbone"
+  num_layers: 4
   attention_layers: 3
   heads: 4
   dropout: 0.2
@@ -35,12 +35,12 @@ partial_labels:
     # mask known labels out of the loss (true or false)
     masked_loss: True
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
-    quantized_mask_bins: 4
+    quantized_mask_bins: 0
     # max ratio of unknown labels during training
     train_known_ratio: 0.75
     # what known ratios do we consider when testing
     eval_known_ratio: 0.0 # [1.0, 0.9, 0.8, 0.5]
-    tokenize_state: "periodic"
+    tokenize_state: "linear"
     use_unknown_token: True
 
 # During testing, eval family of birds (0), or family of butterflies (1)
