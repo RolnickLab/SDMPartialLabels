@@ -56,7 +56,7 @@ def main(opts):
         task = BaselineTrainer(config)
 
     trainer_args = {}
-
+    
     if config.log_comet:
         if os.environ.get("COMET_API_KEY"):
             comet_logger = CometLogger(
@@ -71,7 +71,7 @@ def main(opts):
         else:
             print("no COMET API Key found..continuing without logging..")
             return
-
+    
     checkpoint_callback = ModelCheckpoint(
         monitor="val_topk",
         dirpath=config.save_path,

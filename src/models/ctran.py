@@ -46,7 +46,7 @@ class CTranModel(nn.Module):
         self.n_embedding_state = self.quantized_mask_bins + 2
         self.use_unknown_token = use_unknown_token
         self.backbone = globals()[backbone](
-            input_channels=input_channels, pretrained=False, hidden_dim=d_hidden, n_backbone_layers=n_backbone_layers
+            input_channels=input_channels, pretrained=False, hidden_dim=d_hidden, num_layers=n_backbone_layers
             #input_dim=input_channels, hidden_dim=d_hidden, output_dim=d_hidden
             #d_in=input_channels, d_out=d_hidden, dropout=dropout, n_layers=n_layers
         )
@@ -99,9 +99,9 @@ class CTranModel(nn.Module):
     def forward(self, images, mask_q):
         images = images.type(torch.float32)
         z_features = self.backbone(
-            images.unsqueeze(-1)
+            images
         )  # image: HxWxD , out: [128, 4, 512]
-
+        z_features = z_features.unsqueeze(1)
         const_label_input = self.label_input.repeat(images.size(0), 1).to(
             images.device
         )  # LxD (128, 670)
