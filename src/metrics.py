@@ -210,7 +210,6 @@ class NonZeroMSE(Metric):
         if mask is None:
             self.num_samples += preds.size(0)
         else:
-           
             self.num_samples += mask[nonzero_indices].sum()
 
     def compute(self):
@@ -233,8 +232,7 @@ class MaskedMAE(Metric):
         if mask is None:
             self.num_samples += preds.size(0) * preds.size(1)
         else:
-            
-            self.num_samples += mask.long().sum()
+            self.num_samples += mask.sum()
 
     def compute(self):
         mae = self.abs_error / self.num_samples

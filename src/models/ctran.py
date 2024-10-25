@@ -113,10 +113,10 @@ class CTranModel(nn.Module):
             mask_q[mask_q == -2] = -1
             mask_q = torch.where(mask_q > 0, torch.ceil(mask_q * self.quantized_mask_bins) / self.quantized_mask_bins, mask_q)
             label_feat_vec = custom_replace_n(mask_q, self.quantized_mask_bins).long()
+            state_embeddings = self.state_embeddings(label_feat_vec)  # (128, 670, 512)
+
         elif self.quantized_mask_bins == 0:
-            mask_q[mask_q == -2] = -1 
-            
-                    
+            mask_q[mask_q == -2] = -1
             #if self.tokenize_state, masks should have been constructed with quantized_bins=0
             # Get state embeddings
             state_embeddings = self.state_embeddings(mask_q)  # (128, 670, 512)
@@ -126,8 +126,8 @@ class CTranModel(nn.Module):
                 expanded_mask = (mask_q<0).unsqueeze(-1).expand(-1, -1,self.d_hidden)  # Shape: (batch_size, num_classes, hidden_dim)
                 state_embeddings = torch.where(expanded_mask, unknown_tokens, state_embeddings)
 
-            # Add state embeddings to label embeddings
-            init_label_embeddings += state_embeddings
+        # Add state embeddings to label embeddings
+        init_label_embeddings += state_embeddings
         # concatenate images features to label embeddings
         embeddings = torch.cat(
             (z_features, init_label_embeddings), 1

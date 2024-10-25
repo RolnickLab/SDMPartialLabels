@@ -20,6 +20,7 @@ class SDMPartialTrainer(BaseTrainer):
         super(SDMPartialTrainer, self).__init__(config)
 
         self.criterion = self.__loss_mapping(self.config.losses.criterion)
+
         self.model = globals()[self.config.model.name](
             input_channels=self.config.model.input_dim,
             d_hidden=self.config.model.hidden_dim,
@@ -58,7 +59,6 @@ class SDMPartialTrainer(BaseTrainer):
     def training_step(self, batch: Dict[str, Any], batch_idx: int):
         x = batch["data"]
         y = batch["targets"]
-
         mask = batch["mask"].long()
 
         y_pred = self.sigmoid_activation(self.model(x, batch["mask_q"]))
@@ -67,15 +67,14 @@ class SDMPartialTrainer(BaseTrainer):
         self.log("train_loss", loss, on_epoch=True)
 
         if batch_idx % 50 == 0:
-            self.log_metrics(mode="train", pred=y_pred, y=y, mask=mask.long())
+            self.log_metrics(mode="train", pred=y_pred, y=y, mask=mask)
 
         return loss
 
     def validation_step(self, batch: Dict[str, Any], batch_idx: int) -> None:
         x = batch["data"]
         y = batch["targets"]
-        mask = batch["mask"]#.long()
-
+        mask = batch["mask"].long()
 
         y_pred = self.sigmoid_activation(self.model(x, batch["mask_q"]))
 
@@ -85,7 +84,6 @@ class SDMPartialTrainer(BaseTrainer):
         """Test step"""
         x = batch["data"]
         y = batch["targets"]
-
         mask = batch["mask"].long()
 
         y_pred = self.sigmoid_activation(self.model(x, batch["mask_q"]))
@@ -94,7 +92,7 @@ class SDMPartialTrainer(BaseTrainer):
             y_pred = y_pred[:, self.class_indices_to_test]
             y = y[:, self.class_indices_to_test]
             mask = mask[:, self.class_indices_to_test]
-        mask = mask.long()
+
         self.log_metrics(mode="test", pred=y_pred, y=y, mask=mask)
 
         # saving model predictions
