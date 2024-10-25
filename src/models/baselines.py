@@ -2,6 +2,7 @@
 NN models
 Code is based on the C-tran paper: https://github.com/QData/C-Tran
 """
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -23,7 +24,7 @@ class SimpleMLP(nn.Module):
         x = self.layer_3(x)
         return x
 
-    
+
 class SimpleMLPMasked(nn.Module):
     def __init__(
         self,
@@ -37,16 +38,27 @@ class SimpleMLPMasked(nn.Module):
 
         self.num_unique_mask_values = quantized_mask_bins
 
-        self.layer_1 = nn.Linear(input_channels + ((self.num_unique_mask_values + 2) * num_classes), d_hidden)
+        self.layer_1 = nn.Linear(
+            input_channels + ((self.num_unique_mask_values + 2) * num_classes), d_hidden
+        )
         self.layer_2 = nn.Linear(d_hidden, d_hidden)
         self.out_layer = nn.Linear(d_hidden, num_classes)
 
     def forward(self, x, mask_q):
         mask_q[mask_q == -2] = -1
-        mask_q = torch.where(mask_q > 0, torch.ceil(mask_q * self.num_unique_mask_values) / self.num_unique_mask_values, mask_q)
+        mask_q = torch.where(
+            mask_q > 0,
+            torch.ceil(mask_q * self.num_unique_mask_values)
+            / self.num_unique_mask_values,
+            mask_q,
+        )
         mask_q = custom_replace_n(mask_q, self.num_unique_mask_values).long()
-        one_hot_mask = F.one_hot(mask_q, num_classes=self.num_unique_mask_values + 2).float()  # One-hot encoding
-        one_hot_mask_flattened = one_hot_mask.view(mask_q.size(0), -1)  # Flatten to (batch_size, num_classes * 3)
+        one_hot_mask = F.one_hot(
+            mask_q, num_classes=self.num_unique_mask_values + 2
+        ).float()  # One-hot encoding
+        one_hot_mask_flattened = one_hot_mask.view(
+            mask_q.size(0), -1
+        )  # Flatten to (batch_size, num_classes * 3)
 
         x_combined = torch.cat((x, one_hot_mask_flattened), dim=1)
         x = F.relu(self.layer_1(x_combined))
@@ -55,22 +67,21 @@ class SimpleMLPMasked(nn.Module):
         return x
 
 
-
 class SimpleMLPBackbone(nn.Module):
     def __init__(self, input_channels, pretrained=False, hidden_dim=64, num_layers=2):
         super(SimpleMLPBackbone, self).__init__()
         self.num_layers = num_layers
         self.layer_1 = nn.Linear(input_channels, hidden_dim)
         for i in range(1, num_layers):
-            setattr(self, f'layer_{i+1}',  nn.Linear(hidden_dim, hidden_dim))
-
+            setattr(self, f"layer_{i+1}", nn.Linear(hidden_dim, hidden_dim))
 
     def forward(self, x):
         x = F.relu(self.layer_1(x))
-        for i in range(1, self.num_layers-1):
-            x = F.relu(getattr(self, f'layer_{i+1}')(x))
-        x = getattr(self, f'layer_{self.num_layers}')(x)
+        for i in range(1, self.num_layers - 1):
+            x = F.relu(getattr(self, f"layer_{i+1}")(x))
+        x = getattr(self, f"layer_{self.num_layers}")(x)
         return x
+
 
 class PredHead(nn.Module):
 

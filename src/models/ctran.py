@@ -3,13 +3,15 @@ Regression-Transformer model
 Code is based on the C-tran paper: https://github.com/QData/C-Tran
 """
 
+import math
+
 import numpy as np
 import torch
 
 from src.models.baselines import *
-from src.models.utils import custom_replace, custom_replace_n, weights_init
 from src.models.state_embeddings import SpeciesTokenizer
-import math
+from src.models.utils import custom_replace, custom_replace_n, weights_init
+
 
 class CTranModel(nn.Module):
     def __init__(
@@ -22,9 +24,9 @@ class CTranModel(nn.Module):
         n_attention_layers=3,
         n_heads=4,
         dropout=0.2,
-        n_backbone_layers = 2,
+        n_backbone_layers=2,
         tokenize_state=False,
-        use_unknown_token = False
+        use_unknown_token=False,
     ):
         """
         pos_emb is false by default
@@ -46,9 +48,12 @@ class CTranModel(nn.Module):
         self.n_embedding_state = self.quantized_mask_bins + 2
         self.use_unknown_token = use_unknown_token
         self.backbone = globals()[backbone](
-            input_channels=input_channels, pretrained=False, hidden_dim=d_hidden, num_layers=n_backbone_layers
-            #input_dim=input_channels, hidden_dim=d_hidden, output_dim=d_hidden
-            #d_in=input_channels, d_out=d_hidden, dropout=dropout, n_layers=n_layers
+            input_channels=input_channels,
+            pretrained=False,
+            hidden_dim=d_hidden,
+            num_layers=n_backbone_layers,
+            # input_dim=input_channels, hidden_dim=d_hidden, output_dim=d_hidden
+            # d_in=input_channels, d_out=d_hidden, dropout=dropout, n_layers=n_layers
         )
 
         # Env embed layer
@@ -62,17 +67,20 @@ class CTranModel(nn.Module):
         # State Embeddings
         self.tokenize_state = tokenize_state
         if tokenize_state is not None:
-            self.state_embeddings = SpeciesTokenizer(num_classes, d_hidden, tokenization=self.tokenize_state)
-            #tokens to symbolize unknown (instead of passing -1 to the species tokenizer, there is a special species specific mask token for unknown)
-            self.mask_tokens = nn.Parameter(torch.Tensor(num_classes,d_hidden))
+            self.state_embeddings = SpeciesTokenizer(
+                num_classes, d_hidden, tokenization=self.tokenize_state
+            )
+            # tokens to symbolize unknown (instead of passing -1 to the species tokenizer, there is a special species specific mask token for unknown)
+            self.mask_tokens = nn.Parameter(torch.Tensor(num_classes, d_hidden))
             for parameter in [self.mask_tokens]:
-                torch.nn.init.uniform_(parameter, -1 / math.sqrt(d_hidden), 1 / math.sqrt(d_hidden))
+                torch.nn.init.uniform_(
+                    parameter, -1 / math.sqrt(d_hidden), 1 / math.sqrt(d_hidden)
+                )
         else:
-             self.state_embeddings = torch.nn.Embedding(
+            self.state_embeddings = torch.nn.Embedding(
                 self.n_embedding_state, self.d_hidden, padding_idx=0
-        )  # Dx2 (known, unknown)
+            )  # Dx2 (known, unknown)
 
-        
         # Transformer
         self.self_attn_layers = nn.ModuleList(
             [
@@ -98,9 +106,7 @@ class CTranModel(nn.Module):
 
     def forward(self, images, mask_q):
         images = images.type(torch.float32)
-        z_features = self.backbone(
-            images
-        )  # image: HxWxD , out: [128, 4, 512]
+        z_features = self.backbone(images)  # image: HxWxD , out: [128, 4, 512]
         z_features = z_features.unsqueeze(1)
         const_label_input = self.label_input.repeat(images.size(0), 1).to(
             images.device
@@ -111,20 +117,31 @@ class CTranModel(nn.Module):
 
         if self.quantized_mask_bins >= 1:
             mask_q[mask_q == -2] = -1
-            mask_q = torch.where(mask_q > 0, torch.ceil(mask_q * self.quantized_mask_bins) / self.quantized_mask_bins, mask_q)
+            mask_q = torch.where(
+                mask_q > 0,
+                torch.ceil(mask_q * self.quantized_mask_bins)
+                / self.quantized_mask_bins,
+                mask_q,
+            )
             label_feat_vec = custom_replace_n(mask_q, self.quantized_mask_bins).long()
             state_embeddings = self.state_embeddings(label_feat_vec)  # (128, 670, 512)
 
         elif self.quantized_mask_bins == 0:
             mask_q[mask_q == -2] = -1
-            #if self.tokenize_state, masks should have been constructed with quantized_bins=0
+            # if self.tokenize_state, masks should have been constructed with quantized_bins=0
             # Get state embeddings
             state_embeddings = self.state_embeddings(mask_q)  # (128, 670, 512)
-            if self.use_unknown_token: 
+            if self.use_unknown_token:
                 batch_size = state_embeddings.shape[0]
-                unknown_tokens = self.mask_tokens.unsqueeze(0).expand(batch_size, -1, -1)
-                expanded_mask = (mask_q<0).unsqueeze(-1).expand(-1, -1,self.d_hidden)  # Shape: (batch_size, num_classes, hidden_dim)
-                state_embeddings = torch.where(expanded_mask, unknown_tokens, state_embeddings)
+                unknown_tokens = self.mask_tokens.unsqueeze(0).expand(
+                    batch_size, -1, -1
+                )
+                expanded_mask = (
+                    (mask_q < 0).unsqueeze(-1).expand(-1, -1, self.d_hidden)
+                )  # Shape: (batch_size, num_classes, hidden_dim)
+                state_embeddings = torch.where(
+                    expanded_mask, unknown_tokens, state_embeddings
+                )
 
         # Add state embeddings to label embeddings
         init_label_embeddings += state_embeddings
@@ -148,5 +165,3 @@ class CTranModel(nn.Module):
         output = (output * diag_mask).sum(-1)
 
         return output
-
-    

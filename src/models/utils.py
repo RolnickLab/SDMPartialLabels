@@ -105,7 +105,7 @@ def custom_replace_n(data: torch.tensor, n: int):
     """
     replacing unique values with their index
     """
-    original_values = torch.arange(0, 1, 1/n) + 1/n
+    original_values = torch.arange(0, 1, 1 / n) + 1 / n
     original_values = torch.cat((torch.tensor([-1, 0]), original_values), dim=0)
     new_values = torch.arange(0, n + 2, 1)
     res = data.clone()

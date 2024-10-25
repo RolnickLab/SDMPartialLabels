@@ -6,8 +6,8 @@ from torch import nn
 
 from src.dataloaders.dataloader import *
 from src.losses import BCE, CustomCrossEntropyLoss, CustomFocalLoss, RMSLELoss
-from src.models.ctran import CTranModel
 from src.models.baselines import SimpleMLPMasked
+from src.models.ctran import CTranModel
 from src.trainers.base import BaseTrainer
 from src.utils import eval_species_split
 
@@ -30,10 +30,9 @@ class SDMPartialTrainer(BaseTrainer):
             n_attention_layers=self.config.model.n_attention_layers,
             n_heads=self.config.model.n_heads,
             dropout=self.config.model.dropout,
-            n_backbone_layers = self.config.model.n_backbone_layers,
-            tokenize_state=self.config.partial_labels.tokenize_state, 
-            use_unknown_token = self.config.partial_labels.use_unknown_token
-
+            n_backbone_layers=self.config.model.n_backbone_layers,
+            tokenize_state=self.config.partial_labels.tokenize_state,
+            use_unknown_token=self.config.partial_labels.use_unknown_token,
         )
 
         # if eval_known_rate == 0, everything is unknown, but we want to predict certain families

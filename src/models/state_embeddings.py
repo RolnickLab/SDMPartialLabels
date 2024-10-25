@@ -1,56 +1,73 @@
-#adapted from MaskedSDM paper
-import torch
+# adapted from MaskedSDM paper
 import math
-
 from typing import Union
 
-from torch import nn, Tensor
+import torch
+from torch import Tensor, nn
+
 
 class SpeciesTokenizer(nn.Module):
-    
-    def __init__(self, n_species: int, d_token: int, tokenization: str = "periodic") -> None:
+
+    def __init__(
+        self, n_species: int, d_token: int, tokenization: str = "periodic"
+    ) -> None:
         super().__init__()
         self.n_species = n_species
         self.d_token = d_token
         self.tokenization = tokenization
-        
+
         if self.tokenization == "periodic":
-            self.periodic_embeddings = PeriodicEmbeddings(n_species=n_species, d_embedding=d_token)
+            self.periodic_embeddings = PeriodicEmbeddings(
+                n_species=n_species, d_embedding=d_token
+            )
         elif self.tokenization == "linear":
             self.weight = nn.Parameter(Tensor(n_species, d_token))
             self.bias = nn.Parameter(Tensor(n_species, d_token))
             for parameter in [self.weight, self.bias]:
-                nn.init.uniform_(parameter, -1 / math.sqrt(d_token), 1 / math.sqrt(d_token))
+                nn.init.uniform_(
+                    parameter, -1 / math.sqrt(d_token), 1 / math.sqrt(d_token)
+                )
         elif self.tokenization == "categorical":
             self.pos_embeddings = nn.Parameter(n_species, d_token)
             for parameter in [self.pos_embeddings]:
-                nn.init.uniform_(parameter, -1 / math.sqrt(d_token), 1 / math.sqrt(d_token))
+                nn.init.uniform_(
+                    parameter, -1 / math.sqrt(d_token), 1 / math.sqrt(d_token)
+                )
             self.neg_embeddings = nn.Parameter(n_species, d_token)
             for parameter in [self.neg_embeddings]:
-                nn.init.uniform_(parameter, -1 / math.sqrt(d_token), 1 / math.sqrt(d_token))
+                nn.init.uniform_(
+                    parameter, -1 / math.sqrt(d_token), 1 / math.sqrt(d_token)
+                )
             self.unknown_embeddings = nn.Parameter(n_species, d_token)
             for parameter in [self.unknown_embeddings]:
-                nn.init.uniform_(parameter, -1 / math.sqrt(d_token), 1 / math.sqrt(d_token))
+                nn.init.uniform_(
+                    parameter, -1 / math.sqrt(d_token), 1 / math.sqrt(d_token)
+                )
         else:
             raise ValueError(f"Invalid tokenization method: {self.tokenization}")
-            
-        
+
     def forward(self, x: Tensor) -> Tensor:
         if self.tokenization == "periodic":
             return self.periodic_embeddings(x)
         elif self.tokenization == "linear":
             return self.weight[None] * x[..., None] + self.bias[None]
         elif self.tokenization == "categorical":
-            return torch.where(x == 0, self.neg_embeddings[None], torch.where(x == 1, self.pos_embeddings[None], self.unknown_embeddings[None]))
+            return torch.where(
+                x == 0,
+                self.neg_embeddings[None],
+                torch.where(
+                    x == 1, self.pos_embeddings[None], self.unknown_embeddings[None]
+                ),
+            )
         else:
             raise ValueError(f"Invalid tokenization method: {self.tokenization}")
-    
-    
+
+
 class _Periodic(nn.Module):
 
     def __init__(self, n_species: int, k: int, sigma: float) -> None:
         if sigma <= 0.0:
-            raise ValueError(f'sigma must be positive, however: {sigma=}')
+            raise ValueError(f"sigma must be positive, however: {sigma=}")
 
         super().__init__()
         self._sigma = sigma
@@ -67,7 +84,7 @@ class _Periodic(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         if x.ndim < 2:
             raise ValueError(
-                f'The input must have at least two dimensions, however: {x.ndim=}'
+                f"The input must have at least two dimensions, however: {x.ndim=}"
             )
 
         x = 2 * math.pi * self.weight * x[..., None]
@@ -98,7 +115,7 @@ class _NLinear(nn.Module):
         x = x + self.bias
         return x
 
-    
+
 class PeriodicEmbeddings(nn.Module):
 
     def __init__(
@@ -107,7 +124,7 @@ class PeriodicEmbeddings(nn.Module):
         d_embedding: int = 24,
         *,
         n_frequencies: int = 48,
-        frequency_init_scale: float = 0.01
+        frequency_init_scale: float = 0.01,
     ) -> None:
         """
         Args:
@@ -130,7 +147,7 @@ class PeriodicEmbeddings(nn.Module):
         """Do the forward pass."""
         if x.ndim < 2:
             raise ValueError(
-                f'The input must have at least two dimensions, however: {x.ndim=}'
+                f"The input must have at least two dimensions, however: {x.ndim=}"
             )
 
         x = self.periodic(x)

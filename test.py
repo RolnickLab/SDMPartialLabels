@@ -32,9 +32,9 @@ def load_existing_checkpoint(task, base_dir, checkpint_path):
 
 
 def save_test_results_to_csv(results, root_dir, file_name="test_results.csv"):
-    if root_dir is None: 
+    if root_dir is None:
         print("Not saving results")
-        return()
+        return ()
     output_file = os.path.join(root_dir, file_name)
 
     with open(output_file, "a+", newline="") as csvfile:
@@ -66,7 +66,7 @@ def main(opts):
     config = load_opts(config_path, default=default_config, commandline_opts=hydra_opts)
     config.base_dir = base_dir
     config.partial_labels.eval_known_ratio = args["eval_known_ratio"]
-    global_seed =  get_seed(config.run_id, config.training.seed)
+    global_seed = get_seed(config.run_id, config.training.seed)
     pl.seed_everything(global_seed)
 
     datamodule = dataloader.SDMDataModule(config)
@@ -114,9 +114,7 @@ def main(opts):
             )
         else:
             # get the number of experiments based on folders given
-            n_runs = len(
-                os.listdir(config.load_ckpt_path)
-            )
+            n_runs = len(os.listdir(config.load_ckpt_path))
             # loop over all seeds
             for run_id in range(1, n_runs + 1):
                 # get path of a single experiment
