@@ -4,8 +4,8 @@ To run: python train.py args.config=$CONFIG_FILE_PATH
 """
 
 import os
-from typing import Any, Dict, cast
 
+import comet_ml
 import hydra
 import pytorch_lightning as pl
 from hydra.utils import get_original_cwd
@@ -13,10 +13,10 @@ from omegaconf import OmegaConf
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 
-import Rtran.trainer as RtranTrainer
-from src.utils.compute_normalization_stats import (
-    compute_means_stds_env_vars, compute_means_stds_sat_images)
-from src.utils.config_utils import load_opts
+import src.dataloaders.dataloader as dataloader
+import src.trainers.sdm_partial_trainer as SDMPartialTrainer
+from src.trainers.baseline_trainer import BaselineTrainer
+from src.utils import load_opts
 
 
 @hydra.main(config_path="configs", config_name="hydra")
@@ -24,16 +24,15 @@ def main(opts):
     hydra_opts = dict(OmegaConf.to_container(opts))
     args = hydra_opts.pop("args", None)
 
-    base_dir = args["base_dir"]
     run_id = args["run_id"]
-    if not base_dir:
-        base_dir = get_original_cwd()
+
+    base_dir = get_original_cwd()
 
     config_path = os.path.join(base_dir, args["config"])
     default_config = os.path.join(base_dir, "configs/defaults.yaml")
 
     config = load_opts(config_path, default=default_config, commandline_opts=hydra_opts)
-    global_seed = (run_id * (config.program.seed + (run_id - 1))) % (2**31 - 1)
+    global_seed = (run_id * (config.training.seed + (run_id - 1))) % (2**31 - 1)
 
     # naming experiment folders with seed information
     config.save_path = os.path.join(base_dir, config.save_path, str(global_seed))
@@ -42,47 +41,22 @@ def main(opts):
     )
     config.base_dir = base_dir
 
-    # compute means and stds for normalization
-    if len(config.data.env) > 0:
-        (
-            config.variables.bioclim_means,
-            config.variables.bioclim_std,
-            config.variables.ped_means,
-            config.variables.ped_std,
-        ) = compute_means_stds_env_vars(
-            root_dir=config.data.files.base,
-            train_csv=config.data.files.train,
-            env=config.data.env,
-            env_data_folder=config.data.files.env_data_folder,
-            output_file_means=config.data.files.env_means,
-            output_file_std=config.data.files.env_stds,
-        )
-
-    if len(config.data.bands) > 0 and not config.data.transforms[4].normalize_by_255:
-        config.variables.sat_means, config.variables.sat_stds = (
-            compute_means_stds_sat_images(
-                root_dir=config.data.files.base,
-                train_csv=config.data.files.train,
-                img_bands=OmegaConf.to_object(config.data.bands),
-                img_folder=config.data.files.images_folder,
-                output_file_means=config.data.files.sat_means,
-                output_file_std=config.data.files.sat_stds,
-            )
-        )
-
     # set global seed
     pl.seed_everything(global_seed)
-
     if not os.path.exists(config.save_path):
         os.makedirs(config.save_path)
     with open(os.path.join(config.save_path, "config.yaml"), "w") as fp:
         OmegaConf.save(config=config, f=fp)
     fp.close()
 
-    task = RtranTrainer.RegressionTransformerTask(config)
-    datamodule = RtranTrainer.SDMDataModule(config)
+    datamodule = dataloader.SDMDataModule(config)
 
-    trainer_args = cast(Dict[str, Any], OmegaConf.to_object(config.trainer))
+    if config.partial_labels.use:
+        task = SDMPartialTrainer.SDMPartialTrainer(config)
+    else:
+        task = BaselineTrainer(config)
+
+    trainer_args = {}
 
     if config.log_comet:
         if os.environ.get("COMET_API_KEY"):
@@ -110,33 +84,21 @@ def main(opts):
     )
 
     trainer_args["callbacks"] = [checkpoint_callback]
-    trainer_args["overfit_batches"] = config.overfit_batches  # 0 if not overfitting
-    trainer_args["max_epochs"] = config.max_epochs
+    trainer_args["max_epochs"] = config.training.max_epochs
+    trainer_args["check_val_every_n_epoch"] = 4
+    trainer_args["accelerator"] = config.training.accelerator
 
     trainer = pl.Trainer(**trainer_args)
-    if config.log_comet:
-        trainer.logger.experiment.add_tags(list(config.comet.tags))
-    if config.auto_lr_find:
-        lr_finder = trainer.tuner.lr_find(task, datamodule=datamodule)
-
-        # Pick point based on plot, or get suggestion
-        new_lr = lr_finder.suggestion()
-
-        # update hparams of the model
-        task.hparams.learning_rate = new_lr
-        task.hparams.lr = new_lr
-        trainer.tune(model=task, datamodule=datamodule)
 
     # Run experiment
     trainer.fit(model=task, datamodule=datamodule)
     trainer.test(model=task, datamodule=datamodule)
 
     # logging the best checkpoint to comet ML
-    if config.log_comet:
-        print(checkpoint_callback.best_model_path)
-        trainer.logger.experiment.log_asset(
-            checkpoint_callback.best_model_path, file_name="best_checkpoint.ckpt"
-        )
+    print(checkpoint_callback.best_model_path)
+    trainer.logger.experiment.log_asset(
+        checkpoint_callback.best_model_path, file_name="best_checkpoint.ckpt"
+    )
 
 
 if __name__ == "__main__":

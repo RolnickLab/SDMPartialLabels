@@ -7,7 +7,7 @@ import pytest
 import tifffile as tiff
 from tqdm import tqdm
 
-from src.utils.config_utils import load_opts
+from src.config_utils import load_opts
 
 
 @pytest.fixture

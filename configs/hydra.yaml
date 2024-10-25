@@ -13,4 +13,5 @@ args:
   resume: False # Load latest ckpt
   tags: null
   dev: False # Run this script in development mode
+  load_ckpt_path: null
 

@@ -1,0 +1,167 @@
+"""
+Regression-Transformer model
+Code is based on the C-tran paper: https://github.com/QData/C-Tran
+"""
+
+import math
+
+import numpy as np
+import torch
+
+from src.models.baselines import *
+from src.models.state_embeddings import SpeciesTokenizer
+from src.models.utils import custom_replace, custom_replace_n, weights_init
+
+
+class CTranModel(nn.Module):
+    def __init__(
+        self,
+        num_classes,
+        backbone="MlpEncoder",
+        quantized_mask_bins=1,
+        input_channels=1,
+        d_hidden=512,
+        n_attention_layers=3,
+        n_heads=4,
+        dropout=0.2,
+        n_backbone_layers=2,
+        tokenize_state=False,
+        use_unknown_token=False,
+    ):
+        """
+        pos_emb is false by default
+        num_classes: total number of species
+        species_list: list of species
+        backbone: backbone to process input (MLP)
+        pretrained_backbone: to load ImageNet pretrained weights for backbone
+        quantized_mask_bins (should be >= 1): how many bins to use for the positive encounter rate > 0
+        input_channels: number of input channels for satellite data
+        d_hidden: embedding dimension / hidden layer dimention
+        n_attention_layers: number of attention layes
+        n_heads: number of attention heads
+        dropout: dropout ratio
+        use_unknown_token: add special parameter to encode unknown state when state is linearly tokenized
+        """
+        super(CTranModel, self).__init__()
+        self.d_hidden = d_hidden  # this should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
+        self.quantized_mask_bins = quantized_mask_bins
+        self.n_embedding_state = self.quantized_mask_bins + 2
+        self.use_unknown_token = use_unknown_token
+        self.backbone = globals()[backbone](
+            input_channels=input_channels,
+            pretrained=False,
+            hidden_dim=d_hidden,
+            num_layers=n_backbone_layers,
+            # input_dim=input_channels, hidden_dim=d_hidden, output_dim=d_hidden
+            # d_in=input_channels, d_out=d_hidden, dropout=dropout, n_layers=n_layers
+        )
+
+        # Env embed layer
+
+        # Label Embeddings
+        self.label_input = torch.Tensor(np.arange(num_classes)).view(1, -1).long()
+        self.label_embeddings = torch.nn.Embedding(
+            num_classes, self.d_hidden, padding_idx=None
+        )  # LxD
+
+        # State Embeddings
+        self.tokenize_state = tokenize_state
+        if tokenize_state is not None:
+            self.state_embeddings = SpeciesTokenizer(
+                num_classes, d_hidden, tokenization=self.tokenize_state
+            )
+            # tokens to symbolize unknown (instead of passing -1 to the species tokenizer, there is a special species specific mask token for unknown)
+            self.mask_tokens = nn.Parameter(torch.Tensor(num_classes, d_hidden))
+            for parameter in [self.mask_tokens]:
+                torch.nn.init.uniform_(
+                    parameter, -1 / math.sqrt(d_hidden), 1 / math.sqrt(d_hidden)
+                )
+        else:
+            self.state_embeddings = torch.nn.Embedding(
+                self.n_embedding_state, self.d_hidden, padding_idx=0
+            )  # Dx2 (known, unknown)
+
+        # Transformer
+        self.self_attn_layers = nn.ModuleList(
+            [
+                SelfAttnLayer(self.d_hidden, n_heads, dropout)
+                for _ in range(n_attention_layers)
+            ]
+        )
+        self.dense_layer = torch.nn.Linear(num_classes, self.d_hidden)
+        # Classifier
+        # Output is of size num_classes because we want a separate classifier for each label
+        self.output_linear = torch.nn.Linear(self.d_hidden, num_classes)
+
+        # Other
+        self.LayerNorm = nn.LayerNorm(d_hidden)
+        self.dropout = nn.Dropout(dropout)
+
+        # Init all except pretrained backbone
+        self.label_embeddings.apply(weights_init)
+        self.state_embeddings.apply(weights_init)
+        self.LayerNorm.apply(weights_init)
+        self.self_attn_layers.apply(weights_init)
+        self.output_linear.apply(weights_init)
+
+    def forward(self, images, mask_q):
+        images = images.type(torch.float32)
+        z_features = self.backbone(images)  # image: HxWxD , out: [128, 4, 512]
+        z_features = z_features.unsqueeze(1)
+        const_label_input = self.label_input.repeat(images.size(0), 1).to(
+            images.device
+        )  # LxD (128, 670)
+        init_label_embeddings = self.label_embeddings(
+            const_label_input
+        )  # LxD # (128, 670, 512)
+
+        if self.quantized_mask_bins >= 1:
+            mask_q[mask_q == -2] = -1
+            mask_q = torch.where(
+                mask_q > 0,
+                torch.ceil(mask_q * self.quantized_mask_bins)
+                / self.quantized_mask_bins,
+                mask_q,
+            )
+            label_feat_vec = custom_replace_n(mask_q, self.quantized_mask_bins).long()
+            state_embeddings = self.state_embeddings(label_feat_vec)  # (128, 670, 512)
+
+        elif self.quantized_mask_bins == 0:
+            mask_q[mask_q == -2] = -1
+            # if self.tokenize_state, masks should have been constructed with quantized_bins=0
+            # Get state embeddings
+            state_embeddings = self.state_embeddings(mask_q)  # (128, 670, 512)
+            if self.use_unknown_token:
+                batch_size = state_embeddings.shape[0]
+                unknown_tokens = self.mask_tokens.unsqueeze(0).expand(
+                    batch_size, -1, -1
+                )
+                expanded_mask = (
+                    (mask_q < 0).unsqueeze(-1).expand(-1, -1, self.d_hidden)
+                )  # Shape: (batch_size, num_classes, hidden_dim)
+                state_embeddings = torch.where(
+                    expanded_mask, unknown_tokens, state_embeddings
+                )
+
+        # Add state embeddings to label embeddings
+        init_label_embeddings += state_embeddings
+        # concatenate images features to label embeddings
+        embeddings = torch.cat(
+            (z_features, init_label_embeddings), 1
+        )  # (128, 674, 512)
+        # Feed all (image and label) embeddings through Transformer
+        embeddings = self.LayerNorm(embeddings)
+        for layer in self.self_attn_layers:
+            embeddings = layer(embeddings, mask=None)
+
+        # Readout each label embedding using a linear layer
+        label_embeddings = embeddings[:, -init_label_embeddings.size(1) :, :]
+        output = self.output_linear(label_embeddings)
+        diag_mask = (
+            torch.eye(output.size(1), device=output.device)
+            .unsqueeze(0)
+            .repeat(output.size(0), 1, 1)
+        )
+        output = (output * diag_mask).sum(-1)
+
+        return output
