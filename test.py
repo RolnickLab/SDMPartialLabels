@@ -66,8 +66,8 @@ def main(opts):
     config = load_opts(config_path, default=default_config, commandline_opts=hydra_opts)
     config.base_dir = base_dir
     config.partial_labels.eval_known_ratio = args["eval_known_ratio"]
-    global_seed =  config.training.seed #get_seed(config.run_id, config.training.seed)
-    pl.seed_everything(config.training.seed)
+    global_seed =  get_seed(config.run_id, config.training.seed)
+    pl.seed_everything(global_seed)
 
     datamodule = dataloader.SDMDataModule(config)
     datamodule.setup()
