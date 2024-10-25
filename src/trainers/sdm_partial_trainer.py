@@ -27,6 +27,13 @@ class SDMPartialTrainer(BaseTrainer):
             num_classes=self.num_species,
             backbone=self.config.model.backbone,
             quantized_mask_bins=self.config.partial_labels.quantized_mask_bins,
+            n_attention_layers=self.config.model.n_attention_layers,
+            n_heads=self.config.model.n_heads,
+            dropout=self.config.model.dropout,
+            n_backbone_layers = self.config.model.n_backbone_layers,
+            tokenize_state=self.config.partial_labels.tokenize_state, 
+            use_unknown_token = self.config.partial_labels.use_unknown_token
+
         )
 
         # if eval_known_rate == 0, everything is unknown, but we want to predict certain families

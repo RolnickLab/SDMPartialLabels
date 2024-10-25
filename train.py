@@ -39,16 +39,15 @@ def main(opts):
         config.comet.experiment_name + "_seed_" + str(global_seed)
     )
     config.base_dir = base_dir
-
+    
     # set global seed
     pl.seed_everything(global_seed)
-
     if not os.path.exists(config.save_path):
         os.makedirs(config.save_path)
     with open(os.path.join(config.save_path, "config.yaml"), "w") as fp:
         OmegaConf.save(config=config, f=fp)
     fp.close()
-
+    
     datamodule = dataloader.SDMDataModule(config)
 
     if config.partial_labels.use:
@@ -57,7 +56,7 @@ def main(opts):
         task = BaselineTrainer(config)
 
     trainer_args = {}
-
+    
     if config.log_comet:
         if os.environ.get("COMET_API_KEY"):
             comet_logger = CometLogger(
@@ -72,7 +71,7 @@ def main(opts):
         else:
             print("no COMET API Key found..continuing without logging..")
             return
-
+    
     checkpoint_callback = ModelCheckpoint(
         monitor="val_topk",
         dirpath=config.save_path,

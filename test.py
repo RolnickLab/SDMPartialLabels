@@ -32,6 +32,9 @@ def load_existing_checkpoint(task, base_dir, checkpint_path):
 
 
 def save_test_results_to_csv(results, root_dir, file_name="test_results.csv"):
+    if root_dir is None: 
+        print("Not saving results")
+        return()
     output_file = os.path.join(root_dir, file_name)
 
     with open(output_file, "a+", newline="") as csvfile:
@@ -53,7 +56,6 @@ def get_seed(run_id, fixed_seed):
 @hydra.main(config_path="configs", config_name="hydra")
 def main(opts):
     hydra_opts = dict(OmegaConf.to_container(opts))
-    print("hydra_opts", hydra_opts)
     args = hydra_opts.pop("args", None)
 
     base_dir = get_original_cwd()
@@ -63,12 +65,9 @@ def main(opts):
 
     config = load_opts(config_path, default=default_config, commandline_opts=hydra_opts)
     config.base_dir = base_dir
-
-    run_id = args["run_id"]
-    global_seed = get_seed(run_id, config.training.seed)
-
-    config.save_path = os.path.join(base_dir, config.save_path, str(global_seed))
-    pl.seed_everything(config.training.seed)
+    config.partial_labels.eval_known_ratio = args["eval_known_ratio"]
+    global_seed =  get_seed(config.run_id, config.training.seed)
+    pl.seed_everything(global_seed)
 
     datamodule = dataloader.SDMDataModule(config)
     datamodule.setup()
@@ -116,7 +115,7 @@ def main(opts):
         else:
             # get the number of experiments based on folders given
             n_runs = len(
-                os.listdir(os.path.join(config.base_dir, config.load_ckpt_path))
+                os.listdir(config.load_ckpt_path)
             )
             # loop over all seeds
             for run_id in range(1, n_runs + 1):

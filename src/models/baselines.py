@@ -23,7 +23,7 @@ class SimpleMLP(nn.Module):
         x = self.layer_3(x)
         return x
 
-
+    
 class SimpleMLPMasked(nn.Module):
     def __init__(
         self,
@@ -55,17 +55,22 @@ class SimpleMLPMasked(nn.Module):
         return x
 
 
+
 class SimpleMLPBackbone(nn.Module):
-    def __init__(self, input_channels, pretrained=False, hidden_dim=64):
+    def __init__(self, input_channels, pretrained=False, hidden_dim=64, num_layers=2):
         super(SimpleMLPBackbone, self).__init__()
+        self.num_layers = num_layers
         self.layer_1 = nn.Linear(input_channels, hidden_dim)
-        self.layer_2 = nn.Linear(hidden_dim, hidden_dim)
+        for i in range(1, num_layers):
+            setattr(self, f'layer_{i+1}',  nn.Linear(hidden_dim, hidden_dim))
+
 
     def forward(self, x):
         x = F.relu(self.layer_1(x))
-        x = self.layer_2(x)
+        for i in range(1, self.num_layers-1):
+            x = F.relu(getattr(self, f'layer_{i+1}')(x))
+        x = getattr(self, f'layer_{self.num_layers}')(x)
         return x
-
 
 class PredHead(nn.Module):
 
