@@ -32,7 +32,6 @@ class SimpleMLPMasked(nn.Module):
         d_hidden,
         num_classes,
         quantized_mask_bins=1,
-        backbone=None,
     ):
         super(SimpleMLPMasked, self).__init__()
 

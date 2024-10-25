@@ -1,6 +1,7 @@
 """
 Trainer for the ctran framework
 """
+import inspect
 
 from torch import nn
 
@@ -21,19 +22,28 @@ class SDMPartialTrainer(BaseTrainer):
 
         self.criterion = self.__loss_mapping(self.config.losses.criterion)
 
-        self.model = globals()[self.config.model.name](
-            input_channels=self.config.model.input_dim,
-            d_hidden=self.config.model.hidden_dim,
-            num_classes=self.num_species,
-            backbone=self.config.model.backbone,
-            quantized_mask_bins=self.config.partial_labels.quantized_mask_bins,
-            n_attention_layers=self.config.model.n_attention_layers,
-            n_heads=self.config.model.n_heads,
-            dropout=self.config.model.dropout,
-            n_backbone_layers=self.config.model.n_backbone_layers,
-            tokenize_state=self.config.partial_labels.tokenize_state,
-            use_unknown_token=self.config.partial_labels.use_unknown_token,
-        )
+        model_kwargs = {
+            'input_channels': self.config.model.input_dim,
+            'd_hidden': self.config.model.hidden_dim,
+            'num_classes': self.num_species,
+            'quantized_mask_bins': self.config.partial_labels.quantized_mask_bins,
+            'backbone': self.config.model.backbone,
+            'n_attention_layers': self.config.model.n_attention_layers,
+            'n_heads': self.config.model.n_heads,
+            'dropout': self.config.model.dropout,
+            'n_backbone_layers': self.config.model.n_backbone_layers,
+            'tokenize_state': self.config.partial_labels.tokenize_state,
+            'use_unknown_token': self.config.partial_labels.use_unknown_token,
+        }
+        model_class = globals()[self.config.model.name]
+        model_signature = inspect.signature(model_class.__init__)
+        # check which args are needed for the model params
+        valid_args = {
+            param: value for param, value in model_kwargs.items()
+            if param in model_signature.parameters
+        }
+        # Initialize the model using only the relevant arguments
+        self.model = model_class(**valid_args)
 
         # if eval_known_rate == 0, everything is unknown, but we want to predict certain families
         if (

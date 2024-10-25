@@ -17,6 +17,10 @@ model:
   input_dim:
   hidden_dim:
   backbone:
+  n_backbone_layers:
+  n_attention_layers:
+  n_heads:
+  dropout:
 
 training:
   seed: 1337
@@ -33,6 +37,8 @@ partial_labels:
     train_known_ratio: 0.75
     # what known ratios do we consider when testing
     eval_known_ratio: 0.0 # [1.0, 0.9, 0.8, 0.5]
+    tokenize_state:
+    use_unknown_token: True
 
 data:
   loaders:
@@ -77,25 +83,25 @@ metrics:
     ignore: False
     scale: 10
   - name: nonzero_mae
-    ignore: False
+    ignore: True
     scale: 10
   - name: mse
     ignore: False
     scale: 10
   - name: nonzero_mse
-    ignore: False
+    ignore: True
     scale: 10
   - name: topk
     ignore: False
     scale: 1
   - name: topk2
-    ignore: False
+    ignore: True
     scale: 1
   - name: r2
     ignore: True #False
     scale: 1
   - name: kl
-    ignore: False
+    ignore: True
     scale : 1
   - name: accuracy
     ignore: True
