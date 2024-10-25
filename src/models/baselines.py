@@ -28,8 +28,8 @@ class SimpleMLP(nn.Module):
 class SimpleMLPMasked(nn.Module):
     def __init__(
         self,
-        input_channels,
-        d_hidden,
+        input_dim,
+        hidden_dim,
         num_classes,
         quantized_mask_bins=1,
     ):
@@ -37,11 +37,19 @@ class SimpleMLPMasked(nn.Module):
 
         self.num_unique_mask_values = quantized_mask_bins
 
-        self.layer_1 = nn.Linear(
-            input_channels + ((self.num_unique_mask_values + 2) * num_classes), d_hidden
+        self.mask_encoder = nn.Sequential(
+            nn.Linear(((self.num_unique_mask_values + 2) * num_classes), hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU())
+
+        self.env_encoder = nn.Sequential(
+            nn.Linear(input_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.ReLU()
         )
-        self.layer_2 = nn.Linear(d_hidden, d_hidden)
-        self.out_layer = nn.Linear(d_hidden, num_classes)
+        self.out_layer = nn.Linear(hidden_dim * 2, num_classes)
 
     def forward(self, x, mask_q):
         mask_q[mask_q == -2] = -1
@@ -59,18 +67,18 @@ class SimpleMLPMasked(nn.Module):
             mask_q.size(0), -1
         )  # Flatten to (batch_size, num_classes * 3)
 
-        x_combined = torch.cat((x, one_hot_mask_flattened), dim=1)
-        x = F.relu(self.layer_1(x_combined))
-        x = F.relu(self.layer_2(x))
-        x = self.out_layer(x)
+        x_env = self.env_encoder(x)
+        x_mask = self.mask_encoder(one_hot_mask_flattened)
+        x_combined = torch.cat((x_env, x_mask), dim=1)
+        x = self.out_layer(x_combined)
         return x
 
 
 class SimpleMLPBackbone(nn.Module):
-    def __init__(self, input_channels, pretrained=False, hidden_dim=64, num_layers=2):
+    def __init__(self, input_dim, pretrained=False, hidden_dim=64, num_layers=2):
         super(SimpleMLPBackbone, self).__init__()
         self.num_layers = num_layers
-        self.layer_1 = nn.Linear(input_channels, hidden_dim)
+        self.layer_1 = nn.Linear(input_dim, hidden_dim)
         for i in range(1, num_layers):
             setattr(self, f"layer_{i+1}", nn.Linear(hidden_dim, hidden_dim))
 

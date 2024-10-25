@@ -2,7 +2,6 @@ import os
 
 import torch
 
-from src.metrics import get_metrics
 from src.models.baselines import SimpleMLP
 from src.trainers.base import BaseTrainer
 from src.utils import eval_species_split
@@ -33,16 +32,6 @@ class BaselineTrainer(BaseTrainer):
             self.num_species = len(self.class_indices_to_test)
 
         print(f"Number of classes: {self.num_species}")
-
-        # metrics to report
-        metrics = get_metrics(self.config)
-        for name, value, _ in metrics:
-            setattr(self, "val_" + name, value)
-        for name, value, _ in metrics:
-            setattr(self, "train_" + name, value)
-        for name, value, _ in metrics:
-            setattr(self, "test_" + name, value)
-        self.metrics = metrics
 
     def training_step(self, batch, batch_idx):
         data = batch["data"]

@@ -57,6 +57,7 @@ def get_seed(run_id, fixed_seed):
 def main(opts):
     hydra_opts = dict(OmegaConf.to_container(opts))
     args = hydra_opts.pop("args", None)
+    run_id = args["run_id"]
 
     base_dir = get_original_cwd()
 
@@ -65,8 +66,10 @@ def main(opts):
 
     config = load_opts(config_path, default=default_config, commandline_opts=hydra_opts)
     config.base_dir = base_dir
-    config.partial_labels.eval_known_ratio = args["eval_known_ratio"]
-    global_seed = get_seed(config.run_id, config.training.seed)
+    # config.partial_labels.eval_known_ratio = args["eval_known_ratio"]
+    global_seed = get_seed(run_id, config.training.seed)
+    config.save_path = os.path.join(base_dir, config.save_path, str(global_seed))
+
     pl.seed_everything(global_seed)
 
     datamodule = dataloader.SDMDataModule(config)

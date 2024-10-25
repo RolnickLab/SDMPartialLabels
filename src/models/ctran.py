@@ -19,8 +19,8 @@ class CTranModel(nn.Module):
         num_classes,
         backbone="MlpEncoder",
         quantized_mask_bins=1,
-        input_channels=1,
-        d_hidden=512,
+        input_dim=27,
+        hidden_dim=512,
         n_attention_layers=3,
         n_heads=4,
         dropout=0.2,
@@ -35,25 +35,25 @@ class CTranModel(nn.Module):
         backbone: backbone to process input (MLP)
         pretrained_backbone: to load ImageNet pretrained weights for backbone
         quantized_mask_bins (should be >= 1): how many bins to use for the positive encounter rate > 0
-        input_channels: number of input channels for satellite data
-        d_hidden: embedding dimension / hidden layer dimention
+        input_dim: number of input channels for satellite data
+        hidden_dim: embedding dimension / hidden layer dimention
         n_attention_layers: number of attention layes
         n_heads: number of attention heads
         dropout: dropout ratio
         use_unknown_token: add special parameter to encode unknown state when state is linearly tokenized
         """
         super(CTranModel, self).__init__()
-        self.d_hidden = d_hidden  # this should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
+        self.hidden_dim = hidden_dim  # this should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
         self.quantized_mask_bins = quantized_mask_bins
         self.n_embedding_state = self.quantized_mask_bins + 2
         self.use_unknown_token = use_unknown_token
         self.backbone = globals()[backbone](
-            input_channels=input_channels,
+            input_dim=input_dim,
             pretrained=False,
-            hidden_dim=d_hidden,
+            hidden_dim=hidden_dim,
             num_layers=n_backbone_layers,
-            # input_dim=input_channels, hidden_dim=d_hidden, output_dim=d_hidden
-            # d_in=input_channels, d_out=d_hidden, dropout=dropout, n_layers=n_layers
+            # input_dim=input_dim, hidden_dim=hidden_dim, output_dim=hidden_dim
+            # d_in=input_dim, d_out=hidden_dim, dropout=dropout, n_layers=n_layers
         )
 
         # Env embed layer
@@ -61,40 +61,40 @@ class CTranModel(nn.Module):
         # Label Embeddings
         self.label_input = torch.Tensor(np.arange(num_classes)).view(1, -1).long()
         self.label_embeddings = torch.nn.Embedding(
-            num_classes, self.d_hidden, padding_idx=None
+            num_classes, self.hidden_dim, padding_idx=None
         )  # LxD
 
         # State Embeddings
         self.tokenize_state = tokenize_state
         if tokenize_state is not None:
             self.state_embeddings = SpeciesTokenizer(
-                num_classes, d_hidden, tokenization=self.tokenize_state
+                num_classes, hidden_dim, tokenization=self.tokenize_state
             )
             # tokens to symbolize unknown (instead of passing -1 to the species tokenizer, there is a special species specific mask token for unknown)
-            self.mask_tokens = nn.Parameter(torch.Tensor(num_classes, d_hidden))
+            self.mask_tokens = nn.Parameter(torch.Tensor(num_classes, hidden_dim))
             for parameter in [self.mask_tokens]:
                 torch.nn.init.uniform_(
-                    parameter, -1 / math.sqrt(d_hidden), 1 / math.sqrt(d_hidden)
+                    parameter, -1 / math.sqrt(hidden_dim), 1 / math.sqrt(hidden_dim)
                 )
         else:
             self.state_embeddings = torch.nn.Embedding(
-                self.n_embedding_state, self.d_hidden, padding_idx=0
+                self.n_embedding_state, self.hidden_dim, padding_idx=0
             )  # Dx2 (known, unknown)
 
         # Transformer
         self.self_attn_layers = nn.ModuleList(
             [
-                SelfAttnLayer(self.d_hidden, n_heads, dropout)
+                SelfAttnLayer(self.hidden_dim, n_heads, dropout)
                 for _ in range(n_attention_layers)
             ]
         )
-        self.dense_layer = torch.nn.Linear(num_classes, self.d_hidden)
+        self.dense_layer = torch.nn.Linear(num_classes, self.hidden_dim)
         # Classifier
         # Output is of size num_classes because we want a separate classifier for each label
-        self.output_linear = torch.nn.Linear(self.d_hidden, num_classes)
+        self.output_linear = torch.nn.Linear(self.hidden_dim, num_classes)
 
         # Other
-        self.LayerNorm = nn.LayerNorm(d_hidden)
+        self.LayerNorm = nn.LayerNorm(hidden_dim)
         self.dropout = nn.Dropout(dropout)
 
         # Init all except pretrained backbone
@@ -137,7 +137,7 @@ class CTranModel(nn.Module):
                     batch_size, -1, -1
                 )
                 expanded_mask = (
-                    (mask_q < 0).unsqueeze(-1).expand(-1, -1, self.d_hidden)
+                    (mask_q < 0).unsqueeze(-1).expand(-1, -1, self.hidden_dim)
                 )  # Shape: (batch_size, num_classes, hidden_dim)
                 state_embeddings = torch.where(
                     expanded_mask, unknown_tokens, state_embeddings
