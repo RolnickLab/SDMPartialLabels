@@ -102,7 +102,7 @@ def main(opts):
                 base_dir="",
                 checkpint_path=config.load_ckpt_path,
             )
-            global_seed = get_seed(run_id, config.training.seed)
+            global_seed = get_seed(args["run_id"], config.training.seed)
             pl.seed_everything(global_seed)
 
             test_results = test_task(task)
@@ -114,7 +114,8 @@ def main(opts):
             )
         else:
             # get the number of experiments based on folders given
-            n_runs = len(os.listdir(config.load_ckpt_path))
+            
+            n_runs = len([ f for f in os.scandir(config.load_ckpt_path) if f.is_dir() ])
             # loop over all seeds
             for run_id in range(1, n_runs + 1):
                 # get path of a single experiment
