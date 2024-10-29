@@ -66,9 +66,7 @@ def main(opts):
     config = load_opts(config_path, default=default_config, commandline_opts=hydra_opts)
     config.base_dir = base_dir
     config.partial_labels.eval_known_ratio = args["eval_known_ratio"]
-    global_seed = get_seed(config.run_id, config.training.seed)
-    pl.seed_everything(global_seed)
-
+    
     datamodule = dataloader.SDMDataModule(config)
     datamodule.setup()
     if config.partial_labels.use:
@@ -104,6 +102,8 @@ def main(opts):
                 base_dir="",
                 checkpint_path=config.load_ckpt_path,
             )
+            global_seed = get_seed(run_id, config.training.seed)
+            pl.seed_everything(global_seed)
 
             test_results = test_task(task)
 
@@ -121,6 +121,9 @@ def main(opts):
                 run_id_path = os.path.join(
                     config.load_ckpt_path, str(get_seed(run_id, config.training.seed))
                 )
+                global_seed = get_seed(run_id, config.training.seed)
+                pl.seed_everything(global_seed)
+
                 # get path of the best checkpoint (not last)
                 files = os.listdir(os.path.join(config.base_dir, run_id_path))
                 best_checkpoint_file_name = [
