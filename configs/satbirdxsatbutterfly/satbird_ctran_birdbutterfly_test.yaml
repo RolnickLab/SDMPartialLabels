@@ -1,9 +1,9 @@
 #where to save checkpoints
-save_path: #"/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran/birdxbutterflies_envencoder/"
+save_path: "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran_clean_meli/birdxbutterflies_256hdim_2layers_binning" #"/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran/birdxbutterflies_envencoder/"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path:  "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran/birdxbutterflies_128hdim_fix_periodic_useunknowntoken/" #"/network/projects/ecosystem-embeddings/experiments/baseline_joint_species_rtran_resnet18_RGBNIR_ENV/1337/last.ckpt"
-save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
+load_ckpt_path:  "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran_clean_meli/birdxbutterflies_256hdim_2layers_binning"
+save_preds_path: "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran_clean_meli/birdxbutterflies_256hdim_2layers_binning" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
 
 comet:
   project_name: "SDMPartialLabels"
@@ -15,10 +15,10 @@ dataloader_to_use: "SDMEnvMaskedDataset"
 
 model:
   name: "CTranModel"
-  input_dim: 1
-  hidden_dim: 128
+  input_dim: 2
+  hidden_dim: 256
   backbone: "SimpleMLPBackbone"
-  n_backbone_layers: 6
+  n_backbone_layers: 2
   n_attention_layers: 3
   n_heads: 4
   dropout: 0.2
@@ -34,12 +34,12 @@ partial_labels:
     # mask known labels out of the loss (true or false)
     masked_loss: False
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
-    quantized_mask_bins: 0
+    quantized_mask_bins: 4
     # max ratio of unknown labels during training
     train_known_ratio: 0.75
     # what known ratios do we consider when testing
     eval_known_ratio: 0.0 # [1.0, 0.9, 0.8, 0.5]
-    tokenize_state: "periodic"
+    tokenize_state: 
     use_unknown_token: True
 
 
