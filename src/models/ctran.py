@@ -6,11 +6,10 @@ Code is based on the C-tran paper: https://github.com/QData/C-Tran
 import math
 
 import numpy as np
-import torch
 
 from src.models.baselines import *
 from src.models.state_embeddings import SpeciesTokenizer
-from src.models.utils import custom_replace, custom_replace_n, weights_init
+from src.models.utils import custom_replace_n, weights_init
 
 
 class CTranModel(nn.Module):
@@ -49,11 +48,8 @@ class CTranModel(nn.Module):
         self.use_unknown_token = use_unknown_token
         self.backbone = globals()[backbone](
             input_dim=input_dim,
-            pretrained=False,
             hidden_dim=hidden_dim,
             num_layers=n_backbone_layers,
-            # input_dim=input_dim, hidden_dim=hidden_dim, output_dim=hidden_dim
-            # d_in=input_dim, d_out=hidden_dim, dropout=dropout, n_layers=n_layers
         )
 
         # Env embed layer
@@ -94,7 +90,7 @@ class CTranModel(nn.Module):
         self.output_linear = torch.nn.Linear(self.hidden_dim, num_classes)
 
         # Other
-        self.LayerNorm = nn.LayerNorm(hidden_dim)
+        self.LayerNorm = nn.LayerNorm(self.hidden_dim)
         self.dropout = nn.Dropout(dropout)
 
         # Init all except pretrained backbone
@@ -104,17 +100,16 @@ class CTranModel(nn.Module):
         self.self_attn_layers.apply(weights_init)
         self.output_linear.apply(weights_init)
 
-    def forward(self, images, mask_q):
-        images = images.type(torch.float32)
-        z_features = self.backbone(images)  # image: HxWxD , out: [128, 4, 512]
-        z_features = z_features.unsqueeze(1)
-        const_label_input = self.label_input.repeat(images.size(0), 1).to(
-            images.device
+    def forward(self, x_input, mask_q):
+        x_input = x_input.type(torch.float32)
+        x_features = self.backbone(x_input)  # image: HxWxD , out: [128, 4, 512]
+        x_features = x_features.unsqueeze(1)
+        const_label_input = self.label_input.repeat(x_input.size(0), 1).to(
+            x_input.device
         )  # LxD (128, 670)
         init_label_embeddings = self.label_embeddings(
             const_label_input
         )  # LxD # (128, 670, 512)
-
         if self.quantized_mask_bins >= 1:
             mask_q[mask_q == -2] = -1
             mask_q = torch.where(
@@ -145,9 +140,9 @@ class CTranModel(nn.Module):
 
         # Add state embeddings to label embeddings
         init_label_embeddings += state_embeddings
-        # concatenate images features to label embeddings
+        # concatenate x_input features to label embeddings
         embeddings = torch.cat(
-            (z_features, init_label_embeddings), 1
+            (x_features, init_label_embeddings), 1
         )  # (128, 674, 512)
         # Feed all (image and label) embeddings through Transformer
         embeddings = self.LayerNorm(embeddings)

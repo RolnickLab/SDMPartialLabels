@@ -37,18 +37,10 @@ class SimpleMLPMasked(nn.Module):
 
         self.num_unique_mask_values = quantized_mask_bins
 
-        self.mask_encoder = nn.Sequential(
-            nn.Linear(((self.num_unique_mask_values + 2) * num_classes), hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU())
+        self.mask_encoder = SimpleMLPBackbone(input_dim=((self.num_unique_mask_values + 2) * num_classes), hidden_dim=hidden_dim, num_layers=2)
 
-        self.env_encoder = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU()
-        )
+        self.env_encoder = SimpleMLPBackbone(input_dim=input_dim, hidden_dim=hidden_dim, num_layers=2)
+
         self.out_layer = nn.Linear(hidden_dim * 2, num_classes)
 
     def forward(self, x, mask_q):
@@ -75,7 +67,7 @@ class SimpleMLPMasked(nn.Module):
 
 
 class SimpleMLPBackbone(nn.Module):
-    def __init__(self, input_dim, pretrained=False, hidden_dim=64, num_layers=2):
+    def __init__(self, input_dim, hidden_dim=64, num_layers=2):
         super(SimpleMLPBackbone, self).__init__()
         self.num_layers = num_layers
         self.layer_1 = nn.Linear(input_dim, hidden_dim)
