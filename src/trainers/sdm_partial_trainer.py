@@ -23,8 +23,8 @@ class SDMPartialTrainer(BaseTrainer):
         self.criterion = self.__loss_mapping(self.config.losses.criterion)
 
         model_kwargs = {
-            'input_channels': self.config.model.input_dim,
-            'd_hidden': self.config.model.hidden_dim,
+            'input_dim': self.config.model.input_dim,
+            'hidden_dim': self.config.model.hidden_dim,
             'num_classes': self.num_species,
             'quantized_mask_bins': self.config.partial_labels.quantized_mask_bins,
             'backbone': self.config.model.backbone,
