@@ -1,14 +1,14 @@
 #where to save checkpoints
-save_path: "experiments_outputs/baseline_MaskedMLP_satbirdxsatbutterfly_v0"
+save_path: "experiments_outputs/baseline_MaskedMLP_satbirdxsatbutterfly_v8"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "/Users/hagerradi/Projects/SDMPartialLabels/experiments_outputs/baseline_MaskedMLP_satbirdxsatbutterfly_v0/1337/epoch=47-step=17040.ckpt"
+load_ckpt_path: "/Users/hagerradi/Projects/SDMPartialLabels/experiments_outputs/baseline_MaskedMLP_satbirdxsatbutterfly_v8/1337/epoch=47-step=17040.ckpt"
 save_preds_path: ""
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: ["rtran", "172butterfly_species", "satbird + satbutterflyv1 + satbutterflyv2"]
-  experiment_name: "baseline_MaskedMLP_satbirdxsatbutterfly_v0" # specify for training, or use to report test results, TODO: also use to resume training
+  tags: ["172butterfly_species", "two_encoder_maskedmlp", "reproduce_v4", "satbird + satbutterflyv1 + satbutterflyv2"]
+  experiment_name: "baseline_MaskedMLP_satbirdxsatbutterfly_v8" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 dataloader_to_use: "SDMEnvMaskedDataset"
@@ -43,6 +43,7 @@ data:
   loaders:
     num_workers: 8
     batch_size: 256
+    weighted_sampling: False
 
   #o you want to use environmental data (pedological and bioclimatic (low res) data) #ped" or "bioclim" or both or empty list
   env: ['bio_1', 'bio_2',

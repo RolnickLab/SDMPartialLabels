@@ -7,9 +7,10 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 
 from src.dataloaders.label_masking import get_unknown_mask_indices
+from src.dataloaders.utils import compute_sampling_weights
 
 
 class EnvDataset(Dataset[Dict[str, Any]], abc.ABC):
@@ -330,6 +331,22 @@ class SDMDataModule(pl.LightningDataModule):
             val_targets = self.get_bird_targets(val_hotspots)
             test_targets = self.get_bird_targets(test_hotspots)
 
+        if self.config.data.multi_taxa and self.config.data.loaders.weighted_sampling:
+            sample_weights = compute_sampling_weights(
+                train_targets, self.config.data.per_taxa_species_count
+            )
+
+            # Create a WeightedRandomSampler for balanced sampling
+            self.training_sampler = WeightedRandomSampler(
+                weights=sample_weights,
+                num_samples=len(sample_weights) * 2,
+                replacement=True,
+            )
+            self.shuffle_training = False
+        else:
+            self.training_sampler = None
+            self.shuffle_training = True
+
         self.all_train_dataset = globals()[self.dataloader_to_use](
             data=torch.tensor(train_data, dtype=torch.float32),
             targets=torch.tensor(train_targets, dtype=torch.float32),
@@ -383,10 +400,11 @@ class SDMDataModule(pl.LightningDataModule):
         return DataLoader(
             self.all_train_dataset,
             batch_size=self.batch_size,
+            sampler=self.training_sampler,
             num_workers=self.num_workers,
             persistent_workers=True,
             pin_memory=True,
-            shuffle=True,
+            shuffle=self.shuffle_training,
         )
 
     def val_dataloader(self) -> DataLoader[Any]:
