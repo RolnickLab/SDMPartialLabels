@@ -1,9 +1,8 @@
 #where to save checkpoints
-save_path: #"/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran_clean_meli/birdxbutterflies_256hdim_2layers_binning" #"/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran/birdxbutterflies_envencoder/"
-
+save_path: "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran_clean_meli/birdxbutterflies_256hdim_2layers_binning/"
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path:  "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran_clean_meli/birdxbutterflies_256hdim_2layers_binning"
-save_preds_path: "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran_clean_meli/birdxbutterflies_256hdim_2layers_binning" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
+load_ckpt_path: "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran_clean_meli/birdxbutterflies_256hdim_2layers_binning/" # "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran_clean_meli/birdxbutterflies_256hdim_2layers_binning10/" #"/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran_clean_meli/birdxbutterflies_256hdim_2layers_binning_maskingrandom/"
+save_preds_path: "" #"/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran_clean_meli/birdxbutterflies_256hdim_2layers_binning_maskingrandom/" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
 
 comet:
   project_name: "SDMPartialLabels"
@@ -16,12 +15,12 @@ dataloader_to_use: "SDMEnvMaskedDataset"
 model:
   name: "CTranModel"
   input_dim: 27
-  hidden_dim: 128
+  hidden_dim: 256
   backbone: "SimpleMLPBackbone"
   n_backbone_layers: 2
   n_attention_layers: 3
   n_heads: 4
-  dropout: 0.2
+  dropout: 0
 
 training:
   seed: 1337
