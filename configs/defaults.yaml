@@ -44,6 +44,7 @@ data:
   loaders:
     num_workers: 8
     batch_size: 256
+    weighted_sampling:
 
   #o you want to use environmental data (pedological and bioclimatic (low res) data) #ped" or "bioclim" or both or empty list
   env: ['bio_1', 'bio_2',
