@@ -66,7 +66,7 @@ def main(opts):
     config = load_opts(config_path, default=default_config, commandline_opts=hydra_opts)
     config.base_dir = base_dir
     config.partial_labels.eval_known_ratio = args["eval_known_ratio"]
-    
+    config.file_name = args["file_name"]
     datamodule = dataloader.SDMDataModule(config)
     datamodule.setup()
     if config.partial_labels.use:
@@ -110,7 +110,7 @@ def main(opts):
             save_test_results_to_csv(
                 results=test_results[0],
                 root_dir=config.save_path,
-                file_name="test_results.csv",
+                file_name=config.file_name#"test_results.csv",
             )
         else:
             # get the number of experiments based on folders given
@@ -146,7 +146,7 @@ def main(opts):
                 save_test_results_to_csv(
                     results=test_results[0],
                     root_dir=config.save_path,
-                    file_name="test_results.csv",
+                    file_name=config.file_name #"test_results.csv",
                 )
 
     else:

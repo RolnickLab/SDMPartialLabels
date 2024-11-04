@@ -139,6 +139,9 @@ def get_unknown_mask_indices(
                 available_species_index = 1
 
         if available_species_index == -1 and multi_taxa:  # all species are there
+            #unk_mask_indices = random_species_masking(
+            #available_species_mask=available_species_mask, max_known=max_known
+        #)
             unk_mask_indices = multi_species_masking(
                 per_taxa_species_count=per_taxa_species_count,
             )
