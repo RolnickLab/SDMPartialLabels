@@ -110,7 +110,7 @@ def main(opts):
             save_test_results_to_csv(
                 results=test_results[0],
                 root_dir=config.save_path,
-                file_name=config.file_name#"test_results.csv",
+                file_name=config.file_name
             )
         else:
             # get the number of experiments based on folders given
@@ -146,7 +146,7 @@ def main(opts):
                 save_test_results_to_csv(
                     results=test_results[0],
                     root_dir=config.save_path,
-                    file_name=config.file_name #"test_results.csv",
+                    file_name=config.file_name
                 )
 
     else:
