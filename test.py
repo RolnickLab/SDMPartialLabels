@@ -66,11 +66,11 @@ def main(opts):
 
     config = load_opts(config_path, default=default_config, commandline_opts=hydra_opts)
     config.base_dir = base_dir
-    config.partial_labels.eval_known_ratio = args["eval_known_ratio"]
-    config.file_name = args["file_name"]
-    # config.partial_labels.eval_known_ratio = args["eval_known_ratio"]
-    global_seed = get_seed(run_id, config.training.seed)
-    pl.seed_everything(global_seed)
+
+    if "file_name" in args:
+        config.file_name = args["file_name"]
+    else: 
+        config.file_name = "test_results.csv"
 
     datamodule = dataloader.SDMDataModule(config)
     datamodule.setup()
