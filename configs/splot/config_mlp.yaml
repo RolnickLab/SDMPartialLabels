@@ -1,4 +1,4 @@
-mode: "test" # "test"
+mode: "train" # "test"
 dataset_name: "sPlot"
 model:
   name: "SimpleMLP"
@@ -15,12 +15,13 @@ training:
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "Simple_MLP_baseline_splot_v0_run2" # specify for training, or use to report test results
+  experiment_name: "dummy" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
   checkpoint_path: "./experiments_output"
   checkpoint_name: "last.ckpt"
 
 data:
+  dataloader_to_use: "sPlotDataset"
   base: "/Users/hagerradi/Projects/SDMPartialLabels/data/sPlotOpen"
   train: "train_indices.npy"
   validation: "validation_indices.npy"
@@ -33,8 +34,11 @@ data:
   soilgrid_data_path: "soilgrid_data.csv"
   species_list: "species_merge_duplicates.csv"
   species_occurrences_threshold: 100
+  env_columns: ['bio_1', 'bio_2', 'bio_3', 'bio_4', 'bio_5', 'bio_6', 'bio_7', 'bio_8', 'bio_9', 'bio_10',
+         'bio_11', 'bio_12', 'bio_13', 'bio_14', 'bio_15', 'bio_16', 'bio_17', 'bio_18', 'bio_19',
+        "ORCDRC", "PHIHOX", "CECSOL", "BDTICM", "CLYPPT", "SLTPPT", "SNDPPT", "BLDFIE"]
 
-  partial_labels: False
-  # default = -1, if 0, predict non-trees, if 1, predict trees only
-  predict_family_of_species: 1
-  maximum_known_labels_ratio: 0
+  partial_labels:
+    use: False
+    maximum_known_labels_ratio: 0
+    predict_family_of_species: -1

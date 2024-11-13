@@ -21,6 +21,7 @@ logger:
   checkpoint_name: "last.ckpt"
 
 data:
+  dataloader_to_use: "sPlotMaskedDataset"
   base: "/network/projects/ecosystem-embeddings/sPlotOpen"
   train: "train_indices.npy"
   validation: "validation_indices.npy"
@@ -34,7 +35,11 @@ data:
   batch_size: 64
 
   species_list: "species_merge_duplicates.csv"
+  env_columns: ['bio_1', 'bio_2', 'bio_3', 'bio_4', 'bio_5', 'bio_6', 'bio_7', 'bio_8', 'bio_9', 'bio_10',
+         'bio_11', 'bio_12', 'bio_13', 'bio_14', 'bio_15', 'bio_16', 'bio_17', 'bio_18', 'bio_19',
+        "ORCDRC", "PHIHOX", "CECSOL", "BDTICM", "CLYPPT", "SLTPPT", "SNDPPT", "BLDFIE"]
 
-  partial_labels: True
-  predict_family_of_species: -1
-  maximum_known_labels_ratio: 0
+  partial_labels:
+    use: True
+    maximum_known_labels_ratio: 0
+    predict_family_of_species: -1

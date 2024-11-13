@@ -59,7 +59,7 @@ def multi_label_accuracy(y_pred, y_true, threshold=0.5):
 
 
 def trees_masking(config):
-    if config.predict_family_of_species == -1:
+    if config.partial_labels.predict_family_of_species == -1:
         return None
 
     targets = np.load(os.path.join(config.base, config.targets))
@@ -74,7 +74,7 @@ def trees_masking(config):
 
     # 0: not trees, 1 : trees
     indices_to_predict = np.where(
-        species_df["isTree"] == config.predict_family_of_species
+        species_df["isTree"] == config.partial_labels.predict_family_of_species
     )[0]
 
     return indices_to_predict

@@ -12,11 +12,11 @@ from src.models.utils import custom_replace_n
 
 
 class SimpleMLP(nn.Module):
-    def __init__(self, input_dim, hidden_dim, output_dim):
+    def __init__(self, input_dim, hidden_dim, num_classes):
         super(SimpleMLP, self).__init__()
         self.layer_1 = nn.Linear(input_dim, hidden_dim)
         self.layer_2 = nn.Linear(hidden_dim, hidden_dim)
-        self.layer_3 = nn.Linear(hidden_dim, output_dim)
+        self.layer_3 = nn.Linear(hidden_dim, num_classes)
 
     def forward(self, x):
         x = F.relu(self.layer_1(x))
@@ -33,7 +33,7 @@ class SimpleMLPMasked_v1(nn.Module):
         num_classes,
         quantized_mask_bins=1,
     ):
-        super(SimpleMLPMasked, self).__init__()
+        super(SimpleMLPMasked_v1, self).__init__()
 
         self.num_unique_mask_values = quantized_mask_bins
 
@@ -69,21 +69,21 @@ class SimpleMLPMasked_v1(nn.Module):
 class SimpleMLPMasked_v0(nn.Module):
     def __init__(
         self,
-        input_channels,
-        d_hidden,
+        input_dim,
+        hidden_dim,
         num_classes,
         backbone=None,
         attention_layers=2,
         heads=2,
         num_unique_mask_values=3,
     ):
-        super(SimpleMLPMasked_v1, self).__init__()
+        super(SimpleMLPMasked_v0, self).__init__()
 
         self.num_unique_mask_values = num_unique_mask_values
 
-        self.layer_1 = nn.Linear(input_channels + (self.num_unique_mask_values * num_classes), d_hidden)
-        self.layer_2 = nn.Linear(d_hidden, d_hidden)
-        self.out_layer = nn.Linear(d_hidden, num_classes)
+        self.layer_1 = nn.Linear(input_dim + (self.num_unique_mask_values * num_classes), hidden_dim)
+        self.layer_2 = nn.Linear(hidden_dim, hidden_dim)
+        self.out_layer = nn.Linear(hidden_dim, num_classes)
 
     def forward(self, x, mask):
         mask = mask.long()

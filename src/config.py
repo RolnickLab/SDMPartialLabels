@@ -23,8 +23,18 @@ class TrainingConfig(BaseModel):
         ..., description="Accelerator for training: gpu, cpu, or auto"
     )
 
+class PartialLabels(BaseModel):
+    use: bool = Field(..., description="Training with Partial labels or not")
+    predict_family_of_species: int = Field(
+        ..., description="what family of species to predict during testing"
+    )
+    maximum_known_labels_ratio: Optional[float] = Field(
+        ..., description="Maximum known labels ratio"
+    )
+
 
 class DataPathConfig(BaseModel):
+    dataloader_to_use: Optional[str] = Field(None, description="name of Data loader to use")
     base: Optional[str] = Field(..., description="Base path for data")
     train: str = Field(..., description="Path to training indices")
     validation: str = Field(..., description="Path to validation indices")
@@ -37,13 +47,9 @@ class DataPathConfig(BaseModel):
     )
     batch_size: Optional[int] = Field(..., description="Batch size for training")
     species_list: str = Field(..., description="Path to list of species names")
-    partial_labels: bool = Field(..., description="Training with Partial labels or not")
-    predict_family_of_species: int = Field(
-        ..., description="what family of species to predict during testing"
-    )
-    maximum_known_labels_ratio: Optional[float] = Field(
-        ..., description="Maximum known labels ratio"
-    )
+    env_columns: list[str] = Field(..., description="List of column names of environment features")
+
+    partial_labels: PartialLabels = Field(..., description="Partial labels")
 
 
 class LoggingConfig(BaseModel):

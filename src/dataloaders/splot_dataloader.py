@@ -68,7 +68,7 @@ class sPlotMaskedDataset(Dataset):
                 max_known=self.maximum_known_labels_ratio,
                 predict_family_of_species=self.predict_family_of_species,
                 species_list=self.species_list,
-                dataset_name="splot",
+                dataset_name="splot"
             )
             mask = targets.clone()
             mask.scatter_(0, torch.Tensor(unk_mask_indices).long(), -1)
@@ -83,12 +83,8 @@ class sPlotDataModule(pl.LightningDataModule):
     def __init__(self, data_config):
         super().__init__()
         self.config = data_config
-        self.batch_size = data_config.batch_size
-
-        if self.config.partial_labels:
-            self.dataloader_to_use = "sPlotMaskedDataset"
-        else:
-            self.dataloader_to_use = "sPlotDataset"
+        self.batch_size = self.config.batch_size
+        self.dataloader_to_use = self.config.dataloader_to_use
 
     def setup(self, stage: Optional[str] = None) -> None:
 
@@ -102,38 +98,7 @@ class sPlotDataModule(pl.LightningDataModule):
             os.path.join(self.config.base, self.config.species_list)
         )
 
-        worldclim_env_column_names = [
-            "bio_1",
-            "bio_2",
-            "bio_3",
-            "bio_4",
-            "bio_5",
-            "bio_6",
-            "bio_7",
-            "bio_8",
-            "bio_9",
-            "bio_10",
-            "bio_11",
-            "bio_12",
-            "bio_13",
-            "bio_14",
-            "bio_15",
-            "bio_16",
-            "bio_17",
-            "bio_18",
-            "bio_19",
-        ]
-        soilgrid_env_column_names = [
-            "ORCDRC",
-            "PHIHOX",
-            "CECSOL",
-            "BDTICM",
-            "CLYPPT",
-            "SLTPPT",
-            "SNDPPT",
-            "BLDFIE",
-        ]
-        df_data_columns = worldclim_env_column_names + soilgrid_env_column_names
+        df_data_columns = self.config.env_columns
 
         data = pd.concat([worldclim_df, soilgrid_df], axis=1)
         data = data[df_data_columns].to_numpy()
@@ -163,8 +128,8 @@ class sPlotDataModule(pl.LightningDataModule):
             species_list=species_df,
             num_labels=len(species_indices),
             mode="train",
-            predict_family=self.config.predict_family_of_species,
-            maximum_known_labels_ratio=self.config.maximum_known_labels_ratio,
+            predict_family=self.config.partial_labels.predict_family_of_species,
+            maximum_known_labels_ratio=self.config.partial_labels.maximum_known_labels_ratio,
         )
 
         self.val_dataset = globals()[self.dataloader_to_use](
@@ -175,8 +140,8 @@ class sPlotDataModule(pl.LightningDataModule):
             species_list=species_df,
             num_labels=len(species_indices),
             mode="val",
-            predict_family=self.config.predict_family_of_species,
-            maximum_known_labels_ratio=self.config.maximum_known_labels_ratio,
+            predict_family=self.config.partial_labels.predict_family_of_species,
+            maximum_known_labels_ratio=self.config.partial_labels.maximum_known_labels_ratio,
         )
 
         self.test_dataset = globals()[self.dataloader_to_use](
@@ -187,8 +152,8 @@ class sPlotDataModule(pl.LightningDataModule):
             species_list=species_df,
             num_labels=len(species_indices),
             mode="test",
-            predict_family=self.config.predict_family_of_species,
-            maximum_known_labels_ratio=self.config.maximum_known_labels_ratio,
+            predict_family=self.config.partial_labels.predict_family_of_species,
+            maximum_known_labels_ratio=self.config.partial_labels.maximum_known_labels_ratio,
         )
 
     def train_dataloader(self):

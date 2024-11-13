@@ -1,5 +1,9 @@
 # supports training baseline models and C-tran on splot data
+import inspect
+
 import pytorch_lightning as pl
+import torch
+from torch import nn
 from torchmetrics.classification import MultilabelAUROC
 
 from src.utils import multi_label_accuracy, trees_masking
@@ -12,20 +16,22 @@ class sPlotTrainer(pl.LightningModule):
         self.learning_rate = config.training.learning_rate
         self.config = config
 
-        # Create model
-        if config.data.partial_labels:
-            self.model = globals()[self.config.model.name](
-                num_classes=self.config.model.output_dim,
-                backbone=self.config.model.backbone,
-                input_channels=self.config.model.input_dim,
-                d_hidden=self.config.model.hidden_dim,
-            )
-        else:
-            self.model = globals()[self.config.model.name](
-                input_channels=self.config.model.input_dim,
-                hidden_dim=self.config.model.hidden_dim,
-                output_dim=self.config.model.output_dim,
-            )
+        model_kwargs = {
+            "input_dim": self.config.model.input_dim,
+            "hidden_dim": self.config.model.hidden_dim,
+            "num_classes": self.config.model.output_dim,
+            "backbone": self.config.model.backbone,
+        }
+        model_class = globals()[self.config.model.name]
+        model_signature = inspect.signature(model_class.__init__)
+        # check which args are needed for the model params
+        valid_args = {
+            param: value
+            for param, value in model_kwargs.items()
+            if param in model_signature.parameters
+        }
+        # Initialize the model using only the relevant arguments
+        self.model = model_class(**valid_args)
 
         self.indices_to_predict = trees_masking(config=self.config.data)
 
@@ -45,7 +51,7 @@ class sPlotTrainer(pl.LightningModule):
         self.loss_fn = nn.BCEWithLogitsLoss()
 
     def forward(self, batch):
-        if self.config.data.partial_labels:
+        if self.config.data.partial_labels.use:
             return self.model(batch["data"], batch["mask"])
         return self.model(batch["data"])
 

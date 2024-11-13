@@ -12,7 +12,7 @@ from pytorch_lightning.loggers import CometLogger
 from src.config import Config
 from src.trainers.splot_trainer import sPlotTrainer
 from src.dataloaders.splot_dataloader import sPlotDataModule
-from src.utils import save_results_to_csv
+from src.utils import save_test_results_to_csv
 
 
 def load_config(config_path) -> Config:
@@ -100,7 +100,7 @@ def main():
         )
         test_results = trainer.test(model=task, datamodule=data_module, verbose=True)
         logging.info("test results: %s", test_results)
-        save_results_to_csv(
+        save_test_results_to_csv(
             results=test_results[0],
             root_dir=os.path.join(config.logger.checkpoint_path, config.logger.experiment_name),
             file_name="test_results.csv",

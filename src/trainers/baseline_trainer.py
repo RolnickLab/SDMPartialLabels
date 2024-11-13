@@ -14,7 +14,7 @@ class BaselineTrainer(BaseTrainer):
         self.model = SimpleMLP(
             input_dim=self.config.model.input_dim,
             hidden_dim=self.config.model.hidden_dim,
-            output_dim=self.num_species,
+            num_classes=self.num_species,
         )
 
         if self.config.predict_family_of_species != -1:
