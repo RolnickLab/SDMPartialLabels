@@ -42,5 +42,6 @@ data:
 
   partial_labels:
     use: True
-    maximum_known_labels_ratio: 0
+    train_known_ratio: 0.75
+    eval_known_ratio: 0
     predict_family_of_species: -1

@@ -28,8 +28,11 @@ class PartialLabels(BaseModel):
     predict_family_of_species: int = Field(
         ..., description="what family of species to predict during testing"
     )
-    maximum_known_labels_ratio: Optional[float] = Field(
-        ..., description="Maximum known labels ratio"
+    train_known_ratio: Optional[float] = Field(
+        ..., description="Maximum known labels ratio for training"
+    )
+    eval_known_ratio: Optional[float] = Field(
+        ..., description="Maximum known labels ratio for eval"
     )
 
 

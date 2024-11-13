@@ -164,7 +164,7 @@ class SDMEnvMaskedDataset(EnvDataset):
                 per_taxa_species_count=self.per_taxa_species_count,
                 predict_family_of_species=self.predict_family_of_species,
                 species_list=self.species_list,
-                dataset_name="satbird",
+                main_taxa_dataset_name="satbird",
             )
             mask.scatter_(
                 dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0

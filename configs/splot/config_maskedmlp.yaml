@@ -1,4 +1,4 @@
-mode: "test" # "test"
+mode: "train" # "test"
 dataset_name: "sPlot"
 model:
   name: "SimpleMLPMasked_v0"
@@ -16,7 +16,7 @@ training:
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "dummy_maskedmlp" # specify for training, or use to report test results
+  experiment_name: "splots_maskedmlp_retrain_2" # specify for training, or use to report test results
   experiment_key: "" # use to report test results
   checkpoint_path: "./experiments_output"
   checkpoint_name: "last.ckpt"
@@ -42,5 +42,6 @@ data:
 
   partial_labels:
     use: True
-    maximum_known_labels_ratio: 1
-    predict_family_of_species: 0
+    train_known_ratio: 0.75
+    eval_known_ratio: 0
+    predict_family_of_species: -1

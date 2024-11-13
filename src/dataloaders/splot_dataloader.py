@@ -68,7 +68,7 @@ class sPlotMaskedDataset(Dataset):
                 max_known=self.maximum_known_labels_ratio,
                 predict_family_of_species=self.predict_family_of_species,
                 species_list=self.species_list,
-                dataset_name="splot"
+                main_taxa_dataset_name="splot"
             )
             mask = targets.clone()
             mask.scatter_(0, torch.Tensor(unk_mask_indices).long(), -1)
@@ -129,7 +129,7 @@ class sPlotDataModule(pl.LightningDataModule):
             num_labels=len(species_indices),
             mode="train",
             predict_family=self.config.partial_labels.predict_family_of_species,
-            maximum_known_labels_ratio=self.config.partial_labels.maximum_known_labels_ratio,
+            maximum_known_labels_ratio=self.config.partial_labels.train_known_ratio,
         )
 
         self.val_dataset = globals()[self.dataloader_to_use](
@@ -141,7 +141,7 @@ class sPlotDataModule(pl.LightningDataModule):
             num_labels=len(species_indices),
             mode="val",
             predict_family=self.config.partial_labels.predict_family_of_species,
-            maximum_known_labels_ratio=self.config.partial_labels.maximum_known_labels_ratio,
+            maximum_known_labels_ratio=self.config.partial_labels.eval_known_ratio,
         )
 
         self.test_dataset = globals()[self.dataloader_to_use](
@@ -153,7 +153,7 @@ class sPlotDataModule(pl.LightningDataModule):
             num_labels=len(species_indices),
             mode="test",
             predict_family=self.config.partial_labels.predict_family_of_species,
-            maximum_known_labels_ratio=self.config.partial_labels.maximum_known_labels_ratio,
+            maximum_known_labels_ratio=self.config.partial_labels.eval_known_ratio,
         )
 
     def train_dataloader(self):

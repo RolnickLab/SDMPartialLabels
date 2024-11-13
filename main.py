@@ -70,7 +70,7 @@ def main():
         dirpath=os.path.join(
             config.logger.checkpoint_path, config.logger.experiment_name
         ),
-        save_top_k=2,
+        save_top_k=1,
         every_n_epochs=2,
         mode="max",
         save_last=True,

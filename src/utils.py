@@ -79,6 +79,7 @@ def trees_masking(config):
 
     return indices_to_predict
 
+
 def save_test_results_to_csv(results, root_dir, file_name="test_results.csv"):
     if root_dir is None:
         print("Not saving results")
