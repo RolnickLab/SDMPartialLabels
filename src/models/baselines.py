@@ -25,7 +25,7 @@ class SimpleMLP(nn.Module):
         return x
 
 
-class SimpleMLPMasked(nn.Module):
+class SimpleMLPMasked_v1(nn.Module):
     def __init__(
         self,
         input_dim,
@@ -66,6 +66,37 @@ class SimpleMLPMasked(nn.Module):
         return x
 
 
+class SimpleMLPMasked_v0(nn.Module):
+    def __init__(
+        self,
+        input_channels,
+        d_hidden,
+        num_classes,
+        backbone=None,
+        attention_layers=2,
+        heads=2,
+        num_unique_mask_values=3,
+    ):
+        super(SimpleMLPMasked_v1, self).__init__()
+
+        self.num_unique_mask_values = num_unique_mask_values
+
+        self.layer_1 = nn.Linear(input_channels + (self.num_unique_mask_values * num_classes), d_hidden)
+        self.layer_2 = nn.Linear(d_hidden, d_hidden)
+        self.out_layer = nn.Linear(d_hidden, num_classes)
+
+    def forward(self, x, mask):
+        mask = mask.long()
+        one_hot_mask = F.one_hot(mask, num_classes=self.num_unique_mask_values).float()  # One-hot encoding
+        one_hot_mask_flattened = one_hot_mask.view(mask.size(0), -1)  # Flatten to (batch_size, num_classes * 3)
+
+        x_combined = torch.cat((x, one_hot_mask_flattened), dim=1)
+        x = F.relu(self.layer_1(x_combined))
+        x = F.relu(self.layer_2(x))
+        x = self.out_layer(x)
+        return x
+
+
 class SimpleMLPBackbone(nn.Module):
     def __init__(self, input_dim, hidden_dim=64, num_layers=2):
         super(SimpleMLPBackbone, self).__init__()
@@ -80,61 +111,6 @@ class SimpleMLPBackbone(nn.Module):
             x = F.relu(getattr(self, f"layer_{i+1}")(x))
         x = getattr(self, f"layer_{self.num_layers}")(x)
         return x
-
-
-class PredHead(nn.Module):
-
-    def __init__(self, d_in: int, d_out: int) -> None:
-        super().__init__()
-        self.linear = nn.Linear(d_in, d_out)
-
-    def forward(self, x: Tensor) -> Tensor:
-        x = self.linear(x)
-        return x
-
-
-class MlpEncoder(nn.Module):
-    class Block(nn.Module):
-
-        def __init__(self, d_in: int, d_out: int, dropout: float) -> None:
-            super().__init__()
-            self.linear = nn.Linear(d_in, d_out)
-            self.activation = nn.ReLU()
-            self.dropout = nn.Dropout(dropout)
-
-        def forward(self, x: Tensor) -> Tensor:
-            return self.dropout(self.activation(self.linear(x)))
-
-    def __init__(self, d_in: int, d_out: int, n_layers: int, dropout: float) -> None:
-        super(MlpEncoder, self).__init__()
-        self.blocks = nn.Sequential(
-            *[
-                self.Block(d_in if i == 0 else d_out, d_out, dropout)
-                for i in range(n_layers)
-            ]
-        )
-
-    def forward(self, x: Tensor) -> Tensor:
-        return self.blocks(x)
-
-
-class MLP(nn.Module):
-    def __init__(
-        self,
-        input_dim: int,
-        hidden_dim: int,
-        output_dim: int,
-        n_layers: int = 4,
-        dropout: float = 0.2,
-    ) -> None:
-        super().__init__()
-        self.mlp_encoder = MlpEncoder(
-            d_in=input_dim, d_out=hidden_dim, n_layers=n_layers, dropout=dropout
-        )
-        self.head = PredHead(d_in=hidden_dim, d_out=output_dim)
-
-    def forward(self, x: Tensor) -> Tensor:
-        return self.head(self.mlp_encoder(x))
 
 
 class SelfAttnLayer(nn.Module):

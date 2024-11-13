@@ -9,10 +9,10 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 
-from new_src.config import Config
-from new_src.trainers.splot_trainer import sPlotTrainer
-from new_src.dataloaders.splot_dataloader import sPlotDataModule
-from new_src.utils import save_results_to_csv
+from src.config import Config
+from src.trainers.splot_trainer import sPlotTrainer
+from src.dataloaders.splot_dataloader import sPlotDataModule
+from src.utils import save_results_to_csv
 
 
 def load_config(config_path) -> Config:

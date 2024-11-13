@@ -7,7 +7,7 @@ import pytorch_lightning as pl
 import torch
 from torch.utils.data import DataLoader, Dataset
 
-from Rtran.label_masking import get_unknown_mask_indices
+from src.dataloaders.label_masking import get_unknown_mask_indices
 
 
 class sPlotDataset(Dataset):
@@ -58,13 +58,17 @@ class sPlotMaskedDataset(Dataset):
         targets = self.targets[idx]
         data = self.data[idx]
 
+        # to exclude species that have no labels
+        available_species_mask = (targets != -2).int()
+
         if self.maximum_known_labels_ratio > 0:
             unk_mask_indices = get_unknown_mask_indices(
-                num_labels=self.num_labels,
                 mode=self.mode,
+                available_species_mask=available_species_mask,
                 max_known=self.maximum_known_labels_ratio,
                 predict_family_of_species=self.predict_family_of_species,
-                data_base_dir=self.species_list,
+                species_list=self.species_list,
+                dataset_name="splot",
             )
             mask = targets.clone()
             mask.scatter_(0, torch.Tensor(unk_mask_indices).long(), -1)

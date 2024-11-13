@@ -44,33 +44,44 @@ def random_species_masking(available_species_mask, max_known):
 
     return unk_mask_indices
 
+def single_taxa_species_masking(dataset_name: str, index: int, species_list: list):
+    if dataset_name == "splot":
+        return trees_masking(index=index, species_list=species_list)
+    elif dataset_name == "satbird":
+        return songbird_masking(index=index, species_list=species_list)
 
-def songbird_masking(index, data_base_dir):
+    return None
+
+def trees_masking(index: int, species_list: list):
+    """
+    masking trees or not-trees given an index
+    index 0: isTree=False
+    index 1: isTree=True
+    """
+    return np.where(species_list["isTree"] == bool(index))[0]
+
+
+def songbird_masking(index: int, species_list: list):
     """
     masking songbirds or nonsongbirds given an index
-    index 0: non-songbird
-    index 1: songbirds
+    index 0: isSongbird = False
+    index 1: isSongbird = True
     """
-    songbird_indices = [
-        "nonsongbird_indices.npy",
-        "songbird_indices.npy",
-    ]
-    unk_mask_indices = np.load(os.path.join(data_base_dir, songbird_indices[index]))
-    return unk_mask_indices
+    return np.where(species_list["isSongbird"] == bool(index))[0]
 
 
 def bird_species_masking(
     per_taxa_species_count: list[int],
     max_known: float,
     available_species_index: int,
-    data_base_dir: str,
+    species_list: list,
 ) -> torch.Tensor:
     """
     masking butterfly species given per_taxa_species_count and max_known
     """
     if random.random() < 0.5:  # mask songbirds vs. nonsongbirds with this probability
         set_to_mask = np.random.randint(0, 2)
-        unk_mask_indices = songbird_masking(set_to_mask, data_base_dir)
+        unk_mask_indices = songbird_masking(set_to_mask, species_list)
     else:
         num_known = random.randint(
             0, int(per_taxa_species_count[available_species_index] * max_known)
@@ -107,20 +118,21 @@ def butterfly_species_masking(
 
 # TODO: replace all numpy operations with torch
 def get_unknown_mask_indices(
-    num_labels,
     mode,
     available_species_mask,
+    species_list,
     max_known=0.5,
     multi_taxa=False,
     per_taxa_species_count=None,
     predict_family_of_species=-1,
-    data_base_dir=None,
+    dataset_name="satbird",
 ):
     """
     sample random number of known labels during training
     num_labels: total number of species
     mode: train, val or test
     max_known: number of known values at max
+    species_list: list of species by their taxa (tree vs. non-tree or songbird vs. nonsongbird)
     absent species: if not -1, birds are absent (0), butterflies are absent (1)
     species set: a list of species sizes [bird species, butterfly species]
     predict family of species: (only if not training) mask out either birds or butterflies
@@ -145,11 +157,11 @@ def get_unknown_mask_indices(
         elif (available_species_index == 0 and multi_taxa) or (
             available_species_index == -1 and not multi_taxa
         ):  # butterflies missing for multi-taxa or SatBird only for non multi-taxa
-            unk_mask_indices = bird_species_masking(
+            unk_mask_indices = single_taxa_species_masking(
                 per_taxa_species_count=per_taxa_species_count,
                 max_known=max_known,
                 available_species_index=available_species_index,
-                data_base_dir=data_base_dir,
+                species_list=species_list,
             )
         elif (
             available_species_index == 1 and multi_taxa
@@ -168,20 +180,20 @@ def get_unknown_mask_indices(
     elif mode == "test":
         if (
             predict_family_of_species == 1 and multi_taxa
-        ):  # butterflies to eval in multi taxa setup
+        ):  # butterflies or trees (multi_taxa index 1) to eval in multi taxa setup
             unk_mask_indices = np.arange(
                 per_taxa_species_count[0],
                 per_taxa_species_count[0] + per_taxa_species_count[1],
             )
         elif (
             predict_family_of_species == 0 and multi_taxa
-        ):  # birds to eval in multi taxa setup
+        ):  # birds (multi_taxa index 0) to eval in multi taxa setup
             unk_mask_indices = np.arange(0, per_taxa_species_count[0])
         elif (
             predict_family_of_species != -1 and not multi_taxa
-        ):  # non-songbirds / songbirdss to eval in SatBird only setup
+        ):  # non-songbirds / songbirds to eval in SatBird only setup | non-trees / trees to eval in sPlots setup
             unk_mask_indices = songbird_masking(
-                index=predict_family_of_species, data_base_dir=data_base_dir
+                index=predict_family_of_species, species_list=species_list
             )
         else:  # random unknown indices over all available species
             unk_mask_indices = random_species_masking(

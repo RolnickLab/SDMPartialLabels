@@ -2,9 +2,8 @@
 import pytorch_lightning as pl
 from torchmetrics.classification import MultilabelAUROC
 
-from new_src.models import *
-from new_src.utils import multi_label_accuracy, trees_masking
-from Rtran.rtran import RTranModel
+from src.utils import multi_label_accuracy, trees_masking
+from src.models import *
 
 
 class sPlotTrainer(pl.LightningModule):

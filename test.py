@@ -3,7 +3,6 @@ main testing script
 To run: python test.py args.config=CONFIG_FILE_PATH
 """
 
-import csv
 import os
 from pathlib import Path
 
@@ -17,7 +16,7 @@ from pytorch_lightning.loggers import CometLogger
 import src.dataloaders.dataloader as dataloader
 import src.trainers.sdm_partial_trainer as SDMPartialTrainer
 from src.trainers.baseline_trainer import BaselineTrainer
-from src.utils import load_opts
+from src.utils import load_opts, save_test_results_to_csv
 
 hydra_config_path = Path(__file__).resolve().parent / "configs/hydra.yaml"
 
@@ -29,24 +28,6 @@ def load_existing_checkpoint(task, base_dir, checkpint_path):
     )
 
     return task
-
-
-def save_test_results_to_csv(results, root_dir, file_name="test_results.csv"):
-    if root_dir is None:
-        print("Not saving results")
-        return ()
-    output_file = os.path.join(root_dir, file_name)
-
-    with open(output_file, "a+", newline="") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=results.keys())
-        csvfile.seek(0)
-        if not csvfile.read():
-            writer.writeheader()  # Write the header row based on the dictionary keys
-
-        csvfile.seek(0, os.SEEK_END)
-        writer.writerow(results)  # Write the values row by row
-
-    print(f"CSV file '{output_file}' has been saved.")
 
 
 def get_seed(run_id, fixed_seed):
