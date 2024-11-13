@@ -66,11 +66,11 @@ def main(opts):
 
     config = load_opts(config_path, default=default_config, commandline_opts=hydra_opts)
     config.base_dir = base_dir
-    # config.partial_labels.eval_known_ratio = args["eval_known_ratio"]
-    global_seed = get_seed(run_id, config.training.seed)
-    config.save_path = os.path.join(base_dir, config.save_path, str(global_seed))
 
-    pl.seed_everything(global_seed)
+    if "file_name" in args:
+        config.file_name = args["file_name"]
+    else: 
+        config.file_name = "test_results.csv"
 
     datamodule = dataloader.SDMDataModule(config)
     datamodule.setup()
@@ -107,23 +107,29 @@ def main(opts):
                 base_dir="",
                 checkpint_path=config.load_ckpt_path,
             )
+            global_seed = get_seed(args["run_id"], config.training.seed)
+            pl.seed_everything(global_seed)
 
             test_results = test_task(task)
 
             save_test_results_to_csv(
                 results=test_results[0],
                 root_dir=config.save_path,
-                file_name="test_results.csv",
+                file_name=config.file_name
             )
         else:
             # get the number of experiments based on folders given
-            n_runs = len(os.listdir(config.load_ckpt_path))
+            
+            n_runs = len([ f for f in os.scandir(config.load_ckpt_path) if f.is_dir() ])
             # loop over all seeds
             for run_id in range(1, n_runs + 1):
                 # get path of a single experiment
                 run_id_path = os.path.join(
                     config.load_ckpt_path, str(get_seed(run_id, config.training.seed))
                 )
+                global_seed = get_seed(run_id, config.training.seed)
+                pl.seed_everything(global_seed)
+
                 # get path of the best checkpoint (not last)
                 files = os.listdir(os.path.join(config.base_dir, run_id_path))
                 best_checkpoint_file_name = [
@@ -145,7 +151,7 @@ def main(opts):
                 save_test_results_to_csv(
                     results=test_results[0],
                     root_dir=config.save_path,
-                    file_name="test_results.csv",
+                    file_name=config.file_name
                 )
 
     else:
