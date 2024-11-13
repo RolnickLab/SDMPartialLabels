@@ -16,7 +16,7 @@ class sPlotDataset(Dataset):
         data,
         targets,
         num_labels,
-        species_list=None,
+        species_list_masked=None,
         mode=None,
         maximum_known_labels_ratio=None,
         predict_family=None,
@@ -38,7 +38,7 @@ class sPlotMaskedDataset(Dataset):
         data,
         targets,
         num_labels,
-        species_list,
+        species_list_masked,
         mode="train",
         predict_family=False,
         maximum_known_labels_ratio=0.75,
@@ -46,7 +46,7 @@ class sPlotMaskedDataset(Dataset):
         self.data = data
         self.targets = targets
         self.num_labels = num_labels
-        self.species_list = species_list
+        self.species_list_masked = species_list_masked
         self.mode = mode
         self.predict_family_of_species = predict_family
         self.maximum_known_labels_ratio = maximum_known_labels_ratio
@@ -67,7 +67,7 @@ class sPlotMaskedDataset(Dataset):
                 available_species_mask=available_species_mask,
                 max_known=self.maximum_known_labels_ratio,
                 predict_family_of_species=self.predict_family_of_species,
-                species_list=self.species_list,
+                species_list_masked=self.species_list_masked,
                 main_taxa_dataset_name="splot"
             )
             mask = targets.clone()
@@ -125,7 +125,7 @@ class sPlotDataModule(pl.LightningDataModule):
             targets=torch.tensor(
                 targets[train_split][:, species_indices], dtype=torch.float32
             ),
-            species_list=species_df,
+            species_list_masked=species_df,
             num_labels=len(species_indices),
             mode="train",
             predict_family=self.config.partial_labels.predict_family_of_species,
@@ -137,7 +137,7 @@ class sPlotDataModule(pl.LightningDataModule):
             targets=torch.tensor(
                 targets[val_split][:, species_indices], dtype=torch.float32
             ),
-            species_list=species_df,
+            species_list_masked=species_df,
             num_labels=len(species_indices),
             mode="val",
             predict_family=self.config.partial_labels.predict_family_of_species,
@@ -149,7 +149,7 @@ class sPlotDataModule(pl.LightningDataModule):
             targets=torch.tensor(
                 targets[test_split][:, species_indices], dtype=torch.float32
             ),
-            species_list=species_df,
+            species_list_masked=species_df,
             num_labels=len(species_indices),
             mode="test",
             predict_family=self.config.partial_labels.predict_family_of_species,

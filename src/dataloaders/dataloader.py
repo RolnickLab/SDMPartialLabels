@@ -53,7 +53,7 @@ class SDMEnvDataset(EnvDataset):
         data,
         targets,
         hotspots,
-        species_list,
+        species_list_masked,
         mode="train",
         maximum_known_labels_ratio=0.5,
         per_taxa_species_count=None,
@@ -105,7 +105,7 @@ class SDMEnvMaskedDataset(EnvDataset):
         data,
         targets,
         hotspots,
-        species_list,
+        species_list_masked,
         mode="train",
         maximum_known_labels_ratio=0.5,
         per_taxa_species_count=None,
@@ -130,7 +130,7 @@ class SDMEnvMaskedDataset(EnvDataset):
         self.data = data
         self.targets = targets
         self.hotspots = hotspots
-        self.species_list = species_list
+        self.species_list_masked = species_list_masked
         self.mode = mode
         self.num_species = num_species
         self.maximum_known_labels_ratio = maximum_known_labels_ratio
@@ -163,7 +163,7 @@ class SDMEnvMaskedDataset(EnvDataset):
                 multi_taxa=self.multi_taxa,
                 per_taxa_species_count=self.per_taxa_species_count,
                 predict_family_of_species=self.predict_family_of_species,
-                species_list=self.species_list,
+                species_list_masked=self.species_list_masked,
                 main_taxa_dataset_name="satbird",
             )
             mask.scatter_(
@@ -354,16 +354,16 @@ class SDMDataModule(pl.LightningDataModule):
                 "songbird_indices.npy",
             ]
             songbird_indices = np.load(os.path.join(self.data_base_dir, self.config.data.files.satbird_species_indices_path, songbird_indices[1]))
-            species_list = np.zeros(self.num_species)
-            species_list[songbird_indices] = 1
+            species_list_masked = np.zeros(self.num_species)
+            species_list_masked[songbird_indices] = 1
 
-            return species_list
+            return species_list_masked
 
         self.all_train_dataset = globals()[self.dataloader_to_use](
             data=torch.tensor(train_data, dtype=torch.float32),
             targets=torch.tensor(train_targets, dtype=torch.float32),
             hotspots=train_hotspots,
-            species_list=get_songbird_indices(),
+            species_list_masked=get_songbird_indices(),
             mode="train",
             maximum_known_labels_ratio=self.config.partial_labels.train_known_ratio,
             num_species=self.num_species,
@@ -378,7 +378,7 @@ class SDMDataModule(pl.LightningDataModule):
             targets=torch.tensor(val_targets, dtype=torch.float32),
             hotspots=val_hotspots,
             mode="val",
-            species_list=get_songbird_indices(),
+            species_list_masked=get_songbird_indices(),
             maximum_known_labels_ratio=self.config.partial_labels.eval_known_ratio,
             num_species=self.num_species,
             multi_taxa=self.config.data.multi_taxa,
@@ -391,7 +391,7 @@ class SDMDataModule(pl.LightningDataModule):
             data=torch.tensor(test_data, dtype=torch.float32),
             targets=torch.tensor(test_targets, dtype=torch.float32),
             hotspots=test_hotspots,
-            species_list=get_songbird_indices(),
+            species_list_masked=get_songbird_indices(),
             data_base_dir=os.path.join(
                 self.data_base_dir, self.config.data.files.satbird_species_indices_path
             ),

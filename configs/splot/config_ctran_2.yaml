@@ -8,7 +8,7 @@ model:
   backbone: "MLPBackbone"
 
 training:
-  batch_size: 64
+  seed: 1337
   learning_rate: 1e-3
   max_epochs: 10
   accelerator: "gpu"

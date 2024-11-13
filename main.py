@@ -5,6 +5,7 @@ import os
 import torch
 import yaml
 from pydantic import ValidationError
+from pytorch_lightning import seed_everything
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
@@ -53,6 +54,8 @@ def main():
     trainer_class, data_module_class = map_dataset_name_from_config(config)
     data_module = data_module_class(config.data)
     task = trainer_class(config)
+
+    seed_everything(config.training.seed)
 
     # Initialize Comet.ml logger
     comet_logger = CometLogger(

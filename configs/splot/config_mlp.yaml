@@ -1,4 +1,4 @@
-mode: "train" # "test"
+mode: "test" # "test"
 dataset_name: "sPlot"
 model:
   name: "SimpleMLP"
@@ -8,6 +8,7 @@ model:
   backbone: ""
 
 training:
+  seed: 1337
   learning_rate: 1e-3
   max_epochs: 20
   accelerator: "gpu"
@@ -15,7 +16,7 @@ training:
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "dummy" # specify for training, or use to report test results
+  experiment_name: "SimpleMLP_baseline_splot_v2" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
   checkpoint_path: "./experiments_output"
   checkpoint_name: "last.ckpt"
@@ -40,5 +41,4 @@ data:
 
   partial_labels:
     use: False
-    maximum_known_labels_ratio: 0
-    predict_family_of_species: -1
+    predict_family_of_species: 1

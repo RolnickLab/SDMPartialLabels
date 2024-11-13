@@ -12,6 +12,7 @@ class ModelConfig(BaseModel):
 
 
 class TrainingConfig(BaseModel):
+    seed: Optional[int] = Field(None, description="Random seed")
     learning_rate: Optional[float] = Field(
         ..., description="Learning rate for the optimizer"
     )
@@ -23,16 +24,17 @@ class TrainingConfig(BaseModel):
         ..., description="Accelerator for training: gpu, cpu, or auto"
     )
 
+
 class PartialLabels(BaseModel):
     use: bool = Field(..., description="Training with Partial labels or not")
     predict_family_of_species: int = Field(
         ..., description="what family of species to predict during testing"
     )
     train_known_ratio: Optional[float] = Field(
-        ..., description="Maximum known labels ratio for training"
+        0, description="Maximum known labels ratio for training"
     )
     eval_known_ratio: Optional[float] = Field(
-        ..., description="Maximum known labels ratio for eval"
+        0, description="Maximum known labels ratio for eval"
     )
 
 
