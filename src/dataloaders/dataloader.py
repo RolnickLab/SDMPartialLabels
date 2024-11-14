@@ -257,7 +257,7 @@ class SDMDataModule(pl.LightningDataModule):
         return np.array(values)
 
     def get_bird_butterfly_targets(self, df, per_taxa_species_count):
-        target_files = ["bird", "butterfly", "colocated"]
+        target_files = per_taxa_species_count.keys()
         target_dict = {}
 
         for idx, file_key in enumerate(target_files):
@@ -270,28 +270,28 @@ class SDMDataModule(pl.LightningDataModule):
 
         def construct_target(row):
             hotspot_id = row["hotspot_id"]
-            target_bird = [-2] * per_taxa_species_count[0]
-            target_butterfly = [-2] * per_taxa_species_count[1]
+            target_species_0 = [-2] * per_taxa_species_count[0]
+            target_species_1 = [-2] * per_taxa_species_count[1]
 
             # Check bird and butterfly presence
-            if row["bird"] == 1:
-                target_bird = target_dict["bird"].get(hotspot_id, target_bird)
+            if row[target_files[0]] == 1:
+                target_species_0 = target_dict[target_files[0]].get(hotspot_id, target_species_0)
 
-                if row["butterfly"] == 1:
-                    target_butterfly = target_dict["colocated"].get(
-                        hotspot_id, target_butterfly
+                if row[target_files[1]] == 1:
+                    target_species_1 = target_dict[target_files[1]].get(
+                        hotspot_id, target_species_1
                     )
 
-            elif row["butterfly"] == 1:
-                target_butterfly = target_dict["butterfly"].get(
-                    hotspot_id, target_butterfly
+            elif row[target_files[1]] == 1:
+                target_species_1 = target_dict[target_files[1]].get(
+                    hotspot_id, target_species_1
                 )
             else:
                 raise ValueError(
-                    "Cannot have neither butterflies nor birds targets available"
+                    "Cannot have neither species available"
                 )
 
-            return list(target_bird) + list(target_butterfly)
+            return list(target_species_0) + list(target_species_1)
 
         # Construct the target matrix column using `apply`
         df["target"] = df.apply(construct_target, axis=1)

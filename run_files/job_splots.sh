@@ -7,8 +7,9 @@
 #SBATCH --mem-per-cpu=50Gb
 #SBATCH --cpus-per-task=4
 #SBATCH --gres=gpu:1
+#SBATCH --partition=main
 
 module load miniconda/3
 conda activate new_env
 export COMET_API_KEY=$COMET_API_KEY
-python main.py --config="new_src/config_ctran.yaml"
+python main.py --config="configs/splot/config_ctran.yaml"
