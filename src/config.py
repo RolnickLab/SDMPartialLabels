@@ -36,6 +36,7 @@ class PartialLabels(BaseModel):
     eval_known_ratio: Optional[float] = Field(
         0, description="Maximum known labels ratio for eval"
     )
+    quantized_mask_bins: Optional[int] = Field(1, description="Masked bins for quantization")
 
 
 class DataPathConfig(BaseModel):

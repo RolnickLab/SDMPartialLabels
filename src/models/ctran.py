@@ -26,7 +26,7 @@ class CTranModel(nn.Module):
         n_heads=4,
         dropout=0.2,
         n_backbone_layers=2,
-        tokenize_state=False,
+        tokenize_state=None,
         use_unknown_token=False,
     ):
         """

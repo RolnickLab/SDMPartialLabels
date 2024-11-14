@@ -21,6 +21,7 @@ class sPlotTrainer(pl.LightningModule):
             "hidden_dim": self.config.model.hidden_dim,
             "num_classes": self.config.model.output_dim,
             "backbone": self.config.model.backbone,
+            "quantized_mask_bins": self.config.data.partial_labels.quantized_mask_bins,
         }
         model_class = globals()[self.config.model.name]
         model_signature = inspect.signature(model_class.__init__)

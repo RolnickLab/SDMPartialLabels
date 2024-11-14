@@ -1,11 +1,11 @@
-mode: "test" # "test"
+mode: "train" # "test"
 dataset_name: "sPlot"
 model:
   name: "CTranModel"
   input_dim: 27
   hidden_dim: 128
   output_dim: 3950
-  backbone: "MLPBackbone"
+  backbone: "SimpleMLPBackbone"
 
 training:
   seed: 1337
@@ -16,7 +16,7 @@ training:
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "ctran_splot_v0" # specify for training, or use to report test results
+  experiment_name: "splot_ctran_v5" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
   checkpoint_path: "./experiments_output"
   checkpoint_name: "last.ckpt"
@@ -33,6 +33,7 @@ data:
   soilgrid_data_path: "soilgrid_data.csv"
 
   species_occurrences_threshold: 100
+
   batch_size: 64
 
   species_list: "species_merge_duplicates.csv"
@@ -42,6 +43,7 @@ data:
 
   partial_labels:
     use: True
+    quantized_mask_bins: 1
     train_known_ratio: 0.75
     eval_known_ratio: 0
     predict_family_of_species: -1
