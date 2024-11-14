@@ -19,7 +19,7 @@ class sPlotTrainer(pl.LightningModule):
         model_kwargs = {
             "input_dim": self.config.model.input_dim,
             "hidden_dim": self.config.model.hidden_dim,
-            "num_classes": self.config.model.output_dim,
+            "num_classes": self.config.model.num_classes,
             "backbone": self.config.model.backbone,
             "quantized_mask_bins": self.config.data.partial_labels.quantized_mask_bins,
         }
@@ -36,7 +36,7 @@ class sPlotTrainer(pl.LightningModule):
 
         self.indices_to_predict = trees_masking(config=self.config.data)
 
-        out_num_classes = self.config.model.output_dim
+        out_num_classes = self.config.model.num_classes
         if self.indices_to_predict is not None:
             out_num_classes = len(self.indices_to_predict)
 

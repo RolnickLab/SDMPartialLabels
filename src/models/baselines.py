@@ -26,6 +26,9 @@ class SimpleMLP(nn.Module):
 
 
 class SimpleMLPMasked_v1(nn.Module):
+    """
+    Simple MLP Masked where env features and mask use seperate encoders
+    """
     def __init__(
         self,
         input_dim,
@@ -67,6 +70,9 @@ class SimpleMLPMasked_v1(nn.Module):
 
 
 class SimpleMLPMasked_v0(nn.Module):
+    """
+    Simple MLP Masked where env features and mask share the same encoder
+    """
     def __init__(
         self,
         input_dim,

@@ -4,7 +4,7 @@ model:
   name: "CTranModel"
   input_dim: 27
   hidden_dim: 128
-  output_dim: 3950
+  num_classes: 3950
   backbone: "SimpleMLPBackbone"
 
 training:

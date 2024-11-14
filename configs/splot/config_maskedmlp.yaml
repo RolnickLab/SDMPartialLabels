@@ -4,7 +4,7 @@ model:
   name: "SimpleMLPMasked_v0"
   input_dim: 27
   hidden_dim: 64
-  output_dim: 3950
+  num_classes: 3950
   backbone:
 
 training:

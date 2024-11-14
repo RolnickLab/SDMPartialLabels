@@ -1,3 +1,4 @@
+# right now, used for splot-only training and testing.
 import argparse
 import logging
 import os

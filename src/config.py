@@ -7,7 +7,7 @@ class ModelConfig(BaseModel):
     name: Optional[str] = Field(..., description="Name of the model")
     input_dim: Optional[int] = Field(..., description="Input dimension of the data")
     hidden_dim: Optional[int] = Field(..., description="Hidden dimension of the MLP")
-    output_dim: Optional[int] = Field(..., description="Output dimension of the MLP")
+    num_classes: Optional[int] = Field(..., description="number of classes (output dimension) for the model")
     backbone: Optional[str] = Field(..., description="Name of the backbone")
 
 
