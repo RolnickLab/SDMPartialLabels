@@ -138,17 +138,14 @@ def get_unknown_mask_indices(
         )
 
     elif mode == "test":
-        if (
-            predict_family_of_species == 1 and multi_taxa
-        ):  # butterflies or trees (multi_taxa index 1) to eval in multi taxa setup
-            unk_mask_indices = np.arange(
-                per_taxa_species_count[0],
-                per_taxa_species_count[0] + per_taxa_species_count[1],
-            )
-        elif (
-            predict_family_of_species == 0 and multi_taxa
-        ):  # birds (multi_taxa index 0) to eval in multi taxa setup
-            unk_mask_indices = np.arange(0, per_taxa_species_count[0])
+        if multi_taxa:
+            taxa_indices = {
+                # butterflies or trees (multi_taxa index 1) to eval in multi taxa setup
+                1: np.arange(per_taxa_species_count.values()[0], per_taxa_species_count.values()[0] + per_taxa_species_count.values()[1]),
+                # birds (multi_taxa index 0) to eval in multi taxa setup
+                0: np.arange(0, per_taxa_species_count.values()[0])  # birds
+            }
+            unk_mask_indices = taxa_indices.get(predict_family_of_species)
         elif (
             predict_family_of_species != -1 and not multi_taxa
         ):  # non-songbirds / songbirds to eval in SatBird only setup | non-trees / trees to eval in sPlots setup

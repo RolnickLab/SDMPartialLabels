@@ -70,5 +70,5 @@ data:
     satbird_species_indices_path: "SatBird_data_v2/USA_summer/stats"
 
   multi_taxa: True
-  per_taxa_species_count: [670, 172]
+  per_taxa_species_count: {"bird": 670, "butterfly": 172}
   total_species: 842

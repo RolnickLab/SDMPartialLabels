@@ -14,7 +14,7 @@ comet:
 dataloader_to_use: "SDMEnvMaskedDataset"
 
 model:
-  name: "SimpleMLPMasked"
+  name: "SimpleMLPMasked_v1"
   input_dim: 27
   hidden_dim: 512
   backbone:
@@ -67,5 +67,5 @@ data:
 
   # when combining two different taxa
   multi_taxa: True
-  per_taxa_species_count: [670, 172]
+  per_taxa_species_count: {"bird": 670, "butterfly": 172}
   total_species: 842

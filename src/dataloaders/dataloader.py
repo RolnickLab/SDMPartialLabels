@@ -247,7 +247,7 @@ class SDMDataModule(pl.LightningDataModule):
         # if we are using either SatBird or SatButterfly at a time
         self.dataloader_to_use = self.config.dataloader_to_use
 
-    def get_bird_targets(self, hotspots: list) -> np.array:
+    def get_single_taxa_targets(self, hotspots: list) -> np.array:
         with open(
             os.path.join(self.data_base_dir, self.targets_file[0]), "rb"
         ) as pickle_file:
@@ -256,8 +256,8 @@ class SDMDataModule(pl.LightningDataModule):
         values = [data_dict.get(key, None) for key in hotspots]
         return np.array(values)
 
-    def get_bird_butterfly_targets(self, df, per_taxa_species_count):
-        target_files = per_taxa_species_count.keys()
+    def get_multi_taxa_targets(self, df, per_taxa_species_count):
+        target_files = list(per_taxa_species_count.keys())
         target_dict = {}
 
         for idx, file_key in enumerate(target_files):
@@ -266,36 +266,40 @@ class SDMDataModule(pl.LightningDataModule):
             ) as pickle_file:
                 target_dict[file_key] = pickle.load(pickle_file)
 
-        df["species_to_exclude"] = -1  # Initialize to -1 for all species present
-
         def construct_target(row):
+            target_species = {
+                target_files[0]: [-2] * per_taxa_species_count[target_files[0]],  # for birds
+                target_files[1]: [-2] * per_taxa_species_count[target_files[1]]  # for plants / butterflies
+            }
             hotspot_id = row["hotspot_id"]
-            target_species_0 = [-2] * per_taxa_species_count[0]
-            target_species_1 = [-2] * per_taxa_species_count[1]
 
             # Check bird and butterfly presence
             if row[target_files[0]] == 1:
-                target_species_0 = target_dict[target_files[0]].get(hotspot_id, target_species_0)
+                target_species[target_files[0]] = target_dict[target_files[0]].get(hotspot_id, target_species[target_files[0]])
 
                 if row[target_files[1]] == 1:
-                    target_species_1 = target_dict[target_files[1]].get(
-                        hotspot_id, target_species_1
+                    if target_files[1] == "plant":
+                        hotspot_id = int(row["PlotObservationID"])
+                    target_species[target_files[1]] = target_dict[target_files[1]].get(
+                        hotspot_id, target_species[target_files[1]]
                     )
 
             elif row[target_files[1]] == 1:
-                target_species_1 = target_dict[target_files[1]].get(
-                    hotspot_id, target_species_1
+                if target_files[1] == "plant":
+                    hotspot_id = int(row["PlotObservationID"])
+                target_species[target_files[1]] = target_dict[target_files[1]].get(
+                    hotspot_id, target_species[target_files[1]]
                 )
             else:
                 raise ValueError(
                     "Cannot have neither species available"
                 )
-
-            return list(target_species_0) + list(target_species_1)
+            return list(target_species[target_files[0]]) + list(target_species[target_files[1]])
 
         # Construct the target matrix column using `apply`
         df["target"] = df.apply(construct_target, axis=1)
         targets = torch.stack(df["target"].apply(lambda x: torch.Tensor(x)).to_list())
+
         return targets
 
     def setup(self, stage: Optional[str] = None) -> None:
@@ -317,19 +321,19 @@ class SDMDataModule(pl.LightningDataModule):
         test_data = (test_data - normalization_means) / (normalization_stds + 1e-8)
 
         if self.config.data.multi_taxa:
-            train_targets = self.get_bird_butterfly_targets(
+            train_targets = self.get_multi_taxa_targets(
                 self.df_train, self.config.data.per_taxa_species_count
             )
-            val_targets = self.get_bird_butterfly_targets(
+            val_targets = self.get_multi_taxa_targets(
                 self.df_val, self.config.data.per_taxa_species_count
             )
-            test_targets = self.get_bird_butterfly_targets(
+            test_targets = self.get_multi_taxa_targets(
                 self.df_test, self.config.data.per_taxa_species_count
             )
         else:
-            train_targets = self.get_bird_targets(train_hotspots)
-            val_targets = self.get_bird_targets(val_hotspots)
-            test_targets = self.get_bird_targets(test_hotspots)
+            train_targets = self.get_single_taxa_targets(train_hotspots)
+            val_targets = self.get_single_taxa_targets(val_hotspots)
+            test_targets = self.get_single_taxa_targets(test_hotspots)
 
         if self.config.data.multi_taxa and self.config.data.loaders.weighted_sampling:
             sample_weights = compute_sampling_weights(
@@ -392,9 +396,6 @@ class SDMDataModule(pl.LightningDataModule):
             targets=torch.tensor(test_targets, dtype=torch.float32),
             hotspots=test_hotspots,
             species_list_masked=get_songbird_indices(),
-            data_base_dir=os.path.join(
-                self.data_base_dir, self.config.data.files.satbird_species_indices_path
-            ),
             mode="test",
             maximum_known_labels_ratio=self.config.partial_labels.eval_known_ratio,
             num_species=self.num_species,
