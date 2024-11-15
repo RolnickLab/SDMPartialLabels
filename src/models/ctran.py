@@ -6,8 +6,10 @@ Code is based on the C-tran paper: https://github.com/QData/C-Tran
 import math
 
 import numpy as np
+import torch
+import torch.nn as nn
 
-from src.models.baselines import *
+from src.models.baselines import SimpleMLPBackbone, SelfAttnLayer
 from src.models.state_embeddings import SpeciesTokenizer
 from src.models.utils import custom_replace_n, weights_init
 
@@ -24,7 +26,7 @@ class CTranModel(nn.Module):
         n_heads=4,
         dropout=0.2,
         n_backbone_layers=2,
-        tokenize_state=False,
+        tokenize_state=None,
         use_unknown_token=False,
     ):
         """
