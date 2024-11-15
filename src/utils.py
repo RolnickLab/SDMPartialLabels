@@ -10,9 +10,9 @@ from omegaconf import DictConfig, OmegaConf
 
 def eval_species_split(
     index: int,
-    base_data_folder: str,
+    base_data_folder,
     multi_taxa: bool,
-    per_taxa_species_count: list[int] = None,
+    per_taxa_species_count: dict = None,
 ) -> np.ndarray:
     if not multi_taxa:
         songbird_indices = [
@@ -26,13 +26,14 @@ def eval_species_split(
             )
         )
     else:
-        if index == 0:
-            indices_to_predict = np.arange(0, per_taxa_species_count[0])
-        else:
-            indices_to_predict = np.arange(
-                per_taxa_species_count[0],
-                per_taxa_species_count[0] + per_taxa_species_count[1],
-            )
+        taxa_indices = {
+            # birds (multi_taxa index 0) to eval in multi taxa setup
+            0: np.arange(0, list(per_taxa_species_count.values())[0]),  # birds
+            # butterflies or trees (multi_taxa index 1) to eval in multi taxa setup
+            1: np.arange(list(per_taxa_species_count.values())[0],
+                         list(per_taxa_species_count.values())[0] + list(per_taxa_species_count.values())[1])
+        }
+        indices_to_predict = taxa_indices.get(index)
 
     return indices_to_predict
 

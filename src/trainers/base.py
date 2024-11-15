@@ -2,7 +2,7 @@ import pytorch_lightning as pl
 import torch
 from torch import nn, optim
 
-from src.losses import CustomCrossEntropyLoss
+from src.losses import CustomCrossEntropyLoss, RMSLELoss, CustomFocalLoss, BCE
 from src.metrics import get_metrics
 
 
@@ -10,7 +10,6 @@ class BaseTrainer(pl.LightningModule):
     def __init__(self, config):
         super(BaseTrainer, self).__init__()
         self.sigmoid_activation = nn.Sigmoid()
-        self.loss_fn = CustomCrossEntropyLoss()
         self.config = config
         self.learning_rate = self.config.training.lr
         self.num_species = self.config.data.total_species
@@ -25,6 +24,19 @@ class BaseTrainer(pl.LightningModule):
         for name, value, _ in metrics:
             setattr(self, "test_" + name, value)
         self.metrics = metrics
+
+        self.loss_fn = self.__loss_mapping(self.config.losses.criterion)
+
+    def __loss_mapping(self, loss_fn_name):
+        loss_mapping = {
+            "MSE": nn.MSELoss(),
+            "MAE": nn.L1Loss(),
+            "RMSLE": RMSLELoss(),
+            "Focal": CustomFocalLoss(),
+            "CE": CustomCrossEntropyLoss(),
+            "BCE": BCE()
+        }
+        return loss_mapping.get(loss_fn_name)
 
     def configure_optimizers(self):
         optimizer = optim.AdamW(

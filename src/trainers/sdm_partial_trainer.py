@@ -5,6 +5,7 @@ Trainer for the ctran framework
 import inspect
 
 from torch import nn
+from torchmetrics.classification import MultilabelAUROC
 
 from src.dataloaders.dataloader import *
 from src.losses import BCE, CustomCrossEntropyLoss, CustomFocalLoss, RMSLELoss
@@ -20,8 +21,6 @@ class SDMPartialTrainer(BaseTrainer):
         opts: configurations
         """
         super(SDMPartialTrainer, self).__init__(config)
-
-        self.criterion = self.__loss_mapping(self.config.losses.criterion)
 
         model_kwargs = {
             "input_dim": self.config.model.input_dim,
@@ -66,6 +65,10 @@ class SDMPartialTrainer(BaseTrainer):
             self.num_species = len(self.class_indices_to_test)
 
         print(f"Number of classes: {self.num_species}")
+        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys():
+            self.test_auc_metric = MultilabelAUROC(
+                num_labels=self.num_species, average="macro"
+            )
 
     def training_step(self, batch: Dict[str, Any], batch_idx: int):
         x = batch["data"]
@@ -75,6 +78,8 @@ class SDMPartialTrainer(BaseTrainer):
         y_pred = self.sigmoid_activation(self.model(x, batch["mask_q"]))
 
         loss = self.criterion(y_pred, y, mask=batch["available_species_mask"].long())
+        y_pred = self.sigmoid_activation(y_pred)
+
         self.log("train_loss", loss, on_epoch=True)
 
         if batch_idx % 50 == 0:
@@ -104,6 +109,9 @@ class SDMPartialTrainer(BaseTrainer):
             y = y[:, self.class_indices_to_test]
             mask = mask[:, self.class_indices_to_test]
 
+        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys():
+            self.test_auc_metric.update(y_pred, y.long())
+
         self.log_metrics(mode="test", pred=y_pred, y=y, mask=mask)
 
         # saving model predictions
@@ -118,13 +126,8 @@ class SDMPartialTrainer(BaseTrainer):
                     elem.cpu().detach().numpy(),
                 )
 
-    def __loss_mapping(self, loss_fn_name):
-        loss_mapping = {
-            "MSE": nn.MSELoss(),
-            "MAE": nn.L1Loss(),
-            "RMSLE": RMSLELoss(),
-            "Focal": CustomFocalLoss(),
-            "CE": CustomCrossEntropyLoss(),
-            "BCE": BCE(),
-        }
-        return loss_mapping.get(loss_fn_name)
+    def on_test_epoch_end(self):
+        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys():
+            self.log("test_auroc", self.test_auc_metric.compute())
+            self.test_auc_metric.reset()
+

@@ -140,10 +140,11 @@ def get_unknown_mask_indices(
     elif mode == "test":
         if multi_taxa:
             taxa_indices = {
-                # butterflies or trees (multi_taxa index 1) to eval in multi taxa setup
-                1: np.arange(per_taxa_species_count.values()[0], per_taxa_species_count.values()[0] + per_taxa_species_count.values()[1]),
                 # birds (multi_taxa index 0) to eval in multi taxa setup
-                0: np.arange(0, per_taxa_species_count.values()[0])  # birds
+                0: np.arange(0, list(per_taxa_species_count.values())[0]),  # birds
+                # butterflies or trees (multi_taxa index 1) to eval in multi taxa setup
+                1: np.arange(list(per_taxa_species_count.values())[0],
+                             list(per_taxa_species_count.values())[0] + list(per_taxa_species_count.values())[1])
             }
             unk_mask_indices = taxa_indices.get(predict_family_of_species)
         elif (

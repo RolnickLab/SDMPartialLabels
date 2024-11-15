@@ -94,7 +94,7 @@ class SDMEnvDataset(EnvDataset):
         return {
             "data": data,
             "targets": targets,
-            "hotspot_id": hotspot_id,
+            # "hotspot_id": hotspot_id,
             "available_species_mask": available_species_mask,
         }
 
@@ -145,7 +145,7 @@ class SDMEnvMaskedDataset(EnvDataset):
     def __getitem__(self, index: int) -> Dict[str, Any]:
         data = self.data[index]
         targets = self.targets[index]
-        hotspot_id = self.hotspots[index]
+        # hotspot_id = self.hotspots[index]
 
         # to exclude species that have no labels
         available_species_mask = (targets != -2).int()
@@ -173,10 +173,13 @@ class SDMEnvMaskedDataset(EnvDataset):
         mask_q = mask.clone()
         mask[mask > 0] = 1
 
+        print(torch.type(data))
+        print(torch.type(targets))
+
         return {
             "data": data,
             "targets": targets,
-            "hotspot_id": hotspot_id,
+            # "hotspot_id": hotspot_id,
             "available_species_mask": available_species_mask,
             "mask": mask.long(),
             "mask_q": mask_q,
@@ -283,7 +286,6 @@ class SDMDataModule(pl.LightningDataModule):
                     target_species[target_files[1]] = target_dict[target_files[1]].get(
                         hotspot_id, target_species[target_files[1]]
                     )
-
             elif row[target_files[1]] == 1:
                 if target_files[1] == "plant":
                     hotspot_id = int(row["PlotObservationID"])
@@ -294,11 +296,15 @@ class SDMDataModule(pl.LightningDataModule):
                 raise ValueError(
                     "Cannot have neither species available"
                 )
-            return list(target_species[target_files[0]]) + list(target_species[target_files[1]])
+            final_target_list = (
+                    [float(x) for x in target_species[target_files[0]]] +
+                    [float(x) for x in target_species[target_files[1]]]
+            )
+            return final_target_list
 
         # Construct the target matrix column using `apply`
         df["target"] = df.apply(construct_target, axis=1)
-        targets = torch.stack(df["target"].apply(lambda x: torch.Tensor(x)).to_list())
+        targets = torch.stack(df["target"].apply(lambda x: torch.tensor(x, dtype=torch.float)).to_list())
 
         return targets
 
