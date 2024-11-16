@@ -109,10 +109,10 @@ class SDMPartialTrainer(BaseTrainer):
             y = y[:, self.class_indices_to_test]
             mask = mask[:, self.class_indices_to_test]
 
-        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys():
+        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys() and self.config.predict_family_of_species == 1:
             self.test_auc_metric.update(y_pred, y.long())
-
-        self.log_metrics(mode="test", pred=y_pred, y=y, mask=mask)
+        else:
+            self.log_metrics(mode="test", pred=y_pred, y=y, mask=mask)
 
         # saving model predictions
         if self.config.save_preds_path != "":
@@ -127,7 +127,7 @@ class SDMPartialTrainer(BaseTrainer):
                 )
 
     def on_test_epoch_end(self):
-        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys():
+        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys() and self.config.predict_family_of_species == 1:
             self.log("test_auroc", self.test_auc_metric.compute())
             self.test_auc_metric.reset()
 

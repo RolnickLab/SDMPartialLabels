@@ -87,14 +87,14 @@ class BaselineTrainer(BaseTrainer):
             predictions = predictions[:, self.class_indices_to_test]
             targets = targets[:, self.class_indices_to_test]
 
-        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys():
+        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys() and self.config.predict_family_of_species == 1:
             self.test_auc_metric.update(predictions, targets.long())
-
-        self.log_metrics(
-            mode="test", pred=predictions, y=targets, mask=available_species_mask
-        )
+        else:
+            self.log_metrics(
+                mode="test", pred=predictions, y=targets, mask=available_species_mask
+            )
 
     def on_test_epoch_end(self):
-        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys():
+        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys() and self.config.predict_family_of_species == 1:
             self.log("test_auroc", self.test_auc_metric.compute())
             self.test_auc_metric.reset()
