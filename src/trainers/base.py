@@ -1,6 +1,10 @@
+import os
+
+import numpy as np
 import pytorch_lightning as pl
 import torch
 from torch import nn, optim
+from torchmetrics.classification import MultilabelAUROC
 
 from src.losses import CustomCrossEntropyLoss, RMSLELoss, CustomFocalLoss, BCE
 from src.metrics import get_metrics
@@ -14,6 +18,12 @@ class BaseTrainer(pl.LightningModule):
         self.learning_rate = self.config.training.lr
         self.num_species = self.config.data.total_species
         self.class_indices_to_test = None
+
+        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys():
+            self.plant_test_species_indices = list(np.load(os.path.join(self.config.data.files.base, self.config.data.files.plant_test_species_indices_file)))
+            self.test_auc_metric = MultilabelAUROC(
+                num_labels=len(self.plant_test_species_indices), average="macro"
+            )
 
         # metrics to report
         metrics = get_metrics(self.config)

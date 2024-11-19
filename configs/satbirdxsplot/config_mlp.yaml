@@ -39,8 +39,8 @@ partial_labels:
     # what known ratios do we consider when testing
     eval_known_ratio: 0 # [1.0, 0.9, 0.8, 0.5]
 
-# During testing, eval family of birds (0), or family of butterflies (1)
-predict_family_of_species: -1
+# During testing, eval family of birds (0), or family of plants (1)
+predict_family_of_species: 1
 
 data:
   loaders:
@@ -61,11 +61,12 @@ data:
     val: ["satbirdxsplotopen/satbird_splots_valid_split.csv"]
     test: ["satbirdxsplotopen/satbird_splots_test_split.csv"]
 
-    # it has to be in this order [bird, butterfly, colocated]
+    # it has to be in this order as the keys in per_taxa_species_count
     targets_file: ["SatBird/satbird_usa_summer_targets.pkl",
-                   "sPlotOpen/sPlotOpen_targets.pkl"]
+                   "sPlotOpen/sPlotOpen_targets.pkl"] # target files follow the same format as SatBird (hotspotID: target_array)
 
     satbird_species_indices_path: "SatBird/stats"
+    plant_test_species_indices_file: "satbirdxsplotopen/plant_test_species_indices.npy"
 
   # when combining two different taxa
   multi_taxa: True

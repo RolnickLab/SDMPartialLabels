@@ -1,7 +1,6 @@
 import os
 
 import torch
-from torchmetrics.classification import MultilabelAUROC
 
 from src.models.baselines import SimpleMLP
 from src.trainers.base import BaseTrainer
@@ -33,10 +32,6 @@ class BaselineTrainer(BaseTrainer):
             self.num_species = len(self.class_indices_to_test)
 
         print(f"Number of classes: {self.num_species}")
-        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys():
-            self.test_auc_metric = MultilabelAUROC(
-                num_labels=self.num_species, average="macro"
-            )
 
     def training_step(self, batch, batch_idx):
         data = batch["data"]
@@ -88,7 +83,7 @@ class BaselineTrainer(BaseTrainer):
             targets = targets[:, self.class_indices_to_test]
 
         if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys() and self.config.predict_family_of_species == 1:
-            self.test_auc_metric.update(predictions, targets.long())
+            self.test_auc_metric.update(predictions[:, self.plant_test_species_indices], targets[:, self.plant_test_species_indices].long())
         else:
             self.log_metrics(
                 mode="test", pred=predictions, y=targets, mask=available_species_mask
