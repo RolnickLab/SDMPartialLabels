@@ -1,6 +1,8 @@
 # supports training baseline models and C-tran on splot data
 import inspect
+import os
 
+import numpy as np
 import pytorch_lightning as pl
 import torch
 from torch import nn
@@ -77,6 +79,18 @@ class sPlotTrainer(pl.LightningModule):
             self.val_auc_metric.update(predictions, targets.long())
         elif stage == "test":
             self.test_auc_metric.update(predictions, targets.long())
+            # saving model predictions
+            if self.config.logger.save_preds_path != "":
+                for i, elem in enumerate(predictions):
+                    np.save(
+                        os.path.join(
+                            self.config.logger.checkpoint_path,
+                            self.config.logger.experiment_name,
+                            self.config.logger.save_preds_path,
+                            batch["hotspot_id"][i] + ".npy",
+                        ),
+                        elem.cpu().detach().numpy(),
+                    )
 
         self.log_dict(metrics, on_step=False, on_epoch=True)
         return loss

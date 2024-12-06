@@ -1,4 +1,4 @@
-mode: "train" # "test"
+mode: "test" # "test"
 dataset_name: "sPlot"
 model:
   name: "CTranModel"
@@ -19,7 +19,8 @@ logger:
   experiment_name: "splot_ctran_v5" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
   checkpoint_path: "./experiments_output"
-  checkpoint_name: "last.ckpt"
+  checkpoint_name: "epoch=15-step=16720.ckpt"
+  save_preds_path: "preds_tree_conditioned"
 
 data:
   dataloader_to_use: "sPlotMaskedDataset"

@@ -48,8 +48,7 @@ class SDMPartialTrainer(BaseTrainer):
 
         # if eval_known_rate == 0, everything is unknown, but we want to predict certain families
         if (
-            self.config.partial_labels.eval_known_ratio == 0
-            and self.config.predict_family_of_species != -1
+            self.config.predict_family_of_species != -1
         ):
             self.class_indices_to_test = eval_species_split(
                 index=self.config.predict_family_of_species,
@@ -65,19 +64,15 @@ class SDMPartialTrainer(BaseTrainer):
             self.num_species = len(self.class_indices_to_test)
 
         print(f"Number of classes: {self.num_species}")
-        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys():
-            self.test_auc_metric = MultilabelAUROC(
-                num_labels=self.num_species, average="macro"
-            )
 
     def training_step(self, batch: Dict[str, Any], batch_idx: int):
         x = batch["data"]
         y = batch["targets"]
         mask = batch["mask"].long()
 
-        y_pred = self.sigmoid_activation(self.model(x, batch["mask_q"]))
+        y_pred = self.model(x, batch["mask_q"])
 
-        loss = self.criterion(y_pred, y, mask=batch["available_species_mask"].long())
+        loss = self.loss_fn(y_pred, y, mask=batch["available_species_mask"].long())
         y_pred = self.sigmoid_activation(y_pred)
 
         self.log("train_loss", loss, on_epoch=True)
@@ -110,7 +105,7 @@ class SDMPartialTrainer(BaseTrainer):
             mask = mask[:, self.class_indices_to_test]
 
         if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys() and self.config.predict_family_of_species == 1:
-            self.test_auc_metric.update(y_pred, y.long())
+            self.test_auc_metric.update(y_pred[:, self.plant_test_species_indices], y[:, self.plant_test_species_indices].long())
         else:
             self.log_metrics(mode="test", pred=y_pred, y=y, mask=mask)
 

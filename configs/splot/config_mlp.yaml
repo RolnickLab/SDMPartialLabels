@@ -18,7 +18,7 @@ logger:
   project_name: "sPlotOpen"
   experiment_name: "SimpleMLP_baseline_splot_v2" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
-  checkpoint_path: "./experiments_output"
+  checkpoint_path: "./splot_experiments_outputs"
   checkpoint_name: "last.ckpt"
 
 data:
@@ -26,7 +26,7 @@ data:
   base: "/Users/hagerradi/Projects/SDMPartialLabels/data/sPlotOpen"
   train: "train_indices.npy"
   validation: "validation_indices.npy"
-  test: "test_indices.npy"
+  test: "test_colocated_only_indices.npy"
   targets: "merged_species_occurrences.npy"
 
   batch_size: 512
@@ -41,4 +41,4 @@ data:
 
   partial_labels:
     use: False
-    predict_family_of_species: 1
+    predict_family_of_species: -1
