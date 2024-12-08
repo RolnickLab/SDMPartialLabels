@@ -61,7 +61,7 @@ data:
   files:
     base: "/network/projects/ecosystem-embeddings/"
     train: ["SatBirdButterfly/train_split_fillna.csv"]
-    val: ["SatBirdButterfly/valid_split_fillna.csv"]
+    val: ["SatBirdButterfly/valid_split_fillna_colocated_only.csv"] #"SatBirdButterfly/valid_split_fillna.csv"]
     test: ["SatBirdButterfly/test_split_fillna.csv"]
 
     targets_file: ["SatBird_data_v2/USA_summer/satbird_usa_summer_targets.pkl","SatButterfly_dataset/SatButterfly_v1/USA/butterfly_all_targets_v1.2.pkl","SatButterfly_dataset/SatButterfly_v2/USA/butterfly_all_targets_v1.2.pkl"]
