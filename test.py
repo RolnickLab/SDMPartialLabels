@@ -39,7 +39,7 @@ def main(opts):
     hydra_opts = dict(OmegaConf.to_container(opts))
     args = hydra_opts.pop("args", None)
     run_id = args["run_id"]
-
+    known_bird_species_idx = args["known_bird_species_idx"]
     base_dir = get_original_cwd()
 
     config_path = os.path.join(base_dir, args["config"])
@@ -47,7 +47,13 @@ def main(opts):
 
     config = load_opts(config_path, default=default_config, commandline_opts=hydra_opts)
     config.base_dir = base_dir
-
+    
+    
+    config.data.known_bird_species_idx =  int(known_bird_species_idx)
+    config.save_preds_path = f"/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran_clean_meli/birdxbutterflies_final/1337/preds/species_{config.data.known_bird_species_idx}"
+    print(f"Saving to {config.save_preds_path}")
+    os.makedirs(config.save_preds_path, exist_ok=True)
+    
     if "file_name" in args:
         config.file_name = args["file_name"]
     else: 
@@ -95,7 +101,7 @@ def main(opts):
 
             save_test_results_to_csv(
                 results=test_results[0],
-                root_dir=config.save_path,
+                root_dir=config.save_preds_path,
                 file_name=config.file_name
             )
         else:
@@ -131,7 +137,7 @@ def main(opts):
                 test_results = test_task(task)
                 save_test_results_to_csv(
                     results=test_results[0],
-                    root_dir=config.save_path,
+                    root_dir=config.save_preds_path,
                     file_name=config.file_name
                 )
 

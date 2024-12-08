@@ -113,6 +113,7 @@ class SDMEnvMaskedDataset(EnvDataset):
         num_species=670,
         predict_family=-1,
         quantized_mask_bins=1,
+        known_bird_species_idx=None, 
     ) -> None:
         """
         this dataloader handles dataset with masks for Ctran model using env variables as inpu
@@ -138,7 +139,7 @@ class SDMEnvMaskedDataset(EnvDataset):
         self.multi_taxa = multi_taxa
         self.predict_family_of_species = predict_family
         self.quantized_mask_bins = quantized_mask_bins
-
+        self.known_bird_species_idx  = known_bird_species_idx
     def __len__(self):
         return self.data.shape[0]
 
@@ -165,6 +166,7 @@ class SDMEnvMaskedDataset(EnvDataset):
                 predict_family_of_species=self.predict_family_of_species,
                 species_list_masked=self.species_list_masked,
                 main_taxa_dataset_name="satbird",
+                known_bird_species_idx= self.known_bird_species_idx
             )
             mask.scatter_(
                 dim=0, index=torch.Tensor(unk_mask_indices).long(), value=-1.0
@@ -402,6 +404,7 @@ class SDMDataModule(pl.LightningDataModule):
             per_taxa_species_count=self.config.data.per_taxa_species_count,
             predict_family=self.predict_family,
             quantized_mask_bins=self.config.partial_labels.quantized_mask_bins,
+            known_bird_species_idx= self.config.data.known_bird_species_idx
         )
 
     def train_dataloader(self) -> DataLoader[Any]:

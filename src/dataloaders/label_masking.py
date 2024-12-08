@@ -118,6 +118,7 @@ def get_unknown_mask_indices(
     per_taxa_species_count=None,
     predict_family_of_species=-1,
     main_taxa_dataset_name="satbird",
+    known_bird_species_idx = None
 ):
     """
     sample random number of known labels during training
@@ -145,6 +146,7 @@ def get_unknown_mask_indices(
                 per_taxa_species_count[0],
                 per_taxa_species_count[0] + per_taxa_species_count[1],
             )
+        
         elif (
             predict_family_of_species == 0 and multi_taxa
         ):  # birds (multi_taxa index 0) to eval in multi taxa setup
@@ -155,6 +157,17 @@ def get_unknown_mask_indices(
             unk_mask_indices = single_taxa_species_masking(
                 index=predict_family_of_species, species_list_masked=species_list_masked, main_taxa_dataset_name=main_taxa_dataset_name
             )
+        elif (
+            predict_family_of_species == 2 and multi_taxa
+        ):  # predict butterflies, and mask all species 
+           
+            unk_mask_indices = np.delete(np.arange(per_taxa_species_count[0] + per_taxa_species_count[1]), known_bird_species_idx)
+            #unk_mask_indices = np.arange(
+            #    per_taxa_species_count[0],
+            #    per_taxa_species_count[0] + per_taxa_species_count[1],
+            #)
+            
+            
         else:  # random unknown indices over all available species
             unk_mask_indices = random_species_masking(
                 available_species_mask=available_species_mask, max_known=max_known

@@ -8,7 +8,6 @@ from torch import nn
 
 from src.dataloaders.dataloader import *
 from src.losses import BCE, CustomCrossEntropyLoss, CustomFocalLoss, RMSLELoss
-#from src.models.baselines import SimpleMLPMasked_v0 as SimpleMLPMasked
 from src.models.ctran import CTranModel
 from src.trainers.base import BaseTrainer
 from src.utils import eval_species_split
@@ -61,12 +60,26 @@ class SDMPartialTrainer(BaseTrainer):
                 multi_taxa=self.config.data.multi_taxa,
                 per_taxa_species_count=self.config.data.per_taxa_species_count,
             )
+        elif (
+            self.config.partial_labels.eval_known_ratio == 1
+            and self.config.predict_family_of_species == 2
+        ):
+            self.class_indices_to_test = eval_species_split(
+                index=self.config.predict_family_of_species,
+                base_data_folder=os.path.join(
+                    self.config.data.files.base,
+                    self.config.data.files.satbird_species_indices_path,
+                ),
+                multi_taxa=self.config.data.multi_taxa,
+                per_taxa_species_count=self.config.data.per_taxa_species_count,
+            )
 
         if self.class_indices_to_test is not None:
             self.num_species = len(self.class_indices_to_test)
 
         print(f"Number of classes: {self.num_species}")
-
+        print(self.class_indices_to_test)
+        
     def training_step(self, batch: Dict[str, Any], batch_idx: int):
         x = batch["data"]
         y = batch["targets"]
