@@ -40,7 +40,7 @@ partial_labels:
     eval_known_ratio: 0 # [1.0, 0.9, 0.8, 0.5]
 
 # During testing, eval family of birds (0), or family of plants (1)
-predict_family_of_species: 1
+predict_family_of_species: -1
 
 data:
   loaders:
