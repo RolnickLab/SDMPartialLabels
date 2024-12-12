@@ -72,6 +72,7 @@ class SDMPartialTrainer(BaseTrainer):
 
         y_pred = self.model(x, batch["mask_q"])
 
+        # loss function does sigmoid + cross entropy
         loss = self.loss_fn(y_pred, y, mask=batch["available_species_mask"].long())
         y_pred = self.sigmoid_activation(y_pred)
 

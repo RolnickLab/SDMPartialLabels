@@ -63,7 +63,7 @@ data:
 
     # it has to be in this order as the keys in per_taxa_species_count
     targets_file: ["SatBird/satbird_usa_summer_targets.pkl",
-                   "sPlotOpen/sPlotOpen_targets_US_only.pkl"] # target files follow the same format as SatBird (hotspotID: target_array)
+                   "sPlotOpen/sPlotOpen_targets_US_only.pkl"] # target files follow the same format as SatBird (hotspotID (observationPlotID: target_array)
 
     satbird_species_indices_path: "SatBird/stats"
     plant_test_species_indices_file: "satbirdxsplotopen/plant_test_species_indices_US_only.npy"
