@@ -1,5 +1,5 @@
 #where to save checkpoints
-save_path: "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran_clean_meli/birdxbutterflies_256hdim_2layers_binning"
+save_path: "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran_clean_meli/birdxbutterflies_final"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 load_ckpt_path: ""
@@ -7,7 +7,7 @@ save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: ["rtran", "removebinning", "172butterfly_species", "satbird+ satbutterflyv1 + satbutterflyv2"]
+  tags: ["rtran", "172butterfly_species", "satbird+ satbutterflyv1 + satbutterflyv2"]
   experiment_name: "CTran_binning" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
@@ -17,7 +17,7 @@ dataloader_to_use: "SDMEnvMaskedDataset"
 model:
   name: "CTranModel"
   input_dim: 27
-  hidden_dim: 256
+  hidden_dim: 128
   backbone: "SimpleMLPBackbone"
   n_backbone_layers: 2
   n_attention_layers: 3
@@ -35,7 +35,7 @@ partial_labels:
     # mask known labels out of the loss (true or false)
     masked_loss: False
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
-    quantized_mask_bins: 
+    quantized_mask_bins: 4
     # max ratio of unknown labels during training
     train_known_ratio: 0.75
     # what known ratios do we4 consider when testing
@@ -61,7 +61,7 @@ data:
   files:
     base: "/network/projects/ecosystem-embeddings/"
     train: ["SatBirdButterfly/train_split_fillna.csv"]
-    val: ["SatBirdButterfly/valid_split_fillna.csv"]
+    val: ["SatBirdButterfly/valid_split_fillna_colocated_only.csv"] #"SatBirdButterfly/valid_split_fillna.csv"]
     test: ["SatBirdButterfly/test_split_fillna.csv"]
 
     targets_file: ["SatBird_data_v2/USA_summer/satbird_usa_summer_targets.pkl","SatButterfly_dataset/SatButterfly_v1/USA/butterfly_all_targets_v1.2.pkl","SatButterfly_dataset/SatButterfly_v2/USA/butterfly_all_targets_v1.2.pkl"]

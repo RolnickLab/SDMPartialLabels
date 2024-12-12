@@ -392,9 +392,9 @@ class SDMDataModule(pl.LightningDataModule):
             targets=torch.tensor(test_targets, dtype=torch.float32),
             hotspots=test_hotspots,
             species_list_masked=get_songbird_indices(),
-            data_base_dir=os.path.join(
-                self.data_base_dir, self.config.data.files.satbird_species_indices_path
-            ),
+            #data_base_dir=os.path.join(
+            #    self.data_base_dir, self.config.data.files.satbird_species_indices_path
+            #),
             mode="test",
             maximum_known_labels_ratio=self.config.partial_labels.eval_known_ratio,
             num_species=self.num_species,
