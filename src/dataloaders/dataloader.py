@@ -346,7 +346,7 @@ class SDMDataModule(pl.LightningDataModule):
             # Create a WeightedRandomSampler for balanced sampling
             self.training_sampler = WeightedRandomSampler(
                 weights=sample_weights,
-                num_samples=len(sample_weights) * 2,
+                num_samples=len(sample_weights),
                 replacement=True,
             )
             self.shuffle_training = False
