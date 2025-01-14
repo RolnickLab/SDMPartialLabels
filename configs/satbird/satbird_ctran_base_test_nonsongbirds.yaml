@@ -1,27 +1,27 @@
 #where to save checkpoints
-save_path: "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran/birds/base/"
+save_path:  "experiments_outputs/baseline_satbird_ctran_v0"
+
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path:  "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran/birds/base/1337/last.ckpt"
+load_ckpt_path: "/home/mila/t/tengmeli/SDMPartialLabels/experiments_outputs/baseline_satbird_ctran_v0/1337/epoch=47-step=32112.ckpt"
 save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
 
 dataloader_to_use: "SDMEnvMaskedDataset"
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: ["MLP", "corrected_targets", "EnvNormalization", "satbird", "test"]
-  experiment_name: "baseline_CTran_test_birds_nonsongbirds" # specify for training, or use to report test results, TODO: also use to resume training
+  tags: ["Ctran", "corrected_targets", "satbird"]
+  experiment_name: "baseline_satbird_ctran_v0" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 model:
   name: "CTranModel"
   input_dim: 27
-  hidden_dim: 512
+  hidden_dim: 128
   backbone: "SimpleMLPBackbone"
-  n_backbone_layers: 6
+  n_backbone_layers: 2
   n_attention_layers: 3
   n_heads: 4
-  dropout: 0
-
+  dropout: 0.2
 
 training:
   seed: 1337
@@ -43,7 +43,7 @@ partial_labels:
     use_unknown_token: True
 
 # During testing, eval family of birds (0), or family of butterflies (1)
-predict_family_of_species: 0
+predict_family_of_species: 2
 
 data:
   loaders:
@@ -71,3 +71,4 @@ data:
   multi_taxa: False
   per_taxa_species_count: [670]
   total_species: 670
+  known_bird_species_idx: 0

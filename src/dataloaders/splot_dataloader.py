@@ -143,6 +143,7 @@ class sPlotDataModule(pl.LightningDataModule):
             predict_family=self.config.partial_labels.predict_family_of_species,
             maximum_known_labels_ratio=self.config.partial_labels.eval_known_ratio,
         )
+        if self.config.data.
 
         self.test_dataset = globals()[self.dataloader_to_use](
             data=torch.tensor(data[test_split], dtype=torch.float32),

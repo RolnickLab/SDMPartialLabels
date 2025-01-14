@@ -152,6 +152,16 @@ def get_unknown_mask_indices(
         ):  # birds (multi_taxa index 0) to eval in multi taxa setup
             unk_mask_indices = np.arange(0, per_taxa_species_count[0])
         elif (
+            predict_family_of_species == 2 and not multi_taxa
+        ):  # predict nonsongbirds, and mask all species  but one 
+           
+            unk_mask_indices = np.delete(np.arange(670), known_bird_species_idx)
+            #unk_mask_indices = np.arange(
+            #    per_taxa_species_count[0],
+            #    per_taxa_species_count[0] + per_taxa_species_count[1],
+            #)
+            
+        elif (
             predict_family_of_species != -1 and not multi_taxa
         ):  # non-songbirds / songbirds to eval in SatBird only setup | non-trees / trees to eval in sPlots setup
             unk_mask_indices = single_taxa_species_masking(
@@ -166,6 +176,7 @@ def get_unknown_mask_indices(
             #    per_taxa_species_count[0],
             #    per_taxa_species_count[0] + per_taxa_species_count[1],
             #)
+        
             
             
         else:  # random unknown indices over all available species

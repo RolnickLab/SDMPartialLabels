@@ -78,7 +78,7 @@ class SDMPartialTrainer(BaseTrainer):
             self.num_species = len(self.class_indices_to_test)
 
         print(f"Number of classes: {self.num_species}")
-        print(self.class_indices_to_test)
+        
         
     def training_step(self, batch: Dict[str, Any], batch_idx: int):
         x = batch["data"]

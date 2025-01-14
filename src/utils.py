@@ -14,7 +14,7 @@ def eval_species_split(
     multi_taxa: bool,
     per_taxa_species_count: list[int] = None,
 ) -> np.ndarray:
-    if not multi_taxa:
+    if not multi_taxa and index in [0,1]:
         songbird_indices = [
             "nonsongbird_indices.npy",
             "songbird_indices.npy",
@@ -25,6 +25,8 @@ def eval_species_split(
                 songbird_indices[index],
             )
         )
+    elif not multi_taxa:
+        indices_to_predict = np.arange(0, per_taxa_species_count[0]) 
     else:
         if index == 0:
             indices_to_predict = np.arange(0, per_taxa_species_count[0])

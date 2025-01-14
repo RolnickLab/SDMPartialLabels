@@ -50,7 +50,8 @@ def main(opts):
     
     
     config.data.known_bird_species_idx =  int(known_bird_species_idx)
-    config.save_preds_path = f"/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran_clean_meli/birdxbutterflies_final/1337/preds/species_{config.data.known_bird_species_idx}"
+    config.save_preds_path = f"/network/projects/ecosystem-embeddings/experiments_outputs/baseline_satbird_ctran_v0/preds/species_{config.data.known_bird_species_idx}"
+    #f"/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran_clean_meli/birdxbutterflies_final/1337/preds/species_{config.data.known_bird_species_idx}"
     print(f"Saving to {config.save_preds_path}")
     os.makedirs(config.save_preds_path, exist_ok=True)
     
