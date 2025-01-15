@@ -25,7 +25,6 @@ class sPlotDataset(Dataset):
         self.data = data
         self.targets = targets
         self.hotspots = hotspots
-        print(self.hotspots[0])
 
     def __len__(self):
         return len(self.data)
