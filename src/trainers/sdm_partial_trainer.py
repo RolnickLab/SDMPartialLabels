@@ -9,7 +9,7 @@ from torchmetrics.classification import MultilabelAUROC
 
 from src.dataloaders.dataloader import *
 from src.losses import BCE, CustomCrossEntropyLoss, CustomFocalLoss, RMSLELoss
-from src.models.baselines import SimpleMLPMasked_v1
+from src.models.baselines import SimpleMLPMasked_v0, SimpleMLPMasked_v1
 from src.models.ctran import CTranModel
 from src.trainers.base import BaseTrainer
 from src.utils import eval_species_split

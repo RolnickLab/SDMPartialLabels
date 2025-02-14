@@ -34,7 +34,7 @@ def single_taxa_species_masking(main_taxa_dataset_name: str, index: int, species
         index 0: isSongbird = False
         index 1: isSongbird = True
         """
-        return np.where(species_list_masked["isSongbird"] == bool(index))[0]
+        return np.where(species_list_masked == bool(index))[0]
 
     if main_taxa_dataset_name == "splot":
         return trees_masking(index=index, species_list_masked=species_list_masked)

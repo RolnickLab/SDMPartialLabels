@@ -25,6 +25,9 @@ training:
   max_epochs: 50
   accelerator: "cpu"
 
+losses:
+  criterion: "BCE"
+
 partial_labels:
     use: true
     # mask known labels out of the loss (true or false)

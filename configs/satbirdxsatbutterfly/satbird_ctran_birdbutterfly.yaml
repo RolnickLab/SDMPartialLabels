@@ -13,7 +13,6 @@ comet:
 
 dataloader_to_use: "SDMEnvMaskedDataset"
 
-
 model:
   name: "CTranModel"
   input_dim: 27
@@ -29,6 +28,9 @@ training:
   lr: 0.0001
   max_epochs: 100
   accelerator: "gpu"
+
+losses:
+  criterion: "BCE"
 
 partial_labels:
     use: true

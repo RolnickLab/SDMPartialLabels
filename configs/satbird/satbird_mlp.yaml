@@ -12,6 +12,9 @@ comet:
 
 dataloader_to_use: "SDMEnvDataset"
 
+losses:
+  criterion: "BCE"
+
 model:
   name: "SimpleMLP"
   input_dim: 27
@@ -54,7 +57,7 @@ data:
     base: "/Users/hagerradi/Projects/SDMPartialLabels/data"
     train: ["SatBird/train_split.csv"]
     val: ["SatBird/valid_split.csv"]
-    test: ["satbirdxsplotopen/satbird_splots_test_split.csv"]
+    test: ["SatBird/test_split.csv"]
 
     targets_file: ["satbird/satbird_usa_summer_targets.pkl"]
     satbird_species_indices_path: "satbird/stats"
