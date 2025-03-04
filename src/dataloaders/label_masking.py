@@ -118,6 +118,7 @@ def get_unknown_mask_indices(
     per_taxa_species_count=None,
     predict_family_of_species=-1,
     main_taxa_dataset_name="satbird",
+    singlespecies=None
 ):
     """
     sample random number of known labels during training
@@ -147,6 +148,11 @@ def get_unknown_mask_indices(
                              list(per_taxa_species_count.values())[0] + list(per_taxa_species_count.values())[1])
             }
             unk_mask_indices = taxa_indices.get(predict_family_of_species)
+            
+            
+        elif not singlespecies is None:
+     
+            unk_mask_indices = np.delete(np.arange(3951), singlespecies)
         elif (
             predict_family_of_species != -1 and not multi_taxa
         ):  # non-songbirds / songbirds to eval in SatBird only setup | non-trees / trees to eval in sPlots setup

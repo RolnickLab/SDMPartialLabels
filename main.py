@@ -94,6 +94,7 @@ def main():
         trainer.fit(model=task, datamodule=data_module)
         trainer.test(model=task, datamodule=data_module)
     else:
+
         checkpoint_path = os.path.join(
                     config.logger.checkpoint_path,
                     config.logger.experiment_name,
