@@ -108,6 +108,7 @@ class sPlotDataModule(pl.LightningDataModule):
         df_data_columns = self.config.env_columns
 
         data = pd.concat([worldclim_df, soilgrid_df], axis=1)
+        # remove any duplicate columns after concatenation, example: PlotObservationID
         data = data.loc[:, ~data.T.duplicated()]
         hotspots = data["PlotObservationID"].astype(str).to_list()
 
