@@ -1,10 +1,10 @@
-mode: "train" # "test"
+mode: "test" # "test"
 dataset_name: "sPlot"
 model:
   name: "SimpleMLPMasked_v0"
   input_dim: 27
   hidden_dim: 64
-  num_classes: 3950
+  num_classes: 3951
   backbone:
 
 training:
@@ -16,7 +16,7 @@ training:
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "SimpleMLPMasked_baseline_splot_v0" # specify for training, or use to report test results
+  experiment_name: "SimpleMLPMasked_baseline_splot_v1" # specify for training, or use to report test results
   experiment_key: "" # use to report test results
   checkpoint_path: "./splot_experiments_outputs"
   checkpoint_name: "last.ckpt"
@@ -27,7 +27,7 @@ data:
   train: "train_indices.npy"
   validation: "validation_indices.npy"
   test: "test_indices.npy"
-  targets: "merged_species_occurrences.npy"
+  targets: "merged_species_occurrences_v2.npy"
 
   worldclim_data_path: "worldclim_data.csv"
   soilgrid_data_path: "soilgrid_data.csv"
@@ -35,7 +35,7 @@ data:
   species_occurrences_threshold: 100
   batch_size: 512
 
-  species_list: "species_merge_duplicates.csv"
+  species_list: "species_merge_duplicates_v2.csv"
   env_columns: [ 'bio_1', 'bio_2', 'bio_3', 'bio_4', 'bio_5', 'bio_6', 'bio_7', 'bio_8', 'bio_9', 'bio_10',
          'bio_11', 'bio_12', 'bio_13', 'bio_14', 'bio_15', 'bio_16', 'bio_17', 'bio_18', 'bio_19',
          "ORCDRC", "PHIHOX", "CECSOL", "BDTICM", "CLYPPT", "SLTPPT", "SNDPPT", "BLDFIE" ]
@@ -44,4 +44,5 @@ data:
     use: True
     train_known_ratio: 0.75
     eval_known_ratio: 0
+    # 0: non-trees, 1: trees
     predict_family_of_species: -1

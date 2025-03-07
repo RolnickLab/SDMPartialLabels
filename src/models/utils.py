@@ -105,17 +105,19 @@ def custom_replace_n(data: torch.tensor, n: int):
     """
     replacing unique values with their index
     """
-    original_values = torch.arange(0, 1, 1 / n) + 1 / n
+    original_values = torch.linspace(1 / n, 1, n)  # Values from 1/n to 1
+
     original_values = torch.cat((torch.tensor([-1, 0]), original_values), dim=0)
     new_values = torch.arange(0, n + 2, 1)
     res = data.clone()
     for original_value, new_value in zip(original_values, new_values):
-        res[data == original_value] = new_value
+        mask = torch.isclose(data, original_value, atol=1e-3)
+        res[mask] = new_value
 
     return res
 
 
-def maksed_loss_custom_replace(tensor, on_neg_2, on_neg_1, on_zero, on_one):
+def masked_loss_custom_replace(tensor, on_neg_2, on_neg_1, on_zero, on_one):
     res = tensor.clone()
     res[tensor == -2] = on_neg_2
     res[tensor == -1] = on_neg_1
@@ -393,3 +395,9 @@ def json_load(file_path):
     """
     with open(file_path, "r") as f:
         return json.load(f)
+
+#
+#
+# if __name__ == "__main__":
+#     x = torch.tensor([-1.0000, -1.0000,  0.1667,  1.0000,  0.5000,  1.0000,  0.0000])
+#     print(custom_replace_n(x, 6))

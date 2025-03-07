@@ -15,6 +15,7 @@ class sPlotDataset(Dataset):
         self,
         data,
         targets,
+        hotspots,
         num_labels,
         species_list_masked=None,
         mode=None,
@@ -23,12 +24,15 @@ class sPlotDataset(Dataset):
     ):
         self.data = data
         self.targets = targets
+        self.hotspots = hotspots
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        batch = {"data": self.data[idx], "targets": self.targets[idx]}
+        batch = {"data": self.data[idx],
+                 "targets": self.targets[idx],
+                 "hotspot_id": self.hotspots[idx]}
         return batch
 
 
@@ -37,6 +41,7 @@ class sPlotMaskedDataset(Dataset):
         self,
         data,
         targets,
+        hotspots,
         num_labels,
         species_list_masked,
         mode="train",
@@ -45,6 +50,7 @@ class sPlotMaskedDataset(Dataset):
     ):
         self.data = data
         self.targets = targets
+        self.hotspots = hotspots
         self.num_labels = num_labels
         self.species_list_masked = species_list_masked
         self.mode = mode
@@ -57,6 +63,7 @@ class sPlotMaskedDataset(Dataset):
     def __getitem__(self, idx):
         targets = self.targets[idx]
         data = self.data[idx]
+        hotspot = self.hotspots[idx]
 
         # to exclude species that have no labels
         available_species_mask = (targets != -2).int()
@@ -75,7 +82,7 @@ class sPlotMaskedDataset(Dataset):
         else:
             mask = torch.ones_like(targets)
             mask = mask * -1
-        batch = {"data": data, "targets": targets, "mask": mask.long()}
+        batch = {"data": data, "hotspot_id": hotspot, "targets": targets, "mask": mask.long()}
         return batch
 
 
@@ -101,6 +108,10 @@ class sPlotDataModule(pl.LightningDataModule):
         df_data_columns = self.config.env_columns
 
         data = pd.concat([worldclim_df, soilgrid_df], axis=1)
+        # remove any duplicate columns after concatenation, example: PlotObservationID
+        data = data.loc[:, ~data.T.duplicated()]
+        hotspots = data["PlotObservationID"].astype(str).to_list()
+
         data = data[df_data_columns].to_numpy()
 
         train_split = np.load(os.path.join(self.config.base, self.config.train))
@@ -119,12 +130,12 @@ class sPlotDataModule(pl.LightningDataModule):
         normalization_stds = np.std(data[train_split, :], axis=0)
 
         data = (data - normalization_means) / (normalization_stds + 1e-8)
-
         self.train_dataset = globals()[self.dataloader_to_use](
             data=torch.tensor(data[train_split], dtype=torch.float32),
             targets=torch.tensor(
                 targets[train_split][:, species_indices], dtype=torch.float32
             ),
+            hotspots=np.array(hotspots)[train_split],
             species_list_masked=species_df,
             num_labels=len(species_indices),
             mode="train",
@@ -137,6 +148,7 @@ class sPlotDataModule(pl.LightningDataModule):
             targets=torch.tensor(
                 targets[val_split][:, species_indices], dtype=torch.float32
             ),
+            hotspots=np.array(hotspots)[val_split],
             species_list_masked=species_df,
             num_labels=len(species_indices),
             mode="val",
@@ -149,6 +161,7 @@ class sPlotDataModule(pl.LightningDataModule):
             targets=torch.tensor(
                 targets[test_split][:, species_indices], dtype=torch.float32
             ),
+            hotspots=np.array(hotspots)[test_split],
             species_list_masked=species_df,
             num_labels=len(species_indices),
             mode="test",

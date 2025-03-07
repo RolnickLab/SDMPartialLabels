@@ -1,6 +1,8 @@
 # supports training baseline models and C-tran on splot data
 import inspect
+import os
 
+import numpy as np
 import pytorch_lightning as pl
 import torch
 from torch import nn
@@ -15,6 +17,8 @@ class sPlotTrainer(pl.LightningModule):
         super(sPlotTrainer, self).__init__()
         self.learning_rate = config.training.learning_rate
         self.config = config
+        self.all_test_predictions = []
+        self.all_test_targets = []
 
         model_kwargs = {
             "input_dim": self.config.model.input_dim,
@@ -42,9 +46,6 @@ class sPlotTrainer(pl.LightningModule):
 
         print(f"Number of classes: {out_num_classes}")
         self.val_auc_metric = MultilabelAUROC(
-            num_labels=out_num_classes, average="macro"
-        )
-        self.test_auc_metric = MultilabelAUROC(
             num_labels=out_num_classes, average="macro"
         )
 
@@ -76,7 +77,20 @@ class sPlotTrainer(pl.LightningModule):
         if stage == "val":
             self.val_auc_metric.update(predictions, targets.long())
         elif stage == "test":
-            self.test_auc_metric.update(predictions, targets.long())
+            self.all_test_predictions.append(predictions)
+            self.all_test_targets.append(targets.long())
+            # saving model predictions
+            if self.config.logger.save_preds_path != "":
+                for i, elem in enumerate(predictions):
+                    np.save(
+                        os.path.join(
+                            self.config.logger.checkpoint_path,
+                            self.config.logger.experiment_name,
+                            self.config.logger.save_preds_path,
+                            batch["hotspot_id"][i] + ".npy",
+                        ),
+                        elem.cpu().detach().numpy(),
+                    )
 
         self.log_dict(metrics, on_step=False, on_epoch=True)
         return loss
@@ -95,6 +109,16 @@ class sPlotTrainer(pl.LightningModule):
         self.val_auc_metric.reset()
 
     def on_test_epoch_end(self):
+        self.all_test_predictions = torch.cat(self.all_test_predictions, dim=0)
+        self.all_test_targets = torch.cat(self.all_test_targets, dim=0)
+        non_zero_indices = self.all_test_targets.sum(0) != 0
+        num_classes = int(non_zero_indices.long().sum(0))
+
+        print("Present number of classes: ", num_classes)
+        self.test_auc_metric = MultilabelAUROC(
+            num_labels=num_classes, average="macro"
+        )
+        self.test_auc_metric.update(self.all_test_predictions[:, non_zero_indices], self.all_test_targets[:, non_zero_indices])
         self.log("test_auroc", self.test_auc_metric.compute())
         self.test_auc_metric.reset()
 

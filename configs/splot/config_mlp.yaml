@@ -4,7 +4,7 @@ model:
   name: "SimpleMLP"
   input_dim: 27
   hidden_dim: 64
-  num_classes: 3950
+  num_classes: 3951
   backbone: ""
 
 training:
@@ -16,9 +16,9 @@ training:
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "SimpleMLP_baseline_splot_v2" # specify for training, or use to report test results
+  experiment_name: "SimpleMLP_baseline_splot_v3" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
-  checkpoint_path: "./experiments_output"
+  checkpoint_path: "./splot_experiments_outputs"
   checkpoint_name: "last.ckpt"
 
 data:
@@ -27,13 +27,13 @@ data:
   train: "train_indices.npy"
   validation: "validation_indices.npy"
   test: "test_indices.npy"
-  targets: "merged_species_occurrences.npy"
+  targets: "merged_species_occurrences_v2.npy"
 
   batch_size: 512
 
   worldclim_data_path: "worldclim_data.csv"
   soilgrid_data_path: "soilgrid_data.csv"
-  species_list: "species_merge_duplicates.csv"
+  species_list: "species_merge_duplicates_v2.csv"
   species_occurrences_threshold: 100
   env_columns: ['bio_1', 'bio_2', 'bio_3', 'bio_4', 'bio_5', 'bio_6', 'bio_7', 'bio_8', 'bio_9', 'bio_10',
          'bio_11', 'bio_12', 'bio_13', 'bio_14', 'bio_15', 'bio_16', 'bio_17', 'bio_18', 'bio_19',
@@ -41,4 +41,4 @@ data:
 
   partial_labels:
     use: False
-    predict_family_of_species: 1
+    predict_family_of_species: -1

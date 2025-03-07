@@ -5,10 +5,11 @@ Trainer for the ctran framework
 import inspect
 
 from torch import nn
+from torchmetrics.classification import MultilabelAUROC
 
 from src.dataloaders.dataloader import *
 from src.losses import BCE, CustomCrossEntropyLoss, CustomFocalLoss, RMSLELoss
-from src.models.baselines import SimpleMLPMasked
+from src.models.baselines import SimpleMLPMasked_v0, SimpleMLPMasked_v1
 from src.models.ctran import CTranModel
 from src.trainers.base import BaseTrainer
 from src.utils import eval_species_split
@@ -20,8 +21,6 @@ class SDMPartialTrainer(BaseTrainer):
         opts: configurations
         """
         super(SDMPartialTrainer, self).__init__(config)
-
-        self.criterion = self.__loss_mapping(self.config.losses.criterion)
 
         model_kwargs = {
             "input_dim": self.config.model.input_dim,
@@ -49,8 +48,7 @@ class SDMPartialTrainer(BaseTrainer):
 
         # if eval_known_rate == 0, everything is unknown, but we want to predict certain families
         if (
-            self.config.partial_labels.eval_known_ratio == 0
-            and self.config.predict_family_of_species != -1
+            self.config.predict_family_of_species != -1
         ):
             self.class_indices_to_test = eval_species_split(
                 index=self.config.predict_family_of_species,
@@ -72,9 +70,12 @@ class SDMPartialTrainer(BaseTrainer):
         y = batch["targets"]
         mask = batch["mask"].long()
 
-        y_pred = self.sigmoid_activation(self.model(x, batch["mask_q"]))
+        y_pred = self.model(x, batch["mask_q"])
 
-        loss = self.criterion(y_pred, y, mask=batch["available_species_mask"].long())
+        # loss function does sigmoid + cross entropy
+        loss = self.loss_fn(y_pred, y, mask=batch["available_species_mask"].long())
+        y_pred = self.sigmoid_activation(y_pred)
+
         self.log("train_loss", loss, on_epoch=True)
 
         if batch_idx % 50 == 0:
@@ -104,7 +105,10 @@ class SDMPartialTrainer(BaseTrainer):
             y = y[:, self.class_indices_to_test]
             mask = mask[:, self.class_indices_to_test]
 
-        self.log_metrics(mode="test", pred=y_pred, y=y, mask=mask)
+        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys() and self.config.predict_family_of_species == 1:
+            self.test_auc_metric.update(y_pred[:, self.plant_test_species_indices], y[:, self.plant_test_species_indices].long())
+        else:
+            self.log_metrics(mode="test", pred=y_pred, y=y, mask=mask)
 
         # saving model predictions
         if self.config.save_preds_path != "":
@@ -118,13 +122,8 @@ class SDMPartialTrainer(BaseTrainer):
                     elem.cpu().detach().numpy(),
                 )
 
-    def __loss_mapping(self, loss_fn_name):
-        loss_mapping = {
-            "MSE": nn.MSELoss(),
-            "MAE": nn.L1Loss(),
-            "RMSLE": RMSLELoss(),
-            "Focal": CustomFocalLoss(),
-            "CE": CustomCrossEntropyLoss(),
-            "BCE": BCE(),
-        }
-        return loss_mapping.get(loss_fn_name)
+    def on_test_epoch_end(self):
+        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys() and self.config.predict_family_of_species == 1:
+            self.log("test_auroc", self.test_auc_metric.compute())
+            self.test_auc_metric.reset()
+

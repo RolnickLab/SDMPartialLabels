@@ -3,6 +3,7 @@ This file includes label (target) masking for RTran training and evaluation.
 """
 
 import random
+
 import numpy as np
 import torch
 
@@ -34,7 +35,7 @@ def single_taxa_species_masking(main_taxa_dataset_name: str, index: int, species
         index 0: isSongbird = False
         index 1: isSongbird = True
         """
-        return np.where(species_list_masked["isSongbird"] == bool(index))[0]
+        return np.where(species_list_masked == bool(index))[0]
 
     if main_taxa_dataset_name == "splot":
         return trees_masking(index=index, species_list_masked=species_list_masked)
@@ -138,17 +139,15 @@ def get_unknown_mask_indices(
         )
 
     elif mode == "test":
-        if (
-            predict_family_of_species == 1 and multi_taxa
-        ):  # butterflies or trees (multi_taxa index 1) to eval in multi taxa setup
-            unk_mask_indices = np.arange(
-                per_taxa_species_count[0],
-                per_taxa_species_count[0] + per_taxa_species_count[1],
-            )
-        elif (
-            predict_family_of_species == 0 and multi_taxa
-        ):  # birds (multi_taxa index 0) to eval in multi taxa setup
-            unk_mask_indices = np.arange(0, per_taxa_species_count[0])
+        if predict_family_of_species != -1 and multi_taxa:
+            taxa_indices = {
+                # birds (multi_taxa index 0) to eval in multi taxa setup
+                0: np.arange(0, list(per_taxa_species_count.values())[0]),  # birds
+                # butterflies or trees (multi_taxa index 1) to eval in multi taxa setup
+                1: np.arange(list(per_taxa_species_count.values())[0],
+                             list(per_taxa_species_count.values())[0] + list(per_taxa_species_count.values())[1])
+            }
+            unk_mask_indices = taxa_indices.get(predict_family_of_species)
         elif (
             predict_family_of_species != -1 and not multi_taxa
         ):  # non-songbirds / songbirds to eval in SatBird only setup | non-trees / trees to eval in sPlots setup

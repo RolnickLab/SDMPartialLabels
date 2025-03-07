@@ -6,7 +6,6 @@ Code is based on the C-tran paper: https://github.com/QData/C-Tran
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch import Tensor
 
 from src.models.utils import custom_replace_n
 
@@ -35,12 +34,17 @@ class SimpleMLPMasked_v1(nn.Module):
         hidden_dim,
         num_classes,
         quantized_mask_bins=1,
+        quantize_encounter_rates=True,
     ):
         super(SimpleMLPMasked_v1, self).__init__()
 
+        self.quantize_encounter_rates = quantize_encounter_rates
         self.num_unique_mask_values = quantized_mask_bins
 
-        self.mask_encoder = SimpleMLPBackbone(input_dim=((self.num_unique_mask_values + 2) * num_classes), hidden_dim=hidden_dim, num_layers=2)
+        if self.quantize_encounter_rates:
+            self.mask_encoder = SimpleMLPBackbone(input_dim=((self.num_unique_mask_values + 2) * num_classes), hidden_dim=hidden_dim, num_layers=2)
+        else:
+            self.mask_encoder = SimpleMLPBackbone(input_dim=num_classes, hidden_dim=hidden_dim, num_layers=2)
 
         self.env_encoder = SimpleMLPBackbone(input_dim=input_dim, hidden_dim=hidden_dim, num_layers=2)
 
@@ -48,22 +52,25 @@ class SimpleMLPMasked_v1(nn.Module):
 
     def forward(self, x, mask_q):
         mask_q[mask_q == -2] = -1
-        mask_q = torch.where(
-            mask_q > 0,
-            torch.ceil(mask_q * self.num_unique_mask_values)
-            / self.num_unique_mask_values,
-            mask_q,
-        )
-        mask_q = custom_replace_n(mask_q, self.num_unique_mask_values).long()
-        one_hot_mask = F.one_hot(
-            mask_q, num_classes=self.num_unique_mask_values + 2
-        ).float()  # One-hot encoding
-        one_hot_mask_flattened = one_hot_mask.view(
-            mask_q.size(0), -1
-        )  # Flatten to (batch_size, num_classes * 3)
+        if self.quantize_encounter_rates:
+            mask_q = torch.where(
+                mask_q > 0,
+                torch.ceil(mask_q * self.num_unique_mask_values)
+                / self.num_unique_mask_values,
+                mask_q,
+            )
+            mask_q = custom_replace_n(mask_q, self.num_unique_mask_values).long()
+            one_hot_mask = F.one_hot(
+                mask_q, num_classes=self.num_unique_mask_values + 2
+            ).float()  # One-hot encoding
+            one_hot_mask_flattened = one_hot_mask.view(
+                mask_q.size(0), -1
+            )  # Flatten to (batch_size, num_classes * 3)
 
+            x_mask = self.mask_encoder(one_hot_mask_flattened)
+        else:
+            x_mask = self.mask_encoder(mask_q.float())
         x_env = self.env_encoder(x)
-        x_mask = self.mask_encoder(one_hot_mask_flattened)
         x_combined = torch.cat((x_env, x_mask), dim=1)
         x = self.out_layer(x_combined)
         return x
@@ -71,7 +78,7 @@ class SimpleMLPMasked_v1(nn.Module):
 
 class SimpleMLPMasked_v0(nn.Module):
     """
-    Simple MLP Masked where env features and mask share the same encoder
+    Simple MLP Masked where env features and mask share the same encoder. For splot only
     """
     def __init__(
         self,

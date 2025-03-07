@@ -1,8 +1,8 @@
 #where to save checkpoints
-save_path:  "experiments_outputs/baseline_satbird_ctran_v0"
+save_path: "/home/mila/h/hager.radi/scratch/satbird_SDMPartialLabels/SDMPartialLabels/experiments_outputs/baseline_satbird_ctran_v1"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: ""
+load_ckpt_path: "/home/mila/h/hager.radi/scratch/satbird_SDMPartialLabels/SDMPartialLabels/experiments_outputs/baseline_satbird_ctran_v1/1337/epoch=35-step=24084.ckpt"
 save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
 
 dataloader_to_use: "SDMEnvMaskedDataset"
@@ -10,7 +10,7 @@ dataloader_to_use: "SDMEnvMaskedDataset"
 comet:
   project_name: "SDMPartialLabels"
   tags: ["Ctran", "corrected_targets", "satbird"]
-  experiment_name: "baseline_satbird_ctran_v0" # specify for training, or use to report test results, TODO: also use to resume training
+  experiment_name: "baseline_satbird_ctran_v1" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 model:
@@ -28,6 +28,9 @@ training:
   lr: 0.0001
   max_epochs: 50
   accelerator: "gpu"
+
+losses:
+  criterion: "BCE"
 
 partial_labels:
     use: true

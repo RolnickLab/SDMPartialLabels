@@ -64,6 +64,7 @@ class LoggingConfig(BaseModel):
     experiment_key: Optional[str] = Field(..., description="Experiment key")
     checkpoint_path: Optional[str] = Field(..., description="Checkpoint path")
     checkpoint_name: Optional[str] = Field(..., description="Checkpoint name")
+    save_preds_path: Optional[str] = Field(default="", description="Save predictions path")
 
 
 class Config(BaseModel):

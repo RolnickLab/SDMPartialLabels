@@ -25,6 +25,9 @@ training:
   max_epochs: 50
   accelerator: "cpu"
 
+losses:
+  criterion: "BCE"
+
 partial_labels:
     use: false
     # mask known labels out of the loss (true or false)
@@ -60,12 +63,11 @@ data:
 
     # it has to be in this order [bird, butterfly, colocated]
     targets_file: ["SatBird/satbird_usa_summer_targets.pkl",
-                   "SatButterfly_dataset/SatButterfly_v1/USA/butterfly_all_targets_v1.2.pkl",
-                   "SatButterfly_dataset/SatButterfly_v2/USA/butterfly_all_targets_v1.2.pkl"]
+                   "SatButterfly_dataset/combined_SatButterfly_v1Andv2_targets"]
 
     satbird_species_indices_path: "SatBird/stats"
 
   # when combining two different taxa
   multi_taxa: True
-  per_taxa_species_count: [670, 172]
+  per_taxa_species_count: {"bird": 670, "butterfly": 172}
   total_species: 842
