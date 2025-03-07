@@ -3,6 +3,7 @@ This file includes label (target) masking for RTran training and evaluation.
 """
 
 import random
+
 import numpy as np
 import torch
 
@@ -138,7 +139,7 @@ def get_unknown_mask_indices(
         )
 
     elif mode == "test":
-        if multi_taxa:
+        if predict_family_of_species != -1 and multi_taxa:
             taxa_indices = {
                 # birds (multi_taxa index 0) to eval in multi taxa setup
                 0: np.arange(0, list(per_taxa_species_count.values())[0]),  # birds
