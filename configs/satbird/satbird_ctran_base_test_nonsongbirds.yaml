@@ -1,15 +1,16 @@
 #where to save checkpoints
-save_path: "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran/birds/base/"
+save_path: "multirun_experiments/satbird_ctran"
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path:  "/network/projects/ecosystem-embeddings/SDMPartialLabels/CTran/birds/base/1337/last.ckpt"
+# always use the best checkpoint
+load_ckpt_path: "multirun_experiments/satbird_ctran"
 save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
 
 dataloader_to_use: "SDMEnvMaskedDataset"
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: ["MLP", "corrected_targets", "EnvNormalization", "satbird", "test"]
-  experiment_name: "baseline_CTran_test_birds_nonsongbirds" # specify for training, or use to report test results, TODO: also use to resume training
+  tags: [ "Ctran", "corrected_targets", "satbird" ]
+  experiment_name: "satbird_ctran" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 model:
@@ -17,11 +18,10 @@ model:
   input_dim: 27
   hidden_dim: 512
   backbone: "SimpleMLPBackbone"
-  n_backbone_layers: 6
+  n_backbone_layers: 2
   n_attention_layers: 3
   n_heads: 4
-  dropout: 0
-
+  dropout: 0.2
 
 training:
   seed: 1337

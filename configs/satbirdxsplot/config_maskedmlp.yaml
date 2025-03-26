@@ -1,14 +1,15 @@
 #where to save checkpoints
-save_path: "/Users/hagerradi/Projects/SDMPartialLabels/experiments_outputs/baseline_MaskedMLP_satbirdxsplots_v2"
+save_path: "multirun_experiments/satbirdxsplots_MaskedMLP"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "/Users/hagerradi/Projects/SDMPartialLabels/experiments_outputs/baseline_MaskedMLP_satbirdxsplots_v2/1337/last.ckpt"
+# always use the best checkpoint
+load_ckpt_path: "multirun_experiments/satbirdxsplots_MaskedMLP"
 save_preds_path: ""
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: ["satbird + splots", "US_species_only", "bins=1"]
-  experiment_name: "baseline_MaskedMLP_satbirdxsplots_v2" # specify for training, or use to report test results
+  tags: [ "satbird + splots", "US_species_only", "bins=4" ]
+  experiment_name: "satbirdxsplots_MaskedMLP" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
 
 dataloader_to_use: "SDMEnvMaskedDataset"
@@ -16,7 +17,7 @@ dataloader_to_use: "SDMEnvMaskedDataset"
 model:
   name: "SimpleMLPMasked_v1"
   input_dim: 27
-  hidden_dim: 512
+  hidden_dim: 256
   backbone:
 
 training:

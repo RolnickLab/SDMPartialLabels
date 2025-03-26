@@ -1,9 +1,9 @@
-mode: "test" # "test"
+mode: "train" # "test"
 dataset_name: "sPlot"
 model:
   name: "SimpleMLP"
   input_dim: 27
-  hidden_dim: 64
+  hidden_dim: 256
   num_classes: 3951
   backbone: ""
 
@@ -16,9 +16,9 @@ training:
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "SimpleMLP_baseline_splot_v3" # specify for training, or use to report test results
+  experiment_name: "splot_mlp" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
-  checkpoint_path: "./splot_experiments_outputs"
+  checkpoint_path: "./multirun_experiments"
   checkpoint_name: "last.ckpt"
 
 data:

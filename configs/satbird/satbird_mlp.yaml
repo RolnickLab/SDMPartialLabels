@@ -1,13 +1,14 @@
 #where to save checkpoints
-save_path: "experiments_outputs/satbird_baseline_MLP_v1"
+save_path: "multirun_experiments/satbird_MLP"
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "/Users/hagerradi/Projects/SDMPartialLabels/experiments_outputs/satbird_baseline_MLP_v1/1337/epoch=47-step=32112.ckpt"
+# always use the best checkpoint
+load_ckpt_path: "multirun_experiments/satbird_maskedmlp"
 save_preds_path: ""
 
 comet:
   project_name: "SDMPartialLabels"
   tags: ["MLP", "corrected_targets", "EnvNormalization", "satbird"]
-  experiment_name: "satbird_baseline_MLP_v1" # specify for training, or use to report test results, TODO: also use to resume training
+  experiment_name: "satbird_MLP" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 dataloader_to_use: "SDMEnvDataset"
@@ -18,7 +19,7 @@ losses:
 model:
   name: "SimpleMLP"
   input_dim: 27
-  hidden_dim: 512
+  hidden_dim: 256
   backbone:
 
 training:
