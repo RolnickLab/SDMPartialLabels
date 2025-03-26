@@ -50,6 +50,7 @@ def main(opts):
 
     config.base_dir = base_dir
     config.save_path = os.path.join(base_dir, config.save_path, str(global_seed))
+    config.load_ckpt_path = os.path.join(base_dir, config.load_ckpt_path)
 
     if "file_name" in args:
         config.file_name = args["file_name"]

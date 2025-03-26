@@ -2,7 +2,7 @@
 save_path: "multirun_experiments/satbird_MLP"
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 # always use the best checkpoint
-load_ckpt_path: "multirun_experiments/satbird_maskedmlp"
+load_ckpt_path: "multirun_experiments/satbird_MLP"
 save_preds_path: ""
 
 comet:
