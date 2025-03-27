@@ -64,7 +64,7 @@ data:
 
     # it has to be in this order [bird, butterfly, colocated]
     targets_file: ["SatBird/satbird_usa_summer_targets.pkl",
-                   "SatButterfly_dataset/combined_SatButterfly_v1Andv2_targets"]
+                   "SatButterfly_dataset/combined_SatButterfly_v1Andv2_targets.pkl" ]
 
     satbird_species_indices_path: "SatBird/stats"
 
