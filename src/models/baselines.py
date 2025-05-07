@@ -11,16 +11,27 @@ from src.models.utils import custom_replace_n
 
 
 class SimpleMLP(nn.Module):
-    def __init__(self, input_dim, hidden_dim, num_classes):
+    def __init__(self, input_dim, hidden_dim, num_classes, num_layers=3):
+        """
+        number of layers include the input layer and output layer
+        """
         super(SimpleMLP, self).__init__()
-        self.layer_1 = nn.Linear(input_dim, hidden_dim)
-        self.layer_2 = nn.Linear(hidden_dim, hidden_dim)
-        self.layer_3 = nn.Linear(hidden_dim, num_classes)
+
+        layers = [nn.Linear(input_dim, hidden_dim),
+                  nn.Linear(hidden_dim, hidden_dim)]
+        last_hidden_dim = hidden_dim
+        for i in range(num_layers - 3):
+            layers.append(nn.Linear(hidden_dim * (i + 1), hidden_dim * (i + 2)))
+            last_hidden_dim = hidden_dim * (i + 2)
+
+        layers.append(nn.Linear(last_hidden_dim, num_classes))
+
+        self.layers = nn.ModuleList(layers)
 
     def forward(self, x):
-        x = F.relu(self.layer_1(x))
-        x = F.relu(self.layer_2(x))
-        x = self.layer_3(x)
+        for layer in self.layers[:-1]:
+            x = F.relu(layer(x))
+        x = self.layers[-1](x)
         return x
 
 

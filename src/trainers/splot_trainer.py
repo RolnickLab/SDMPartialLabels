@@ -9,7 +9,6 @@ from torch import nn
 from torchmetrics.classification import MultilabelAUROC
 
 from src.utils import multi_label_accuracy, trees_masking
-from src.models import *
 
 
 class sPlotTrainer(pl.LightningModule):
@@ -121,6 +120,8 @@ class sPlotTrainer(pl.LightningModule):
         self.test_auc_metric.update(self.all_test_predictions[:, non_zero_indices], self.all_test_targets[:, non_zero_indices])
         self.log("test_auroc", self.test_auc_metric.compute())
         self.test_auc_metric.reset()
+        self.all_test_predictions = []
+        self.all_test_targets = []
 
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(self.parameters(), lr=self.learning_rate)

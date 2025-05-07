@@ -19,7 +19,7 @@ logger:
   experiment_name: "splot_mlp" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
   checkpoint_path: "./multirun_experiments"
-  checkpoint_name: "last.ckpt"
+  checkpoint_name: ""
 
 data:
   dataloader_to_use: "sPlotDataset"
@@ -29,7 +29,7 @@ data:
   test: "test_indices.npy"
   targets: "merged_species_occurrences_v2.npy"
 
-  batch_size: 512
+  batch_size: 64
 
   worldclim_data_path: "worldclim_data.csv"
   soilgrid_data_path: "soilgrid_data.csv"
