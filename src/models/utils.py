@@ -1,5 +1,5 @@
 """
-utility functions for R-tran model
+utility functions for CISO model
 """
 
 import json
@@ -12,6 +12,7 @@ import tifffile as tiff
 import torch
 from torch import nn
 from torch.optim.lr_scheduler import LambdaLR
+
 
 # from gensim.models import KeyedVectors
 
@@ -395,9 +396,3 @@ def json_load(file_path):
     """
     with open(file_path, "r") as f:
         return json.load(f)
-
-#
-#
-# if __name__ == "__main__":
-#     x = torch.tensor([-1.0000, -1.0000,  0.1667,  1.0000,  0.5000,  1.0000,  0.0000])
-#     print(custom_replace_n(x, 6))

@@ -42,7 +42,7 @@ partial_labels:
     tokenize_state: 
     use_unknown_token: True
 
-# During testing, eval family of birds (0), or family of butterflies (1)
+# During testing, eval family of non-songbirds (0), or family of songbirds (1)
 predict_family_of_species: 1
 
 data:
