@@ -1,9 +1,9 @@
-mode: "test" # "test"
+mode: "train" # "test"
 dataset_name: "sPlot"
 model:
   name: "CTranModel"
   input_dim: 27
-  hidden_dim: 128
+  hidden_dim: 256
   num_classes: 3951
   backbone: "SimpleMLPBackbone"
 
@@ -16,11 +16,11 @@ training:
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "splot_ctran_v6" # specify for training, or use to report test results
+  experiment_name: "splot_ctran" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
-  checkpoint_path: "./experiments_output"
+  checkpoint_path: "./multirun_experiments"
   checkpoint_name: "last.ckpt"
-  save_preds_path: "splot_predictions/preds_nontree"
+  save_preds_path: ""
 
 data:
   dataloader_to_use: "sPlotMaskedDataset"

@@ -1,8 +1,9 @@
+import csv
 import os
 from os.path import expandvars
 from pathlib import Path
 from typing import cast
-import csv
+
 import numpy as np
 import pandas as pd
 from omegaconf import DictConfig, OmegaConf
@@ -81,11 +82,11 @@ def trees_masking(config):
     return indices_to_predict
 
 
-def save_test_results_to_csv(results, root_dir, file_name="test_results.csv"):
+def save_test_results_to_csv(results, root_dir, results_file_name="test_results.csv"):
     if root_dir is None:
         print("Not saving results")
         return ()
-    output_file = os.path.join(root_dir, file_name)
+    output_file = os.path.join(root_dir, results_file_name)
 
     with open(output_file, "a+", newline="") as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=results.keys())
@@ -97,6 +98,7 @@ def save_test_results_to_csv(results, root_dir, file_name="test_results.csv"):
         writer.writerow(results)  # Write the values row by row
 
     print(f"CSV file '{output_file}' has been saved.")
+
 
 def load_opts(path, default, commandline_opts):
     """

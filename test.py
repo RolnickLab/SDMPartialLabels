@@ -46,15 +46,15 @@ def main(opts):
     default_config = os.path.join(base_dir, "configs/defaults.yaml")
 
     config = load_opts(config_path, default=default_config, commandline_opts=hydra_opts)
-    global_seed = (run_id * (config.training.seed + (run_id - 1))) % (2 ** 31 - 1)
 
     config.base_dir = base_dir
-    config.save_path = os.path.join(base_dir, config.save_path, str(global_seed))
+    config.save_path = os.path.join(base_dir, config.save_path)
+    config.load_ckpt_path = os.path.join(base_dir, config.load_ckpt_path)
 
-    if "file_name" in args:
-        config.file_name = args["file_name"]
-    else: 
-        config.file_name = "test_results.csv"
+    if "results_file_name" in args:
+        config.results_file_name = args["results_file_name"]
+    else:
+        config.results_file_name = "test_results.csv"
 
     datamodule = dataloader.SDMDataModule(config)
     datamodule.setup()
@@ -98,13 +98,13 @@ def main(opts):
 
             save_test_results_to_csv(
                 results=test_results[0],
-                root_dir=config.save_path,
-                file_name=config.file_name
+                root_dir=os.path.join(config.save_path, global_seed),
+                results_file_name=config.results_file_name
             )
         else:
             # get the number of experiments based on folders given
-            
-            n_runs = len([ f for f in os.scandir(config.load_ckpt_path) if f.is_dir() ])
+
+            n_runs = len([f for f in os.scandir(config.load_ckpt_path) if f.is_dir()])
             # loop over all seeds
             for run_id in range(1, n_runs + 1):
                 # get path of a single experiment
@@ -135,7 +135,7 @@ def main(opts):
                 save_test_results_to_csv(
                     results=test_results[0],
                     root_dir=config.save_path,
-                    file_name=config.file_name
+                    results_file_name=config.results_file_name
                 )
 
     else:

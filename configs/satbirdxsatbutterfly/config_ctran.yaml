@@ -1,15 +1,15 @@
 #where to save checkpoints
-save_path: "multirun_experiments/satbirdxsplots_ctran"
+save_path: "multirun_experiments/satbirdxsatbutterfly_ctran"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 # always use the best checkpoint
-load_ckpt_path: "multirun_experiments/baseline_ctran_satbirdxsplots_v3/1337/last.ckpt"
-save_preds_path: ""
+load_ckpt_path: "multirun_experiments/satbirdxsatbutterfly_ctran"
+save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: [ "satbird + splots", "US_species_only", "train_ratio=0.75", "WeightedUpsampling_inverse_count" ]
-  experiment_name: "satbirdxsplots_ctran" # specify for training, or use to report test results
+  tags: [ "ctran", "172butterfly_species", "satbird+ satbutterflyv1 + satbutterflyv2" ]
+  experiment_name: "satbirdxsatbutterfly_ctran" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 dataloader_to_use: "SDMEnvMaskedDataset"
@@ -27,7 +27,7 @@ model:
 training:
   seed: 1337
   lr: 0.0001
-  max_epochs: 50
+  max_epochs: 100
   accelerator: "gpu"
 
 losses:
@@ -41,17 +41,18 @@ partial_labels:
     quantized_mask_bins: 4
     # max ratio of unknown labels during training
     train_known_ratio: 0.75
-    # what known ratios do we consider when testing
-    eval_known_ratio: 0 # [1.0, 0.9, 0.8, 0.5]
+    # what known ratios do we4 consider when testing
+    eval_known_ratio: 0.0 # [1.0, 0.9, 0.8, 0.5]
+    tokenize_state: 
+    use_unknown_token: True
 
-# During testing, eval family of birds (0), or family of plants (1)
+# During testing, eval family of birds (0), or family of butterflies (1)
 predict_family_of_species: -1
 
 data:
   loaders:
     num_workers: 8
-    batch_size: 256
-    weighted_sampling: False
+    batch_size: 128
 
   #o you want to use environmental data (pedological and bioclimatic (low res) data) #ped" or "bioclim" or both or empty list
   env: ['bio_1', 'bio_2',
@@ -61,19 +62,16 @@ data:
        'phihox', 'sltppt', 'sndppt']
   
   files:
-    base: "/network/projects/ecosystem-embeddings"
-    train: ["SatBirdxsPlots/satbird_splots_train_split.csv"]
-    val: ["SatBirdxsPlots/satbird_splots_valid_split_coloc.csv"]
-    test: ["SatBirdxsPlots/satbird_splots_test_split.csv"]
+    base: "/network/projects/ecosystem-embeddings/"
+    train: ["SatBirdButterfly/train_split_fillna.csv"]
+    val: ["SatBirdButterfly/valid_split_fillna.csv"]
+    test: ["SatBirdButterfly/test_split_fillna.csv"]
 
-    # it has to be in this order as the keys in per_taxa_species_count
     targets_file: ["SatBird_data_v2/USA_summer/satbird_usa_summer_targets.pkl",
-                   "sPlotOpen/sPlotOpen_targets_US_only.pkl"] # target files follow the same format as SatBird (hotspotID: target_array)
+                   "SatButterfly_dataset/combined_SatButterfly_v1Andv2_targets.pkl" ]
 
     satbird_species_indices_path: "SatBird_data_v2/USA_summer/stats"
-    plant_test_species_indices_file: "SatBirdxsPlots/plant_test_species_indices_US_only.npy"
 
-  # when combining two different taxa
   multi_taxa: True
-  per_taxa_species_count: {"bird": 670, "plant": 607}
-  total_species: 1277
+  per_taxa_species_count: {"bird": 670, "butterfly": 172}
+  total_species: 842

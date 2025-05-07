@@ -3,9 +3,9 @@
 #SBATCH --output=job_output_splots.txt
 #SBATCH --error=job_error_splots.txt
 #SBATCH --ntasks=1
-#SBATCH --time=23:59:00
+#SBATCH --time=10:59:00
 #SBATCH --mem-per-cpu=50Gb
-#SBATCH --cpus-per-task=4
+#SBATCH --cpus-per-task=2
 #SBATCH --gres=gpu:1
 #SBATCH --partition=main
 

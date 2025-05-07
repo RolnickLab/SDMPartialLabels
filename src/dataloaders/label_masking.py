@@ -1,5 +1,5 @@
 """
-This file includes label (target) masking for RTran training and evaluation.
+This file includes label (target) masking for CISO training and evaluation.
 """
 
 import random
@@ -43,70 +43,6 @@ def single_taxa_species_masking(main_taxa_dataset_name: str, index: int, species
         return songbird_masking(index=index, species_list_masked=species_list_masked)
 
     return None
-
-
-def taxon_species_masking(
-    available_species_mask: list[int],
-    max_known: float,
-    main_taxa_dataset_name: str,
-    species_list_masked: list,
-) -> torch.Tensor:
-    """
-    masking butterfly species given per_taxa_species_count and max_known
-    """
-    if random.random() < 0.5:  # mask songbirds vs. nonsongbirds with this probability
-        set_to_mask = np.random.randint(0, 2)
-        unk_mask_indices = single_taxa_species_masking(main_taxa_dataset_name, set_to_mask, species_list_masked)
-    else:
-        unk_mask_indices = random_species_masking(available_species_mask, max_known)
-
-    return unk_mask_indices
-
-
-def multi_taxa_species_masking(per_taxa_species_count: list[int]):
-    """
-    function for handling species masking when all species set is available in a data sample
-    Parameters:
-        species set [List]: a list of species sizes [bird species, butterfly species]. When predicting the full checklist of birds and butterflies,
-        there is an assumption that targets are ordered as [bird species, butterfly species]. If species set= None, we are working on SatBird only
-        num_labels: Total number of labels
-        max_known: probability ratio (between 0 and 1) for known labels
-    Returns:
-        unk_mask_indices [List]: list of unknown indices
-    """
-    # when all species (birds and butterflies) are there
-    species_index_to_mask = np.random.randint(0, 2)
-    if species_index_to_mask == 0:  # mask all birds (unknown birds)
-        unk_mask_indices = np.arange(0, per_taxa_species_count[0])
-    else:  # mask all butterflies (unknown butterflies)
-        unk_mask_indices = np.arange(
-            per_taxa_species_count[0],
-            per_taxa_species_count[0] + per_taxa_species_count[1],
-        )
-
-    return unk_mask_indices
-
-
-def butterfly_species_masking(
-    per_taxa_species_count: list[int], max_known: float, available_species_index: int
-) -> torch.Tensor:
-    """
-    masking butterfly species given per_taxa_species_count and max_known
-    """
-    num_known = random.randint(
-        0, int(per_taxa_species_count[available_species_index] * max_known)
-    )
-    unk_mask_indices = random.sample(
-        list(
-            np.arange(
-                per_taxa_species_count[0],
-                per_taxa_species_count[0] + per_taxa_species_count[1],
-            )
-        ),
-        int(per_taxa_species_count[available_species_index] - num_known),
-    )
-
-    return unk_mask_indices
 
 
 # TODO: replace all numpy operations with torch

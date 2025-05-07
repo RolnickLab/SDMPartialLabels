@@ -1,34 +1,36 @@
 #where to save checkpoints
-save_path: "experiments_outputs/satbird_baseline_MLP_v1"
+save_path: "multirun_experiments/satbird_ctran"
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-load_ckpt_path: "/Users/hagerradi/Projects/SDMPartialLabels/experiments_outputs/satbird_baseline_MLP_v1/1337/epoch=47-step=32112.ckpt"
+# always use the best checkpoint
+load_ckpt_path: "multirun_experiments/satbird_ctran"
 save_preds_path: ""
+
+dataloader_to_use: "SDMEnvMaskedDataset"
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: ["MLP", "corrected_targets", "EnvNormalization", "satbird"]
-  experiment_name: "satbird_baseline_MLP_v1" # specify for training, or use to report test results, TODO: also use to resume training
+  tags: [ "ctran", "satbird" ]
+  experiment_name: "satbird_ctran" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
-dataloader_to_use: "SDMEnvDataset"
-
-losses:
-  criterion: "BCE"
-
 model:
-  name: "SimpleMLP"
+  name: "CTranModel"
   input_dim: 27
   hidden_dim: 512
-  backbone:
+  backbone: "SimpleMLPBackbone"
+  n_backbone_layers: 2
+  n_attention_layers: 3
+  n_heads: 4
+  dropout: 0.2
 
 training:
   seed: 1337
   lr: 0.0001
   max_epochs: 50
-  accelerator: "cpu"
+  accelerator: "gpu"
 
 partial_labels:
-    use: false
+    use: true
     # mask known labels out of the loss (true or false)
     masked_loss: False
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
@@ -36,10 +38,12 @@ partial_labels:
     # max ratio of unknown labels during training
     train_known_ratio: 0.75
     # what known ratios do we consider when testing
-    eval_known_ratio: 0.0 # [1.0, 0.9, 0.8, 0.5]
+    eval_known_ratio: 1 # [1.0, 0.9, 0.8, 0.5]
+    tokenize_state: 
+    use_unknown_token: True
 
-# During testing, eval family of birds (0), or family of butterflies (1)
-predict_family_of_species: -1
+# During testing, eval family of non-songbirds (0), or family of songbirds (1)
+predict_family_of_species: 1
 
 data:
   loaders:
@@ -52,15 +56,17 @@ data:
        'bio_11', 'bio_12', 'bio_13', 'bio_14', 'bio_15', 'bio_16', 'bio_17',
        'bio_18', 'bio_19', 'bdticm', 'bldfie', 'cecsol', 'clyppt', 'orcdrc',
        'phihox', 'sltppt', 'sndppt']
-  
-  files:
-    base: "/Users/hagerradi/Projects/SDMPartialLabels/data"
-    train: ["SatBird/train_split.csv"]
-    val: ["SatBird/valid_split.csv"]
-    test: ["SatBird/test_split.csv"]
 
-    targets_file: ["satbird/satbird_usa_summer_targets.pkl"]
-    satbird_species_indices_path: "satbird/stats"
+  #resolution of pedological and bioclimatic data in meters
+
+  files:
+    base: "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer"
+    train: ["train_split.csv"]
+    val: ["valid_split.csv"]
+    test: ["test_split.csv"]
+
+    targets_file: ["satbird_usa_summer_targets.pkl"]
+    satbird_species_indices_path: "stats"
 
   multi_taxa: False
   per_taxa_species_count: [670]

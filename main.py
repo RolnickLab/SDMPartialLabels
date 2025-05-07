@@ -6,14 +6,14 @@ import os
 import torch
 import yaml
 from pydantic import ValidationError
-from pytorch_lightning import seed_everything
 from pytorch_lightning import Trainer
+from pytorch_lightning import seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import CometLogger
 
 from src.config import Config
-from src.trainers.splot_trainer import sPlotTrainer
 from src.dataloaders.splot_dataloader import sPlotDataModule
+from src.trainers.splot_trainer import sPlotTrainer
 from src.utils import save_test_results_to_csv
 
 
@@ -31,12 +31,18 @@ def map_dataset_name_from_config(config):
         raise ValueError(f"Dataset {config.dataset_name} not supported")
 
 
+def get_seed(run_id, fixed_seed):
+    return (run_id * (fixed_seed + (run_id - 1))) % (2 ** 31 - 1)
+
+
 def main():
     # Argument parser for config file path
     parser = argparse.ArgumentParser(
         description="PyTorch Lightning Tabular Data MLP Training"
     )
     parser.add_argument("--config", type=str, default="config.yaml", required=True)
+    parser.add_argument("--run_id", type=int, default=1)
+    parser.add_argument("--results_file_name", type=str, default="test_results.csv")
     args = parser.parse_args()
 
     try:
@@ -51,28 +57,39 @@ def main():
     print("Data Path Config:", config.data)
     print("Training Config:", config.training)
 
+    run_id = args.run_id
+
     # Create data module and trainer
     trainer_class, data_module_class = map_dataset_name_from_config(config)
     data_module = data_module_class(config.data)
     task = trainer_class(config)
+    global_seed = get_seed(run_id, config.training.seed)
 
-    seed_everything(config.training.seed)
+    seed_everything(global_seed)
 
     # Initialize Comet.ml logger
-    comet_logger = CometLogger(
-        api_key=os.environ.get("COMET_API_KEY"),
-        project_name=config.logger.project_name,
-        experiment_name=config.logger.experiment_name,
-    )
+    if config.mode == "train":
+        comet_logger = CometLogger(
+            api_key=os.environ.get("COMET_API_KEY"),
+            project_name=config.logger.project_name,
+            experiment_name=config.logger.experiment_name,
+        )
+    else:
+        comet_logger = None
+
     os.makedirs(
         os.path.join(config.logger.checkpoint_path, config.logger.experiment_name),
+        exist_ok=True,
+    )
+    os.makedirs(
+        os.path.join(config.logger.checkpoint_path, config.logger.experiment_name, str(global_seed)),
         exist_ok=True,
     )
 
     checkpoint_callback = ModelCheckpoint(
         monitor="val_auroc",
         dirpath=os.path.join(
-            config.logger.checkpoint_path, config.logger.experiment_name
+            config.logger.checkpoint_path, config.logger.experiment_name, str(global_seed)
         ),
         save_top_k=1,
         every_n_epochs=2,
@@ -94,21 +111,56 @@ def main():
         trainer.fit(model=task, datamodule=data_module)
         trainer.test(model=task, datamodule=data_module)
     else:
-        checkpoint_path = os.path.join(
+        if config.logger.checkpoint_name:
+            checkpoint_path = os.path.join(
+                config.logger.checkpoint_path,
+                config.logger.experiment_name,
+                str(global_seed),
+                config.logger.checkpoint_name)
+            logging.info("loading checkpoint %s", checkpoint_path)
+            task.load_state_dict(
+                torch.load(checkpoint_path)["state_dict"],
+            )
+            test_results = trainer.test(model=task, datamodule=data_module, verbose=True)
+            logging.info("test results: %s", test_results)
+            save_test_results_to_csv(
+                results=test_results[0],
+                root_dir=os.path.join(config.logger.checkpoint_path, config.logger.experiment_name, str(global_seed)),
+                results_file_name=args.results_file_name,
+            )
+        else:
+            logging.info("testing multiple checkpoints...")
+            n_runs = len(
+                [f for f in os.scandir(os.path.join(config.logger.checkpoint_path, config.logger.experiment_name)) if
+                 f.is_dir()])
+            for run_id in range(1, n_runs + 1):
+                # get path of a single experiment
+                global_seed = get_seed(run_id, config.training.seed)
+
+                run_id_path = os.path.join(
                     config.logger.checkpoint_path,
                     config.logger.experiment_name,
-                    config.logger.checkpoint_name)
-        logging.info("loading checkpoint %s", checkpoint_path)
-        task.load_state_dict(
-            torch.load(checkpoint_path)["state_dict"],
-        )
-        test_results = trainer.test(model=task, datamodule=data_module, verbose=True)
-        logging.info("test results: %s", test_results)
-        save_test_results_to_csv(
-            results=test_results[0],
-            root_dir=os.path.join(config.logger.checkpoint_path, config.logger.experiment_name),
-            file_name="test_results.csv",
-        )
+                    str(global_seed),
+                )
+                files = os.listdir(run_id_path)
+                best_checkpoint_file_name = [
+                    file
+                    for file in files
+                    if "last" not in file and file.endswith(".ckpt")
+                ][0]
+                print(best_checkpoint_file_name)
+                run_id_path = os.path.join(run_id_path, best_checkpoint_file_name)
+                seed_everything(global_seed)
+                task.load_state_dict(
+                    torch.load(run_id_path)["state_dict"],
+                )
+                test_results = trainer.test(model=task, datamodule=data_module, verbose=True)
+                logging.info("test results: %s", test_results)
+                save_test_results_to_csv(
+                    results=test_results[0],
+                    root_dir=os.path.join(config.logger.checkpoint_path, config.logger.experiment_name),
+                    results_file_name=args.results_file_name,
+                )
 
 
 if __name__ == "__main__":
