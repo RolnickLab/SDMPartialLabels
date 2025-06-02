@@ -59,7 +59,7 @@ data:
   files:
     base: "/Users/hagerradi/Projects/SDMPartialLabels/data"
     train: ["SatBirdButterfly/train_split_fillna.csv"]
-    val: ["SatBirdButterfly/valid_split_fillna.csv"]
+    val: [ "SatBirdButterfly/valid_split_fillna_colocated_only.csv" ]
     test: ["SatBirdButterfly/test_split_fillna.csv"]
 
     # it has to be in this order [bird, butterfly, colocated]

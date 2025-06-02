@@ -51,6 +51,7 @@ class SimpleMLPMasked_v1(nn.Module):
 
         self.quantize_encounter_rates = quantize_encounter_rates
         self.num_unique_mask_values = quantized_mask_bins
+        self.dropout = nn.Dropout(p=0.5)
 
         if self.quantize_encounter_rates:
             self.mask_encoder = SimpleMLPBackbone(input_dim=((self.num_unique_mask_values + 2) * num_classes), hidden_dim=hidden_dim, num_layers=2)
@@ -82,6 +83,7 @@ class SimpleMLPMasked_v1(nn.Module):
         else:
             x_mask = self.mask_encoder(mask_q.float())
         x_env = self.env_encoder(x)
+        x_env = self.dropout(x_env)
         x_combined = torch.cat((x_env, x_mask), dim=1)
         x = self.out_layer(x_combined)
         return x

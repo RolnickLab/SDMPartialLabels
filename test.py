@@ -98,7 +98,7 @@ def main(opts):
 
             save_test_results_to_csv(
                 results=test_results[0],
-                root_dir=os.path.join(config.save_path, global_seed),
+                root_dir=os.path.join(config.save_path, str(global_seed)),
                 results_file_name=config.results_file_name
             )
         else:

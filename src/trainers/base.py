@@ -52,12 +52,12 @@ class BaseTrainer(pl.LightningModule):
         optimizer = optim.AdamW(
             filter(lambda p: p.requires_grad, self.parameters()),
             lr=self.learning_rate,
-            weight_decay=0.1,
+            weight_decay=0.2,
         )
 
         return optimizer
 
-    def __log_metric(self, mode, pred, y, mask=None):
+    def __log_metric(self, mode, pred, y, mask=None, postfix=None):
         for name, _, scale in self.metrics:
             nname = str(mode) + "_" + name
             if name == "accuracy":
@@ -75,9 +75,11 @@ class BaseTrainer(pl.LightningModule):
             else:
                 value = getattr(self, nname)(y, pred)
 
+            if postfix:
+                nname = nname + "_" + postfix
             self.log(nname, value, on_epoch=True)
 
-    def log_metrics(self, mode, pred, y, mask=None):
+    def log_metrics(self, mode, pred, y, mask=None, multi_taxa=None, per_taxa_species_count=None):
         """
         log metrics through logger
         """
@@ -96,6 +98,17 @@ class BaseTrainer(pl.LightningModule):
 
         else:
             loss = self.loss_fn(pred, y)
-
-        self.__log_metric(mode, pred, y, mask=unknown_mask)
+        if mode == "val" and multi_taxa:
+            taxa_indices = {
+                0: np.arange(0, list(per_taxa_species_count.values())[0]),  # birds
+                1: np.arange(list(per_taxa_species_count.values())[0],
+                             list(per_taxa_species_count.values())[0] + list(per_taxa_species_count.values())[1])
+            }
+            for i, k in enumerate(per_taxa_species_count.keys()):
+                pred_ = pred[:, taxa_indices[i]]
+                y_ = y[:, taxa_indices[i]]
+                unknown_mask_ = unknown_mask[:, taxa_indices[i]]
+                self.__log_metric(mode, pred=pred_, y=y_, mask=unknown_mask_, postfix=str(k))
+        else:
+            self.__log_metric(mode, pred, y, mask=unknown_mask)
         self.log(str(mode) + "_loss", loss, on_epoch=True)

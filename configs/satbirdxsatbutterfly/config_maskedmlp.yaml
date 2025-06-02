@@ -1,17 +1,16 @@
 #where to save checkpoints
-save_path: "multirun_experiments/satbirdxsatbutterfly_maskedmlp"
+save_path: "multirun_experiments/satbirdxsatbutterfly_maskedmlp_multi_ckpt_callback_v3"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-# always use the best checkpoint
-load_ckpt_path: "multirun_experiments/satbirdxsatbutterfly_maskedmlp"
+load_ckpt_path: "multirun_experiments/satbirdxsatbutterfly_maskedmlp_multi_ckpt_callback_v3/1337/best_epoch02-bird0.6899-butterfly0.3359.ckpt"
 save_preds_path: ""
 
 dataloader_to_use: "SDMEnvMaskedDataset"
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: [ "172butterfly_species", "two_encoder_maskedmlp", "satbird + satbutterflyv1 + satbutterflyv2" ]
-  experiment_name: "satbirdxsatbutterfly_maskedmlp" # specify for training, or use to report test results, TODO: also use to resume training
+  tags: [ "172butterfly_species", "upsamplingTrue", "dropout_0.5", "WD_0.2", "ratio_0.5", "two_encoder_maskedmlp", "satbird + satbutterflyv1 + satbutterflyv2" ]
+  experiment_name: "satbirdxsatbutterfly_maskedmlp_multi_ckpt_callback_v3" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
 model:
@@ -23,7 +22,7 @@ model:
 training:
   seed: 1337
   lr: 0.0001
-  max_epochs: 100
+  max_epochs: 50
   accelerator: "cpu"
 
 losses:
@@ -36,7 +35,7 @@ partial_labels:
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
     quantized_mask_bins: 4
     # max ratio of unknown labels during training
-    train_known_ratio: 0.75
+    train_known_ratio: 0.5
     # what known ratios do we consider when testing
     eval_known_ratio: 0.0 # [1.0, 0.9, 0.8, 0.5]
 
@@ -47,7 +46,7 @@ data:
   loaders:
     num_workers: 8
     batch_size: 128
-    weighted_sampling: False
+    weighted_sampling: True
 
   #o you want to use environmental data (pedological and bioclimatic (low res) data) #ped" or "bioclim" or both or empty list
   env: ['bio_1', 'bio_2',
@@ -59,7 +58,7 @@ data:
   files:
     base: "/Users/hagerradi/Projects/SDMPartialLabels/data"
     train: ["SatBirdButterfly/train_split_fillna.csv"]
-    val: ["SatBirdButterfly/valid_split_fillna.csv"]
+    val: [ "SatBirdButterfly/valid_split_fillna_colocated_only.csv" ]
     test: ["SatBirdButterfly/test_split_fillna.csv"]
 
     # it has to be in this order [bird, butterfly, colocated]
