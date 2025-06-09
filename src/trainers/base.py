@@ -24,6 +24,11 @@ class BaseTrainer(pl.LightningModule):
             self.test_auc_metric = MultilabelAUROC(
                 num_labels=len(self.plant_test_species_indices), average="macro"
             )
+            self.plant_val_species_indices = list(np.load(
+                os.path.join(self.config.data.files.base, self.config.data.files.plant_val_species_indices_file)))
+            self.val_auc_metric = MultilabelAUROC(
+                num_labels=len(self.plant_val_species_indices), average="macro"
+            )
 
         # metrics to report
         metrics = get_metrics(self.config)
@@ -52,7 +57,7 @@ class BaseTrainer(pl.LightningModule):
         optimizer = optim.AdamW(
             filter(lambda p: p.requires_grad, self.parameters()),
             lr=self.learning_rate,
-            weight_decay=0.2,
+            weight_decay=0.1,
         )
 
         return optimizer
@@ -100,15 +105,27 @@ class BaseTrainer(pl.LightningModule):
             loss = self.loss_fn(pred, y)
         if mode == "val" and multi_taxa:
             taxa_indices = {
-                0: np.arange(0, list(per_taxa_species_count.values())[0]),  # birds
+                0: np.arange(0, list(per_taxa_species_count.values())[0]),
                 1: np.arange(list(per_taxa_species_count.values())[0],
                              list(per_taxa_species_count.values())[0] + list(per_taxa_species_count.values())[1])
             }
             for i, k in enumerate(per_taxa_species_count.keys()):
                 pred_ = pred[:, taxa_indices[i]]
                 y_ = y[:, taxa_indices[i]]
-                unknown_mask_ = unknown_mask[:, taxa_indices[i]]
-                self.__log_metric(mode, pred=pred_, y=y_, mask=unknown_mask_, postfix=str(k))
+                if unknown_mask is not None:
+                    unknown_mask_ = unknown_mask[:, taxa_indices[i]]
+                else:
+                    unknown_mask_ = unknown_mask
+                if k == "plant":
+                    self.val_auc_metric.update(pred_[:, self.plant_val_species_indices],
+                                               y_[:, self.plant_val_species_indices].long())
+                    self.log("val_auc_plant", self.val_auc_metric.compute())
+                else:
+                    self.__log_metric(mode, pred=pred_, y=y_, mask=unknown_mask_, postfix=str(k))
         else:
             self.__log_metric(mode, pred, y, mask=unknown_mask)
         self.log(str(mode) + "_loss", loss, on_epoch=True)
+
+    def on_validation_epoch_end(self):
+        if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys():
+            self.val_auc_metric.reset()

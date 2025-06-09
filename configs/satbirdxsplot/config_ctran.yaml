@@ -1,15 +1,15 @@
 #where to save checkpoints
-save_path: "multirun_experiments/satbirdxsplots_ctran"
+save_path: "multirun_experiments/satbirdxsplots_ctran_v5"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 # always use the best checkpoint
-load_ckpt_path: "multirun_experiments/baseline_ctran_satbirdxsplots_v3/1337/last.ckpt"
+load_ckpt_path: "multirun_experiments/satbirdxsplots_ctran_v5"
 save_preds_path: ""
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: [ "satbird + splots", "US_species_only", "train_ratio=0.75", "WeightedUpsampling_inverse_count" ]
-  experiment_name: "satbirdxsplots_ctran" # specify for training, or use to report test results
+  tags: [ "satbird + splots", "US_species_only", "bins=1", "train_ratio=0.75" ]
+  experiment_name: "satbirdxsplots_ctran_v5" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
 
 dataloader_to_use: "SDMEnvMaskedDataset"
@@ -38,7 +38,7 @@ partial_labels:
     # mask known labels out of the loss (true or false)
     masked_loss: False
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
-    quantized_mask_bins: 4
+    quantized_mask_bins: 1
     # max ratio of unknown labels during training
     train_known_ratio: 0.75
     # what known ratios do we consider when testing
@@ -50,7 +50,7 @@ predict_family_of_species: -1
 data:
   loaders:
     num_workers: 8
-    batch_size: 256
+    batch_size: 128
     weighted_sampling: False
 
   #o you want to use environmental data (pedological and bioclimatic (low res) data) #ped" or "bioclim" or both or empty list
@@ -72,8 +72,11 @@ data:
 
     satbird_species_indices_path: "SatBird_data_v2/USA_summer/stats"
     plant_test_species_indices_file: "SatBirdxsPlots/plant_test_species_indices_US_only.npy"
+    plant_validation_species_indices_file: "SatBirdxsPlots/plant_validation_species_indices_US_only.npy"
 
   # when combining two different taxa
   multi_taxa: True
   per_taxa_species_count: {"bird": 670, "plant": 607}
   total_species: 1277
+  monitor_metric_1: "val_topk_bird"
+  monitor_metric_2: "val_auc_plant"

@@ -85,7 +85,7 @@ class SDMPartialTrainer(BaseTrainer):
         y_pred = self.sigmoid_activation(self.model(x, batch["mask_q"]))
 
         self.log_metrics(mode="val", pred=y_pred, y=y, mask=mask, multi_taxa=self.config.data.multi_taxa,
-                         per_taxa_species_count=self.config.data.per_taxa_species_count, )
+                         per_taxa_species_count=self.config.data.per_taxa_species_count)
 
     def test_step(self, batch: Dict[str, Any], batch_idx: int) -> None:
         """Test step"""
@@ -121,4 +121,3 @@ class SDMPartialTrainer(BaseTrainer):
         if self.config.data.multi_taxa and "plant" in self.config.data.per_taxa_species_count.keys() and self.config.predict_family_of_species == 1:
             self.log("test_auroc", self.test_auc_metric.compute())
             self.test_auc_metric.reset()
-

@@ -148,35 +148,32 @@ def main(opts):
             print("no COMET API Key found..continuing without logging..")
             return
 
-    checkpoint_callback_1 = ModelCheckpoint(
-        monitor="val_topk_bird",
-        dirpath=config.save_path,
-        save_top_k=1,
-        mode="max",
-        filename="best-val_topk_bird-{epoch:02d}-{val_topk_bird:.4f}",
-        save_last=True,
-        save_weights_only=True,
-        auto_insert_metric_name=True,
-    )
-    checkpoint_callback_2 = ModelCheckpoint(
-        monitor="val_topk_butterfly",
-        dirpath=config.save_path,
-        save_top_k=1,
-        mode="max",
-        filename="best-val_topk_butterfly-{epoch:02d}-{val_topk_butterfly:.4f}",
-        save_last=True,
-        save_weights_only=True,
-        auto_insert_metric_name=True,
-    )
-    multi_ckpt_callback = MultiMetricCheckpoint(
-        dirpath=config.save_path,
-        filename="best_epoch{epoch:02d}-bird{val_topk_bird:.4f}-butterfly{val_topk_butterfly:.4f}.ckpt",
-        monitor_metric_1="val_topk_bird",
-        monitor_metric_2="val_topk_butterfly",
-        mode_metric="max",
-    )
-    # trainer_args["callbacks"] = [checkpoint_callback_1, checkpoint_callback_2]
-    trainer_args["callbacks"] = [multi_ckpt_callback]
+    if config.data.multi_taxa:
+        val_monitor_1 = config.data.monitor_metric_1
+        val_monitor_2 = config.data.monitor_metric_2
+        checkpoint_callback = MultiMetricCheckpoint(
+            dirpath=config.save_path,
+            filename=(
+                f"best_epoch{{epoch:02d}}"
+                f"-taxa1-{{{val_monitor_1}:.4f}}"
+                f"-taxa2-{{{val_monitor_2}:.4f}}.ckpt"
+            ),
+            monitor_metric_1=val_monitor_1,
+            monitor_metric_2=val_monitor_2,
+            mode_metric="max",
+        )
+    else:
+        checkpoint_callback = ModelCheckpoint(
+            monitor="val_topk",
+            dirpath=config.save_path,
+            save_top_k=1,
+            filename="best_val_topk_-{epoch:02d}-{val_topk:.4f}",
+            mode="max",
+            save_last=True,
+            save_weights_only=True,
+            auto_insert_metric_name=True,
+        )
+    trainer_args["callbacks"] = [checkpoint_callback]
     trainer_args["max_epochs"] = config.training.max_epochs
     trainer_args["check_val_every_n_epoch"] = 1
     trainer_args["accelerator"] = config.training.accelerator

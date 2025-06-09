@@ -64,9 +64,9 @@ class BaselineTrainer(BaseTrainer):
 
         predictions = self.sigmoid_activation(self.model(data))
 
-        self.log_metrics(
-            mode="val", pred=predictions, y=targets, mask=available_species_mask
-        )
+        self.log_metrics(mode="val", pred=predictions, y=targets, mask=available_species_mask,
+                         multi_taxa=self.config.data.multi_taxa,
+                         per_taxa_species_count=self.config.data.per_taxa_species_count)
 
     def test_step(self, batch, batch_idx):
         data = batch["data"]

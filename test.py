@@ -38,7 +38,6 @@ def get_seed(run_id, fixed_seed):
 def main(opts):
     hydra_opts = dict(OmegaConf.to_container(opts))
     args = hydra_opts.pop("args", None)
-    run_id = args["run_id"]
 
     base_dir = get_original_cwd()
 
@@ -115,13 +114,13 @@ def main(opts):
                 pl.seed_everything(global_seed)
 
                 # get path of the best checkpoint (not last)
-                files = os.listdir(os.path.join(config.base_dir, run_id_path))
-                best_checkpoint_file_name = [
-                    file
-                    for file in files
-                    if "last" not in file and file.endswith(".ckpt")
-                ][0]
-                print(best_checkpoint_file_name)
+                ckpt_dir = os.path.join(config.base_dir, run_id_path)
+                files = os.listdir(ckpt_dir)
+                best_checkpoint_file_name = max(
+                    (f for f in files if "last" not in f and f.endswith(".ckpt")),
+                    key=lambda f: os.path.getmtime(os.path.join(ckpt_dir, f))
+                )
+                print("Loading best checkpoint: ", best_checkpoint_file_name)
                 checkpoint_path_per_run_id = os.path.join(
                     run_id_path, best_checkpoint_file_name
                 )
