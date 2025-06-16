@@ -1,0 +1,68 @@
+#where to save checkpoints
+save_path: "multirun_experiments/satbird_linear_v1"
+# load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
+# always use the best checkpoint
+load_ckpt_path: "multirun_experiments/satbird_linear_v1"
+save_preds_path: ""
+
+comet:
+  project_name: "SDMPartialLabels"
+  tags: [ "MLP", "corrected_targets", "EnvNormalization", "satbird" ]
+  experiment_name: "satbird_linear_v1" # specify for training, or use to report test results, TODO: also use to resume training
+  experiment_key: "" # use to report test results,
+
+dataloader_to_use: "SDMEnvDataset"
+
+losses:
+  criterion: "BCE"
+
+model:
+  name: "Linear"
+  input_dim: 27
+  hidden_dim: 256
+  backbone:
+
+training:
+  seed: 1337
+  lr: 0.0001
+  max_epochs: 50
+  accelerator: "cpu"
+
+partial_labels:
+  use: false
+  # mask known labels out of the loss (true or false)
+  masked_loss: False
+  # quantized mask (1 if all positives to 1, > 1 to indicate bins)
+  quantized_mask_bins: 4
+  # max ratio of unknown labels during training
+  train_known_ratio: 0.75
+  # what known ratios do we consider when testing
+  eval_known_ratio: 0.0 # [1.0, 0.9, 0.8, 0.5]
+
+# During testing, eval family of non-songbirds (0), or family of songbirds (1)
+predict_family_of_species: 1
+
+data:
+  loaders:
+    num_workers: 8
+    batch_size: 128
+
+  #o you want to use environmental data (pedological and bioclimatic (low res) data) #ped" or "bioclim" or both or empty list
+  env: [ 'bio_1', 'bio_2',
+         'bio_3', 'bio_4', 'bio_5', 'bio_6', 'bio_7', 'bio_8', 'bio_9', 'bio_10',
+         'bio_11', 'bio_12', 'bio_13', 'bio_14', 'bio_15', 'bio_16', 'bio_17',
+         'bio_18', 'bio_19', 'bdticm', 'bldfie', 'cecsol', 'clyppt', 'orcdrc',
+         'phihox', 'sltppt', 'sndppt' ]
+  
+  files:
+    base: "/Users/hagerradi/Projects/SDMPartialLabels/data"
+    train: [ "SatBird/train_split.csv" ]
+    val: [ "SatBird/valid_split.csv" ]
+    test: [ "SatBird/test_split.csv" ]
+
+    targets_file: [ "satbird/satbird_usa_summer_targets.pkl" ]
+    satbird_species_indices_path: "satbird/stats"
+
+  multi_taxa: False
+  per_taxa_species_count: [ 670 ]
+  total_species: 670
