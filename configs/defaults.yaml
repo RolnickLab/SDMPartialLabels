@@ -41,6 +41,7 @@ partial_labels:
     use_unknown_token: True
 
 data:
+  maxent_transform:
   loaders:
     num_workers: 8
     batch_size: 256

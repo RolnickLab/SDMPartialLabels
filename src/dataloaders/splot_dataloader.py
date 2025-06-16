@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
+from elapid import MaxentFeatureTransformer
 from torch.utils.data import DataLoader, Dataset
 
 from src.dataloaders.label_masking import get_unknown_mask_indices
@@ -130,8 +131,20 @@ class sPlotDataModule(pl.LightningDataModule):
         normalization_stds = np.std(data[train_split, :], axis=0)
 
         data = (data - normalization_means) / (normalization_stds + 1e-8)
+
+        train_data = data[train_split]
+        val_data = data[val_split]
+        test_data = data[test_split]
+
+        if self.config.maxent_transform:
+            feature_transformer = MaxentFeatureTransformer(["linear", "hinge", "product", "threshold", "quadratic"])
+
+            train_data = feature_transformer.fit_transform(train_data)
+            val_data = feature_transformer.transform(val_data)
+            test_data = feature_transformer.transform(test_data)
+
         self.train_dataset = globals()[self.dataloader_to_use](
-            data=torch.tensor(data[train_split], dtype=torch.float32),
+            data=torch.tensor(train_data, dtype=torch.float32),
             targets=torch.tensor(
                 targets[train_split][:, species_indices], dtype=torch.float32
             ),
@@ -144,7 +157,7 @@ class sPlotDataModule(pl.LightningDataModule):
         )
 
         self.val_dataset = globals()[self.dataloader_to_use](
-            data=torch.tensor(data[val_split], dtype=torch.float32),
+            data=torch.tensor(val_data, dtype=torch.float32),
             targets=torch.tensor(
                 targets[val_split][:, species_indices], dtype=torch.float32
             ),
@@ -157,7 +170,7 @@ class sPlotDataModule(pl.LightningDataModule):
         )
 
         self.test_dataset = globals()[self.dataloader_to_use](
-            data=torch.tensor(data[test_split], dtype=torch.float32),
+            data=torch.tensor(test_data, dtype=torch.float32),
             targets=torch.tensor(
                 targets[test_split][:, species_indices], dtype=torch.float32
             ),

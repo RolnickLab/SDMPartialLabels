@@ -42,6 +42,7 @@ class PartialLabels(BaseModel):
 class DataPathConfig(BaseModel):
     dataloader_to_use: Optional[str] = Field(None, description="name of Data loader to use")
     base: Optional[str] = Field(..., description="Base path for data")
+    maxent_transform: Optional[bool] = Field(default=False, description="Whether to use maxent transform")
     train: str = Field(..., description="Path to training indices")
     validation: str = Field(..., description="Path to validation indices")
     test: str = Field(..., description="Path to test indices")

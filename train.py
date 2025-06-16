@@ -175,7 +175,7 @@ def main(opts):
         )
     trainer_args["callbacks"] = [checkpoint_callback]
     trainer_args["max_epochs"] = config.training.max_epochs
-    trainer_args["check_val_every_n_epoch"] = 1
+    trainer_args["check_val_every_n_epoch"] = 4
     trainer_args["accelerator"] = config.training.accelerator
 
     trainer = pl.Trainer(**trainer_args)

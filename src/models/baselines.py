@@ -10,6 +10,15 @@ import torch.nn.functional as F
 from src.models.utils import custom_replace_n
 
 
+class Linear(nn.Module):
+    def __init__(self, input_dim, num_classes):
+        super(Linear, self).__init__()
+        self.layer = nn.Linear(input_dim, num_classes)
+
+    def forward(self, x):
+        return self.layer(x)
+
+
 class SimpleMLP(nn.Module):
     def __init__(self, input_dim, hidden_dim, num_classes, num_layers=3):
         """
@@ -39,13 +48,14 @@ class SimpleMLPMasked_v1(nn.Module):
     """
     Simple MLP Masked where env features and mask use seperate encoders
     """
+
     def __init__(
-        self,
-        input_dim,
-        hidden_dim,
-        num_classes,
-        quantized_mask_bins=1,
-        quantize_encounter_rates=True,
+            self,
+            input_dim,
+            hidden_dim,
+            num_classes,
+            quantized_mask_bins=1,
+            quantize_encounter_rates=True,
     ):
         super(SimpleMLPMasked_v1, self).__init__()
 
@@ -54,7 +64,8 @@ class SimpleMLPMasked_v1(nn.Module):
         # self.dropout = nn.Dropout(p=0.5)
 
         if self.quantize_encounter_rates:
-            self.mask_encoder = SimpleMLPBackbone(input_dim=((self.num_unique_mask_values + 2) * num_classes), hidden_dim=hidden_dim, num_layers=2)
+            self.mask_encoder = SimpleMLPBackbone(input_dim=((self.num_unique_mask_values + 2) * num_classes),
+                                                  hidden_dim=hidden_dim, num_layers=2)
         else:
             self.mask_encoder = SimpleMLPBackbone(input_dim=num_classes, hidden_dim=hidden_dim, num_layers=2)
 
@@ -93,15 +104,16 @@ class SimpleMLPMasked_v0(nn.Module):
     """
     Simple MLP Masked where env features and mask share the same encoder. For splot only
     """
+
     def __init__(
-        self,
-        input_dim,
-        hidden_dim,
-        num_classes,
-        backbone=None,
-        attention_layers=2,
-        heads=2,
-        num_unique_mask_values=3,
+            self,
+            input_dim,
+            hidden_dim,
+            num_classes,
+            backbone=None,
+            attention_layers=2,
+            heads=2,
+            num_unique_mask_values=3,
     ):
         super(SimpleMLPMasked_v0, self).__init__()
 
@@ -129,12 +141,12 @@ class SimpleMLPBackbone(nn.Module):
         self.num_layers = num_layers
         self.layer_1 = nn.Linear(input_dim, hidden_dim)
         for i in range(1, num_layers):
-            setattr(self, f"layer_{i+1}", nn.Linear(hidden_dim, hidden_dim))
+            setattr(self, f"layer_{i + 1}", nn.Linear(hidden_dim, hidden_dim))
 
     def forward(self, x):
         x = F.relu(self.layer_1(x))
         for i in range(1, self.num_layers - 1):
-            x = F.relu(getattr(self, f"layer_{i+1}")(x))
+            x = F.relu(getattr(self, f"layer_{i + 1}")(x))
         x = getattr(self, f"layer_{self.num_layers}")(x)
         return x
 

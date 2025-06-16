@@ -4,10 +4,9 @@ import os
 
 import numpy as np
 import pytorch_lightning as pl
-import torch
-from torch import nn
 from torchmetrics.classification import MultilabelAUROC
 
+from src.models.baselines import *
 from src.utils import multi_label_accuracy, trees_masking
 
 
