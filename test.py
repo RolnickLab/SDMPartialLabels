@@ -24,7 +24,7 @@ hydra_config_path = Path(__file__).resolve().parent / "configs/hydra.yaml"
 def load_existing_checkpoint(task, base_dir, checkpint_path):
     print("Loading existing checkpoint")
     task.load_state_dict(
-        torch.load(os.path.join(base_dir, checkpint_path))["state_dict"]
+        torch.load(os.path.join(base_dir, checkpint_path), map_location="cpu")["state_dict"]
     )
 
     return task
@@ -116,6 +116,23 @@ def main(opts):
                 # get path of the best checkpoint (not last)
                 ckpt_dir = os.path.join(config.base_dir, run_id_path)
                 files = os.listdir(ckpt_dir)
+
+                # to choose epoch < 50, if trained for longer
+                # def extract_epoch(filename):
+                #     # Adjust regex if your naming pattern is different
+                #     match = re.search(r"epoch(\d+)", filename)
+                #     return int(match.group(1)) if match else None
+                #
+                # best_checkpoint_file_name = max(
+                #     (
+                #         f for f in files
+                #         if "last" not in f
+                #            and f.endswith(".ckpt")
+                #            and (extract_epoch(f) is not None and extract_epoch(f) < 50)
+                #     ),
+                #     key=lambda f: os.path.getmtime(os.path.join(ckpt_dir, f)),
+                #     default=None  # In case no file matches
+                # )
                 best_checkpoint_file_name = max(
                     (f for f in files if "last" not in f and f.endswith(".ckpt")),
                     key=lambda f: os.path.getmtime(os.path.join(ckpt_dir, f))

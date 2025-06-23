@@ -1,15 +1,15 @@
 #where to save checkpoints
-save_path: "multirun_experiments/satbirdxsplots_MaskedMLP_multimetric_v7"
+save_path: "multirun_experiments/final_satbirdxsplot/satbirdxsplots_MaskedMLP_v1"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 # always use the best checkpoint
-load_ckpt_path: "multirun_experiments/satbirdxsplots_MaskedMLP_multimetric_v7/1337/best_epoch49-bird0.5937-plant0.5312.ckpt"
+load_ckpt_path: "multirun_experiments/final_satbirdxsplot/satbirdxsplots_MaskedMLP_v1"
 save_preds_path: ""
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: [ "satbird + splots", "saving_multimetrixc", "US_species_only", "bins=1", "ratio=0.75" , "noWD", "noDropout", "masekdloss", "weightedsamplingTrue" ]
-  experiment_name: "satbirdxsplots_MaskedMLP_multimetric_v7" # specify for training, or use to report test results
+  tags: [ "satbird + splots", "saving_multimetrixc", "US_species_only", "bins=1", "ratio=0.75" , "weightedsamplingTrue" ]
+  experiment_name: "satbirdxsplots_MaskedMLP_v1" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
 
 dataloader_to_use: "SDMEnvMaskedDataset"
@@ -66,7 +66,9 @@ data:
                    "sPlotOpen/sPlotOpen_targets_US_only.pkl"] # target files follow the same format as SatBird (hotspotID: target_array)
 
     satbird_species_indices_path: "SatBird/stats"
+    #TODO: remove this and compute dynamically
     plant_test_species_indices_file: "satbirdxsplotopen/plant_test_species_indices_US_only.npy"
+    plant_val_species_indices_file: "satbirdxsplotopen/plant_validation_species_indices_US_only.npy"
 
   # when combining two different taxa
   multi_taxa: True

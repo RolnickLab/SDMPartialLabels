@@ -1,8 +1,7 @@
 import inspect
 import os
 
-import torch
-
+from src.models.baselines import *
 from src.trainers.base import BaseTrainer
 from src.utils import eval_species_split
 
