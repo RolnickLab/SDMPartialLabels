@@ -6,10 +6,8 @@ Code is based on the C-tran paper: https://github.com/QData/C-Tran
 import math
 
 import numpy as np
-import torch
-import torch.nn as nn
 
-from src.models.baselines import SelfAttnLayer
+from src.models.baselines import *
 from src.models.state_embeddings import SpeciesTokenizer
 from src.models.utils import custom_replace_n, weights_init
 
