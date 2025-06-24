@@ -24,7 +24,7 @@ hydra_config_path = Path(__file__).resolve().parent / "configs/hydra.yaml"
 def load_existing_checkpoint(task, base_dir, checkpint_path):
     print("Loading existing checkpoint")
     task.load_state_dict(
-        torch.load(os.path.join(base_dir, checkpint_path))["state_dict"]
+        torch.load(os.path.join(base_dir, checkpint_path), map_location="cpu")["state_dict"]
     )
 
     return task
@@ -38,7 +38,6 @@ def get_seed(run_id, fixed_seed):
 def main(opts):
     hydra_opts = dict(OmegaConf.to_container(opts))
     args = hydra_opts.pop("args", None)
-    run_id = args["run_id"]
 
     base_dir = get_original_cwd()
 
@@ -98,7 +97,7 @@ def main(opts):
 
             save_test_results_to_csv(
                 results=test_results[0],
-                root_dir=os.path.join(config.save_path, global_seed),
+                root_dir=os.path.join(config.save_path, str(global_seed)),
                 results_file_name=config.results_file_name
             )
         else:
@@ -115,13 +114,30 @@ def main(opts):
                 pl.seed_everything(global_seed)
 
                 # get path of the best checkpoint (not last)
-                files = os.listdir(os.path.join(config.base_dir, run_id_path))
-                best_checkpoint_file_name = [
-                    file
-                    for file in files
-                    if "last" not in file and file.endswith(".ckpt")
-                ][0]
-                print(best_checkpoint_file_name)
+                ckpt_dir = os.path.join(config.base_dir, run_id_path)
+                files = os.listdir(ckpt_dir)
+
+                # to choose epoch < 50, if trained for longer
+                # def extract_epoch(filename):
+                #     # Adjust regex if your naming pattern is different
+                #     match = re.search(r"epoch(\d+)", filename)
+                #     return int(match.group(1)) if match else None
+                #
+                # best_checkpoint_file_name = max(
+                #     (
+                #         f for f in files
+                #         if "last" not in f
+                #            and f.endswith(".ckpt")
+                #            and (extract_epoch(f) is not None and extract_epoch(f) < 50)
+                #     ),
+                #     key=lambda f: os.path.getmtime(os.path.join(ckpt_dir, f)),
+                #     default=None  # In case no file matches
+                # )
+                best_checkpoint_file_name = max(
+                    (f for f in files if "last" not in f and f.endswith(".ckpt")),
+                    key=lambda f: os.path.getmtime(os.path.join(ckpt_dir, f))
+                )
+                print("Loading best checkpoint: ", best_checkpoint_file_name)
                 checkpoint_path_per_run_id = os.path.join(
                     run_id_path, best_checkpoint_file_name
                 )

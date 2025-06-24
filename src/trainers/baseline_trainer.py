@@ -1,8 +1,7 @@
+import inspect
 import os
 
-import torch
-
-from src.models.baselines import SimpleMLP
+from src.models.baselines import *
 from src.trainers.base import BaseTrainer
 from src.utils import eval_species_split
 
@@ -11,11 +10,21 @@ class BaselineTrainer(BaseTrainer):
     def __init__(self, config):
         super(BaselineTrainer, self).__init__(config)
 
-        self.model = SimpleMLP(
-            input_dim=self.config.model.input_dim,
-            hidden_dim=self.config.model.hidden_dim,
-            num_classes=self.num_species,
-        )
+        model_kwargs = {
+            "input_dim": self.config.model.input_dim,
+            "hidden_dim": self.config.model.hidden_dim,
+            "num_classes": self.num_species,
+        }
+        model_class = globals()[self.config.model.name]
+        model_signature = inspect.signature(model_class.__init__)
+        # check which args are needed for the model params
+        valid_args = {
+            param: value
+            for param, value in model_kwargs.items()
+            if param in model_signature.parameters
+        }
+        # Initialize the model using only the relevant arguments
+        self.model = model_class(**valid_args)
 
         if self.config.predict_family_of_species != -1:
             self.class_indices_to_test = eval_species_split(
@@ -64,9 +73,9 @@ class BaselineTrainer(BaseTrainer):
 
         predictions = self.sigmoid_activation(self.model(data))
 
-        self.log_metrics(
-            mode="val", pred=predictions, y=targets, mask=available_species_mask
-        )
+        self.log_metrics(mode="val", pred=predictions, y=targets, mask=available_species_mask,
+                         multi_taxa=self.config.data.multi_taxa,
+                         per_taxa_species_count=self.config.data.per_taxa_species_count)
 
     def test_step(self, batch, batch_idx):
         data = batch["data"]

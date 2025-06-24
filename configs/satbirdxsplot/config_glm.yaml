@@ -1,21 +1,21 @@
 #where to save checkpoints
-save_path: "multirun_experiments/final_satbirdxsplot/satbirdxsplot_MLP_v4"
+save_path: "multirun_experiments/final_satbirdxsplot/satbirdxsplot_glm_v1"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 # always use the best checkpoint
-load_ckpt_path: "multirun_experiments/final_satbirdxsplot/satbirdxsplot_MLP_v4"
+load_ckpt_path: "multirun_experiments/final_satbirdxsplot/satbirdxsplot_glm_v1"
 save_preds_path: ""
 
 comet:
   project_name: "SDMPartialLabels"
   tags: [ "satbird + splots", "baseline", "multimetric" ]
-  experiment_name: "satbirdxsplot_MLP_v4" # specify for training, or use to report test results
+  experiment_name: "satbirdxsplot_glm_v1" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
 
 dataloader_to_use: "SDMEnvDataset"
 
 model:
-  name: "SimpleMLP"
+  name: "Linear"
   input_dim: 27
   hidden_dim: 256
   backbone:
@@ -30,15 +30,15 @@ losses:
   criterion: "BCE"
 
 partial_labels:
-    use: false
-    # mask known labels out of the loss (true or false)
-    masked_loss: False
-    # quantized mask (1 if all positives to 1, > 1 to indicate bins)
-    quantized_mask_bins: 4
-    # max ratio of unknown labels during training
-    train_known_ratio: 0.75
-    # what known ratios do we consider when testing
-    eval_known_ratio: 0 # [1.0, 0.9, 0.8, 0.5]
+  use: false
+  # mask known labels out of the loss (true or false)
+  masked_loss: False
+  # quantized mask (1 if all positives to 1, > 1 to indicate bins)
+  quantized_mask_bins: 4
+  # max ratio of unknown labels during training
+  train_known_ratio: 0.75
+  # what known ratios do we consider when testing
+  eval_known_ratio: 0 # [1.0, 0.9, 0.8, 0.5]
 
 # During testing, eval family of birds (0), or family of plants (1)
 predict_family_of_species: -1
@@ -50,21 +50,21 @@ data:
     weighted_sampling: False
 
   #o you want to use environmental data (pedological and bioclimatic (low res) data) #ped" or "bioclim" or both or empty list
-  env: ['bio_1', 'bio_2',
-       'bio_3', 'bio_4', 'bio_5', 'bio_6', 'bio_7', 'bio_8', 'bio_9', 'bio_10',
-       'bio_11', 'bio_12', 'bio_13', 'bio_14', 'bio_15', 'bio_16', 'bio_17',
-       'bio_18', 'bio_19', 'bdticm', 'bldfie', 'cecsol', 'clyppt', 'orcdrc',
-       'phihox', 'sltppt', 'sndppt']
+  env: [ 'bio_1', 'bio_2',
+         'bio_3', 'bio_4', 'bio_5', 'bio_6', 'bio_7', 'bio_8', 'bio_9', 'bio_10',
+         'bio_11', 'bio_12', 'bio_13', 'bio_14', 'bio_15', 'bio_16', 'bio_17',
+         'bio_18', 'bio_19', 'bdticm', 'bldfie', 'cecsol', 'clyppt', 'orcdrc',
+         'phihox', 'sltppt', 'sndppt' ]
   
   files:
     base: "/Users/hagerradi/Projects/SDMPartialLabels/data"
-    train: ["satbirdxsplotopen/satbird_splots_train_split.csv"]
-    val: ["satbirdxsplotopen/satbird_splots_valid_split_coloc.csv"]
-    test: ["satbirdxsplotopen/satbird_splots_test_split.csv"]
+    train: [ "satbirdxsplotopen/satbird_splots_train_split.csv" ]
+    val: [ "satbirdxsplotopen/satbird_splots_valid_split_coloc.csv" ]
+    test: [ "satbirdxsplotopen/satbird_splots_test_split.csv" ]
 
     # it has to be in this order as the keys in per_taxa_species_count
-    targets_file: ["SatBird/satbird_usa_summer_targets.pkl",
-                   "sPlotOpen/sPlotOpen_targets_US_only.pkl" ] # target files follow the same format as SatBird (hotspotID: target_array)
+    targets_file: [ "SatBird/satbird_usa_summer_targets.pkl",
+                    "sPlotOpen/sPlotOpen_targets_US_only.pkl" ] # target files follow the same format as SatBird (hotspotID: target_array)
 
     satbird_species_indices_path: "SatBird/stats"
     #TODO: remove this and compute dynamically
@@ -73,7 +73,8 @@ data:
 
   # when combining two different taxa
   multi_taxa: True
-  per_taxa_species_count: {"bird": 670, "plant": 607}
+  per_taxa_species_count: { "bird": 670, "plant": 607 }
   total_species: 1277
   monitor_metric_1: "val_topk_bird"
   monitor_metric_2: "val_auc_plant"
+

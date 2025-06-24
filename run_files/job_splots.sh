@@ -7,7 +7,7 @@
 #SBATCH --mem-per-cpu=50Gb
 #SBATCH --cpus-per-task=2
 #SBATCH --gres=gpu:1
-#SBATCH --partition=main
+#SBATCH --partition=long
 
 module load miniconda/3
 conda activate new_env

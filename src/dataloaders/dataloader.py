@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import torch
+from elapid import MaxentFeatureTransformer
 from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 
 from src.dataloaders.label_masking import get_unknown_mask_indices
@@ -322,6 +323,13 @@ class SDMDataModule(pl.LightningDataModule):
         train_data = (train_data - normalization_means) / (normalization_stds + 1e-8)
         val_data = (val_data - normalization_means) / (normalization_stds + 1e-8)
         test_data = (test_data - normalization_means) / (normalization_stds + 1e-8)
+
+        if self.config.data.maxent_transform:
+            feature_transformer = MaxentFeatureTransformer(["linear", "hinge", "product", "threshold", "quadratic"])
+
+            train_data = feature_transformer.fit_transform(train_data)
+            val_data = feature_transformer.transform(val_data)
+            test_data = feature_transformer.transform(test_data)
 
         if self.config.data.multi_taxa:
             train_targets = self.get_multi_taxa_targets(

@@ -1,15 +1,15 @@
 #where to save checkpoints
-save_path: "multirun_experiments/satbirdxsplots_MaskedMLP"
+save_path: "multirun_experiments/final_satbirdxsplot/satbirdxsplots_MaskedMLP_v1"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 # always use the best checkpoint
-load_ckpt_path: "multirun_experiments/satbirdxsplots_MaskedMLP"
+load_ckpt_path: "multirun_experiments/final_satbirdxsplot/satbirdxsplots_MaskedMLP_v1"
 save_preds_path: ""
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: [ "satbird + splots", "US_species_only", "bins=4" ]
-  experiment_name: "satbirdxsplots_MaskedMLP" # specify for training, or use to report test results
+  tags: [ "satbird + splots", "saving_multimetrixc", "US_species_only", "bins=1", "ratio=0.75" , "weightedsamplingTrue" ]
+  experiment_name: "satbirdxsplots_MaskedMLP_v1" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
 
 dataloader_to_use: "SDMEnvMaskedDataset"
@@ -34,10 +34,9 @@ partial_labels:
     # mask known labels out of the loss (true or false)
     masked_loss: False
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
-    quantized_mask_bins: 4
+    quantized_mask_bins: 1
     # max ratio of unknown labels during training
     train_known_ratio: 0.75
-    # what known ratios do we consider when testing
     eval_known_ratio: 0 # [1.0, 0.9, 0.8, 0.5]
 
 # During testing, eval family of birds (0), or family of plants (1)
@@ -46,8 +45,8 @@ predict_family_of_species: -1
 data:
   loaders:
     num_workers: 8
-    batch_size: 256
-    weighted_sampling: False
+    batch_size: 128
+    weighted_sampling: True
 
   #o you want to use environmental data (pedological and bioclimatic (low res) data) #ped" or "bioclim" or both or empty list
   env: ['bio_1', 'bio_2',
@@ -67,9 +66,13 @@ data:
                    "sPlotOpen/sPlotOpen_targets_US_only.pkl"] # target files follow the same format as SatBird (hotspotID: target_array)
 
     satbird_species_indices_path: "SatBird/stats"
+    #TODO: remove this and compute dynamically
     plant_test_species_indices_file: "satbirdxsplotopen/plant_test_species_indices_US_only.npy"
+    plant_val_species_indices_file: "satbirdxsplotopen/plant_validation_species_indices_US_only.npy"
 
   # when combining two different taxa
   multi_taxa: True
   per_taxa_species_count: {"bird": 670, "plant": 607}
   total_species: 1277
+  monitor_metric_1: "val_topk_bird"
+  monitor_metric_2: "val_auc_plant"
