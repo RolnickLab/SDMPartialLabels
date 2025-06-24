@@ -5,9 +5,10 @@ Trainer for the ctran framework
 import inspect
 
 from src.dataloaders.dataloader import *
-from src.models.ctran import *
 from src.trainers.base import BaseTrainer
 from src.utils import eval_species_split
+from src.models.baselines import *
+from src.models.ctran import *
 
 
 class SDMPartialTrainer(BaseTrainer):
