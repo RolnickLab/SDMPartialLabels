@@ -8,7 +8,7 @@ save_preds_path: ""
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: [ "172butterfly_species", "100epochs", "satbird + satbutterflyv1 + satbutterflyv2" ]
+  tags: [ "172butterfly_species", "50epochs", "satbird + satbutterflyv1 + satbutterflyv2" ]
   experiment_name: "satbirdxsatbutterfly_mlp_v2" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
@@ -23,7 +23,7 @@ model:
 training:
   seed: 1337
   lr: 0.0001
-  max_epochs: 100
+  max_epochs: 50
   accelerator: "cpu"
 
 losses:

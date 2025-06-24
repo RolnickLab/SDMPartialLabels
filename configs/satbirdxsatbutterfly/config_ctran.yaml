@@ -8,7 +8,7 @@ save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: [ "ctran", "bins=1", "172butterfly_species", "100epochs", "satbird+ satbutterflyv1 + satbutterflyv2" ]
+  tags: [ "ctran", "172butterfly_species", "50epochs", "satbird+ satbutterflyv1 + satbutterflyv2" ]
   experiment_name: "satbirdxsatbutterfly_ctran_v4" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
@@ -27,8 +27,8 @@ model:
 training:
   seed: 1337
   lr: 0.0001
-  max_epochs: 100
-  accelerator: "cpu"
+  max_epochs: 50
+  accelerator: "gpu"
 
 losses:
   criterion: "BCE"

@@ -9,7 +9,7 @@ dataloader_to_use: "SDMEnvMaskedDataset"
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: [ "172butterfly_species", "bins=4", "100_epochs", "trainratio=0.75", "two_encoder_maskedmlp", "satbird + satbutterflyv1 + satbutterflyv2" ]
+  tags: [ "172butterfly_species", "bins=4", "50_epochs", "trainratio=0.75", "two_encoder_maskedmlp", "satbird + satbutterflyv1 + satbutterflyv2" ]
   experiment_name: "satbirdxsatbutterfly_maskedmlp_multi_ckpt_callback_v5" # specify for training, or use to report test results, TODO: also use to resume training
   experiment_key: "" # use to report test results,
 
@@ -22,7 +22,7 @@ model:
 training:
   seed: 1337
   lr: 0.0001
-  max_epochs: 100
+  max_epochs: 50
   accelerator: "cpu"
 
 losses:

@@ -46,7 +46,7 @@ class SimpleMLP(nn.Module):
 
 class SimpleMLPMasked_v1(nn.Module):
     """
-    Simple MLP Masked where env features and mask use seperate encoders
+    Simple MLP Masked where env features and mask use separate encoders
     """
 
     def __init__(
