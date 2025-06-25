@@ -55,13 +55,14 @@ data:
        'phihox', 'sltppt', 'sndppt']
   
   files:
-    base: "/Users/hagerradi/Projects/SDMPartialLabels/data"
-    train: ["SatBird/train_split.csv"]
-    val: ["SatBird/valid_split.csv"]
-    test: ["SatBird/test_split.csv"]
+    base: "/data/SatBird_data_v2/USA_summer"
+    train: [ "train_split.csv" ]
+    val: [ "valid_split.csv" ]
+    test: [ "test_split.csv" ]
 
-    targets_file: ["satbird/satbird_usa_summer_targets.pkl"]
-    satbird_species_indices_path: "satbird/stats"
+    targets_file: [ "satbird_usa_summer_targets.pkl" ]
+
+    satbird_species_indices_path: "stats"
 
   multi_taxa: False
   per_taxa_species_count: [670]

@@ -1,34 +1,29 @@
 #where to save checkpoints
-save_path: "multirun_experiments/final_satbirdxsatbutterfly/satbirdxsatbutterfly_ctran_v4"
+save_path: "multirun_experiments/final_satbirdxsatbutterfly/satbirdxsatbutterfly_maskedmlp_multi_ckpt_callback_v5"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
-# always use the best checkpoint
-load_ckpt_path: "multirun_experiments/final_satbirdxsatbutterfly/satbirdxsatbutterfly_ctran_v4"
-save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
-
-comet:
-  project_name: "SDMPartialLabels"
-  tags: [ "ctran", "172butterfly_species", "50epochs", "satbird+ satbutterflyv1 + satbutterflyv2" ]
-  experiment_name: "satbirdxsatbutterfly_ctran_v4" # specify for training, or use to report test results, TODO: also use to resume training
-  experiment_key: "" # use to report test results,
+load_ckpt_path: "multirun_experiments/final_satbirdxsatbutterfly/satbirdxsatbutterfly_maskedmlp_multi_ckpt_callback_v5/"
+save_preds_path: ""
 
 dataloader_to_use: "SDMEnvMaskedDataset"
 
+comet:
+  project_name: "SDMPartialLabels"
+  tags: [ "172butterfly_species", "bins=4", "50_epochs", "trainratio=0.75", "two_encoder_maskedmlp", "satbird + satbutterflyv1 + satbutterflyv2" ]
+  experiment_name: "satbirdxsatbutterfly_maskedmlp_multi_ckpt_callback_v5" # specify for training, or use to report test results, TODO: also use to resume training
+  experiment_key: "" # use to report test results,
+
 model:
-  name: "CTranModel"
+  name: "SimpleMLPMasked_v1"
   input_dim: 27
   hidden_dim: 256
-  backbone: "SimpleMLPBackbone"
-  n_backbone_layers: 2
-  n_attention_layers: 3
-  n_heads: 4
-  dropout: 0.2
+  backbone:
 
 training:
   seed: 1337
   lr: 0.0001
   max_epochs: 50
-  accelerator: "gpu"
+  accelerator: "cpu"
 
 losses:
   criterion: "BCE"
@@ -41,10 +36,8 @@ partial_labels:
     quantized_mask_bins: 4
     # max ratio of unknown labels during training
     train_known_ratio: 0.75
-    # what known ratios do we4 consider when testing
+    # what known ratios do we consider when testing
     eval_known_ratio: 0 # [1.0, 0.9, 0.8, 0.5]
-    tokenize_state: 
-    use_unknown_token: True
 
 # During testing, eval family of birds (0), or family of butterflies (1)
 predict_family_of_species: -1
@@ -53,6 +46,7 @@ data:
   loaders:
     num_workers: 8
     batch_size: 128
+    weighted_sampling: False
 
   #o you want to use environmental data (pedological and bioclimatic (low res) data) #ped" or "bioclim" or both or empty list
   env: ['bio_1', 'bio_2',
@@ -62,16 +56,16 @@ data:
        'phihox', 'sltppt', 'sndppt']
   
   files:
-    base: "/Users/hagerradi/Projects/SDMPartialLabels/data"
-    train: ["SatBirdButterfly/train_split_fillna.csv"]
-    val: [ "SatBirdButterfly/valid_split_fillna_colocated_only.csv" ]
-    test: ["SatBirdButterfly/test_split_fillna.csv"]
+    base: "/data"
+    train: [ "SatBirdxSatButterfly/train_split.csv" ]
+    val: [ "SatBirdxSatButterfly/valid_split.csv" ]
+    test: [ "SatBirdxSatButterfly/test_split.csv" ]
 
-    targets_file: [ "SatBird/satbird_usa_summer_targets.pkl",
-                   "SatButterfly_dataset/combined_SatButterfly_v1Andv2_targets.pkl" ]
+    targets_file: [ "SatBird_data_v2/USA_summer/satbird_usa_summer_targets.pkl",
+                    "SatButterfly/combined_SatButterfly_v1Andv2_targets.pkl" ]
 
-    satbird_species_indices_path: "SatBird/stats"
-
+    satbird_species_indices_path: "SatBird_data_v2/USA_summer/stats"
+  # when combining two different taxa
   multi_taxa: True
   per_taxa_species_count: {"bird": 670, "butterfly": 172}
   total_species: 842

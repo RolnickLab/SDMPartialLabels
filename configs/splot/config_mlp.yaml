@@ -23,7 +23,7 @@ logger:
 
 data:
   dataloader_to_use: "sPlotDataset"
-  base: "/Users/hagerradi/Projects/SDMPartialLabels/data/sPlotOpen"
+  base: "/data/sPlotOpen"
   train: "train_indices.npy"
   validation: "validation_indices.npy"
   test: "test_indices.npy"

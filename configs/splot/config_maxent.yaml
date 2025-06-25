@@ -2,7 +2,7 @@ mode: "test" # "test"
 dataset_name: "sPlot"
 model:
   name: "Linear"
-  input_dim: 27
+  input_dim: 1161
   hidden_dim: 256
   num_classes: 3951
   backbone: ""
@@ -16,14 +16,15 @@ training:
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "splot_glm" # specify for training, or use to report test results
+  experiment_name: "splot_glm_maxent" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
   checkpoint_path: "./multirun_experiments"
   checkpoint_name: ""
 
 data:
+  maxent_transform: True
   dataloader_to_use: "sPlotDataset"
-  base: "/Users/hagerradi/Projects/SDMPartialLabels/data/sPlotOpen"
+  base: "/data/sPlotOpen"
   train: "train_indices.npy"
   validation: "validation_indices.npy"
   test: "test_indices.npy"

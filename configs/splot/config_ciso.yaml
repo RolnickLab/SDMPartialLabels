@@ -24,7 +24,7 @@ logger:
 
 data:
   dataloader_to_use: "sPlotMaskedDataset"
-  base: "/network/projects/ecosystem-embeddings/sPlotOpen"
+  base: "/data/sPlotOpen"
   train: "train_indices.npy"
   validation: "validation_indices.npy"
   test: "test_indices.npy"

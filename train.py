@@ -167,7 +167,7 @@ def main(opts):
             monitor="val_topk",
             dirpath=config.save_path,
             save_top_k=1,
-            filename="best_val_topk_-{epoch:02d}-{val_topk:.4f}",
+            filename="best-{epoch:02d}-{val_topk:.4f}",
             mode="max",
             save_last=True,
             save_weights_only=True,

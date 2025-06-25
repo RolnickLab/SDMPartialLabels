@@ -57,19 +57,19 @@ data:
        'phihox', 'sltppt', 'sndppt']
   
   files:
-    base: "/Users/hagerradi/Projects/SDMPartialLabels/data"
-    train: ["satbirdxsplotopen/satbird_splots_train_split.csv"]
-    val: ["satbirdxsplotopen/satbird_splots_valid_split_coloc.csv"]
-    test: ["satbirdxsplotopen/satbird_splots_test_split.csv"]
+    base: "/data"
+    train: [ "SatBirdxsPlotOpen/satbird_splots_train_split.csv" ]
+    val: [ "SatBirdxsPlotOpen/satbird_splots_valid_split.csv" ]
+    test: [ "SatBirdxsPlotOpen/satbird_splots_test_split.csv" ]
 
     # it has to be in this order as the keys in per_taxa_species_count
-    targets_file: ["SatBird/satbird_usa_summer_targets.pkl",
-                   "sPlotOpen/sPlotOpen_targets_US_only.pkl" ] # target files follow the same format as SatBird (hotspotID: target_array)
+    targets_file: [ "SatBird_data_v2/USA_summer/satbird_usa_summer_targets.pkl",
+                    "SatBirdxsPlotOpen/sPlotOpen_targets_US_only.pkl" ] # target files follow the same format as SatBird (hotspotID: target_array)
 
-    satbird_species_indices_path: "SatBird/stats"
+    satbird_species_indices_path: "SatBird_data_v2/USA_summer/stats"
     #TODO: remove this and compute dynamically
-    plant_test_species_indices_file: "satbirdxsplotopen/plant_test_species_indices_US_only.npy"
-    plant_val_species_indices_file: "satbirdxsplotopen/plant_validation_species_indices_US_only.npy"
+    plant_test_species_indices_file: "SatBirdxsPlotOpen/plant_test_species_indices_US_only.npy"
+    plant_val_species_indices_file: "SatBirdxsPlotOpen/plant_validation_species_indices_US_only.npy"
 
   # when combining two different taxa
   multi_taxa: True

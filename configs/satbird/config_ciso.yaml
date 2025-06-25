@@ -64,7 +64,7 @@ data:
        'phihox', 'sltppt', 'sndppt']
   
   files:
-    base: "/network/projects/ecosystem-embeddings/SatBird_data_v2/USA_summer"
+    base: "/data/SatBird_data_v2/USA_summer"
     train: ["train_split.csv"]
     val: ["valid_split.csv"]
     test: ["test_split.csv"]
