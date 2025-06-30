@@ -15,7 +15,7 @@ comet:
   experiment_key: "" # use to report test results,
 
 model:
-  name: "CTranModel"
+  name: "CISOModel"
   input_dim: 27
   hidden_dim: 256
   backbone: "SimpleMLPBackbone"

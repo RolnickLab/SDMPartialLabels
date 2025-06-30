@@ -15,7 +15,7 @@ comet:
 dataloader_to_use: "SDMEnvMaskedDataset"
 
 model:
-  name: "CTranModel"
+  name: "CISOModel"
   input_dim: 27
   hidden_dim: 256
   backbone: "SimpleMLPBackbone"
