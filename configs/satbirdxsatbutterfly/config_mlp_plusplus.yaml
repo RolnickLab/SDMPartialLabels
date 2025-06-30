@@ -30,8 +30,6 @@ losses:
 
 partial_labels:
     use: true
-    # mask known labels out of the loss (true or false)
-    masked_loss: False
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
     quantized_mask_bins: 4
     # max ratio of unknown labels during training

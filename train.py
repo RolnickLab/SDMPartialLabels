@@ -184,12 +184,6 @@ def main(opts):
     trainer.fit(model=task, datamodule=datamodule)
     trainer.test(model=task, datamodule=datamodule)
 
-    # logging the best checkpoint to comet ML
-    # print(multi_ckpt_callback.best_model_path)
-    # trainer.logger.experiment.log_asset(
-    #     multi_ckpt_callback.best_model_path, file_name="best_checkpoint.ckpt"
-    # )
-
 
 if __name__ == "__main__":
     main()

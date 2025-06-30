@@ -1,10 +1,7 @@
 # Src code for all metrics used
 import torch
 import torch.nn as nn
-import torchmetrics
 from torchmetrics import Metric
-
-from src.losses import CustomCrossEntropy
 
 
 class CustomKL(Metric):
@@ -297,34 +294,20 @@ def get_metric(metric):
     an addict.Dict
     """
 
-    if metric.name == "mae" and not metric.ignore is True:
+    if metric.name == "mae" and not metric.ignore:
         return MaskedMAE()
-    elif metric.name == "mse" and not metric.ignore is True:
+    elif metric.name == "mse" and not metric.ignore:
         return MaskedMSE()
-    elif metric.name == "nonzero_mae" and not metric.ignore is True:
-        return NonZeroMAE()
-    elif metric.name == "nonzero_mse" and not metric.ignore is True:
-        return NonZeroMSE()
-    elif metric.name == "topk" and not metric.ignore is True:
+    elif metric.name == "topk" and not metric.ignore:
         return CustomTopK()
-    elif metric.name == "topk2" and not metric.ignore is True:
-        return CustomTopK_bounded()
-    elif metric.name == "top10" and not metric.ignore is True:
+    elif metric.name == "top10" and not metric.ignore:
         return CustomTop10()
-    elif metric.name == "top30" and not metric.ignore is True:
+    elif metric.name == "top30" and not metric.ignore:
         return CustomTop30()
-    elif metric.name == "ce" and not metric.ignore is True:
-        return CustomCrossEntropy(metric.lambd_pres, metric.lambd_abs)
-    elif metric.name == "r2" and not metric.ignore is True:
-        return torchmetrics.ExplainedVariance(multioutput="variance_weighted")
-    elif metric.name == "kl" and not metric.ignore is True:
-        return CustomKL()
-    elif metric.name == "accuracy" and not metric.ignore is True:
-        return CustomMultiLabelAcc()
     elif metric.ignore is True:
         return None
     else:
-        return None  # raise ValueError("Unknown metric_item {}".format(metric))
+        return None
 
 
 def get_metrics(config):

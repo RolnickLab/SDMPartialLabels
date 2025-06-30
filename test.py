@@ -117,22 +117,6 @@ def main(opts):
                 ckpt_dir = os.path.join(config.base_dir, run_id_path)
                 files = os.listdir(ckpt_dir)
 
-                # to choose epoch < 50, if trained for longer
-                # def extract_epoch(filename):
-                #     # Adjust regex if your naming pattern is different
-                #     match = re.search(r"epoch(\d+)", filename)
-                #     return int(match.group(1)) if match else None
-                #
-                # best_checkpoint_file_name = max(
-                #     (
-                #         f for f in files
-                #         if "last" not in f
-                #            and f.endswith(".ckpt")
-                #            and (extract_epoch(f) is not None and extract_epoch(f) < 50)
-                #     ),
-                #     key=lambda f: os.path.getmtime(os.path.join(ckpt_dir, f)),
-                #     default=None  # In case no file matches
-                # )
                 best_checkpoint_file_name = max(
                     (f for f in files if "last" not in f and f.endswith(".ckpt")),
                     key=lambda f: os.path.getmtime(os.path.join(ckpt_dir, f))

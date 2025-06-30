@@ -1,6 +1,5 @@
 """
 NN models
-Code is based on the C-tran paper: https://github.com/QData/C-Tran
 """
 
 import torch

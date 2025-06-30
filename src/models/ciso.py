@@ -30,7 +30,6 @@ class CISOModel(nn.Module):
         use_unknown_token=False,
     ):
         """
-        pos_emb is false by default
         num_classes: total number of species
         species_list: list of species
         backbone: backbone to process input (MLP)
