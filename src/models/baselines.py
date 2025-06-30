@@ -44,7 +44,7 @@ class SimpleMLP(nn.Module):
         return x
 
 
-class SimpleMLPMasked_v1(nn.Module):
+class SimpleMLP_PlusPlus(nn.Module):
     """
     Simple MLP Masked where env features and mask use separate encoders
     """
@@ -57,7 +57,7 @@ class SimpleMLPMasked_v1(nn.Module):
             quantized_mask_bins=1,
             quantize_encounter_rates=True,
     ):
-        super(SimpleMLPMasked_v1, self).__init__()
+        super(SimpleMLP_PlusPlus, self).__init__()
 
         self.quantize_encounter_rates = quantize_encounter_rates
         self.num_unique_mask_values = quantized_mask_bins
@@ -97,41 +97,6 @@ class SimpleMLPMasked_v1(nn.Module):
         # x_env = self.dropout(x_env)
         x_combined = torch.cat((x_env, x_mask), dim=1)
         x = self.out_layer(x_combined)
-        return x
-
-
-class SimpleMLPMasked_v0(nn.Module):
-    """
-    Simple MLP Masked where env features and mask share the same encoder. For splot only
-    """
-
-    def __init__(
-            self,
-            input_dim,
-            hidden_dim,
-            num_classes,
-            backbone=None,
-            attention_layers=2,
-            heads=2,
-            num_unique_mask_values=3,
-    ):
-        super(SimpleMLPMasked_v0, self).__init__()
-
-        self.num_unique_mask_values = num_unique_mask_values
-
-        self.layer_1 = nn.Linear(input_dim + (self.num_unique_mask_values * num_classes), hidden_dim)
-        self.layer_2 = nn.Linear(hidden_dim, hidden_dim)
-        self.out_layer = nn.Linear(hidden_dim, num_classes)
-
-    def forward(self, x, mask):
-        mask = mask.long()
-        one_hot_mask = F.one_hot(mask, num_classes=self.num_unique_mask_values).float()  # One-hot encoding
-        one_hot_mask_flattened = one_hot_mask.view(mask.size(0), -1)  # Flatten to (batch_size, num_classes * 3)
-
-        x_combined = torch.cat((x, one_hot_mask_flattened), dim=1)
-        x = F.relu(self.layer_1(x_combined))
-        x = F.relu(self.layer_2(x))
-        x = self.out_layer(x)
         return x
 
 

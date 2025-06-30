@@ -1,7 +1,7 @@
 mode: "train" # "test"
 dataset_name: "sPlot"
 model:
-  name: "CTranModel"
+  name: "CISOModel"
   input_dim: 27
   hidden_dim: 256
   num_classes: 3951
@@ -16,9 +16,9 @@ training:
 
 logger:
   project_name: "sPlotOpen"
-  experiment_name: "splot_ctran" # specify for training, or use to report test results
+  experiment_name: "splot_ciso" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
-  checkpoint_path: "./multirun_experiments"
+  checkpoint_path: "./model_checkpoints/1_sPlotOpen"
   checkpoint_name: "last.ckpt"
   save_preds_path: ""
 

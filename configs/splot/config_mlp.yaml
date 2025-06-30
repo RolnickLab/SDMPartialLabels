@@ -18,7 +18,7 @@ logger:
   project_name: "sPlotOpen"
   experiment_name: "splot_mlp" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
-  checkpoint_path: "./multirun_experiments"
+  checkpoint_path: "./model_checkpoints/1_sPlotOpen"
   checkpoint_name: ""
 
 data:

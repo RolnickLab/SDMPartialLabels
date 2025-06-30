@@ -1,15 +1,15 @@
 #where to save checkpoints
-save_path: "multirun_experiments/final_satbirdxsplot/satbirdxsplot_glm_v1"
+save_path: "model_checkpoints/4_SatBirdxsPlotOpen/satbirdxsplot_linear"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 # always use the best checkpoint
-load_ckpt_path: "multirun_experiments/final_satbirdxsplot/satbirdxsplot_glm_v1"
+load_ckpt_path: "model_checkpoints/4_SatBirdxsPlotOpen/satbirdxsplot_linear"
 save_preds_path: ""
 
 comet:
   project_name: "SDMPartialLabels"
   tags: [ "satbird + splots", "baseline", "multimetric" ]
-  experiment_name: "satbirdxsplot_glm_v1" # specify for training, or use to report test results
+  experiment_name: "satbirdxsplot_linear" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
 
 dataloader_to_use: "SDMEnvDataset"
@@ -28,17 +28,6 @@ training:
 
 losses:
   criterion: "BCE"
-
-partial_labels:
-  use: false
-  # mask known labels out of the loss (true or false)
-  masked_loss: False
-  # quantized mask (1 if all positives to 1, > 1 to indicate bins)
-  quantized_mask_bins: 4
-  # max ratio of unknown labels during training
-  train_known_ratio: 0.75
-  # what known ratios do we consider when testing
-  eval_known_ratio: 0 # [1.0, 0.9, 0.8, 0.5]
 
 # During testing, eval family of birds (0), or family of plants (1)
 predict_family_of_species: -1

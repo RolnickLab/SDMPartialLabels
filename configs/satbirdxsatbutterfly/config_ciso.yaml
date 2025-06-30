@@ -1,21 +1,21 @@
 #where to save checkpoints
-save_path: "multirun_experiments/final_satbirdxsatbutterfly/satbirdxsatbutterfly_ctran_v4"
+save_path: "model_checkpoints/3_SatBirdxSatButterfly/satbirdxsatbutterfly_ciso"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 # always use the best checkpoint
-load_ckpt_path: "multirun_experiments/final_satbirdxsatbutterfly/satbirdxsatbutterfly_ctran_v4"
-save_preds_path: "" #"/network/scratch/h/hager.radi/ecosystem-embedding/baseline_resnet18_RGBNIR_ENV/preds_path"
+load_ckpt_path: "model_checkpoints/3_SatBirdxSatButterfly/satbirdxsatbutterfly_ciso"
+save_preds_path: ""
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: [ "ctran", "172butterfly_species", "50epochs", "satbird+ satbutterflyv1 + satbutterflyv2" ]
-  experiment_name: "satbirdxsatbutterfly_ctran_v4" # specify for training, or use to report test results, TODO: also use to resume training
+  tags: [ "172butterfly_species", "50epochs", "satbird+ satbutterflyv1 + satbutterflyv2" ]
+  experiment_name: "satbirdxsatbutterfly_ciso" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
 
 dataloader_to_use: "SDMEnvMaskedDataset"
 
 model:
-  name: "CTranModel"
+  name: "CISOModel"
   input_dim: 27
   hidden_dim: 256
   backbone: "SimpleMLPBackbone"

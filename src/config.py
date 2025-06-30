@@ -26,7 +26,7 @@ class TrainingConfig(BaseModel):
 
 
 class PartialLabels(BaseModel):
-    use: bool = Field(..., description="Training with Partial labels or not")
+    use: bool = Field(False, description="Training with Partial labels or not")
     predict_family_of_species: int = Field(
         ..., description="what family of species to predict during testing"
     )
