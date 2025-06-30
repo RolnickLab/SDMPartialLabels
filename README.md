@@ -1,8 +1,72 @@
-# SDM with Partial Labels
+# CISO-SDM
+
+This repository contains the code to reproduce the results from the paper: **CISO - Species Distribution Modeling
+Conditioned on Incomplete Species Observations**.
+
+## Installation
+
+Code runs on Python 3.11. You can install pip packages from `requirements/requirements.txt`
+
+We recommend following these steps for installing the required packages:
+
+```conda create -n ciso_env python=3.11```
+
+```conda activate ciso_env```
+
+```pip install -r requirements.txt```
+
+## Datasets:
+
+All datasets and data files are publicly released [here](https://huggingface.co/cisosdm/datasets).
+
+#### Data preparation:
+
+The folder `data_preprocessing` include preparation files for:
+
+* SatButterfly dataset: `ebutterfly_data_preparation`
+* sPlotOpen: `prepare_sPlotOpen_data.ipynb`
+* SatBirdxsPlotOpen co-located data: `prepare_satbirdxsplots.ipynb`
+
+## Experiment configurations:
+
+The folder `configs` include one folder for each dataset setup:
+
+* `configs/satbird`
+* `configs/satbirdxsatbutterfly`
+* `configs/satbirdxsplot`
+* `configs/splot`
+
+Under each folder, there exists a file for each model reported in our work. A config file supports both training and
+evaluating a model:
+
+* `config_ciso.yaml`: CISO model
+* `config_linear.yaml`: linear model
+* `config_maxent.yaml`: linear model with maxent features
+* `config_mlp.yaml`: mlp model
+* `config_mlp_plusplus.yaml`: MLP++ model
+
+## Trained model checkpoints:
+
+All model checkpoints are publicly released [here](https://huggingface.co/cisosdm/model_checkpoints).
+
+## Running code:
+
+### Training:
+
+To log experiments on comet-ml, make sure you have exported your COMET_API_KEY and COMET_WORKSPACE in your environmental
+variables.
+You can do so with `export COMET_API_KEY=your_comet_api_key` in your terminal.
+
+* To train the model: `python train.py args.config=configs/`. Examples of all config files for different models and
+  datasets
+  are available in `configs`.
 
 ### Evaluation:
-We use the parameter `predict_family_of_species` to control which family subset of species we are evaluating
-### Species within a single taxonomy setup:
+
+We mainly use the parameter `predict_family_of_species` to control which family subset of species we are
+evaluating. `predict_family_of_species` defaults to `-1` during training.
+
+#### Species within a single taxonomy setup:
 SatBird:
 - `predict_family_of_species = 0` : evaluate non-songbirds
 - `predict_family_of_species = 1` : evaluate songbirds
@@ -11,39 +75,29 @@ splot:
 - `predict_family_of_species = 0` : evaluate non-trees
 - `predict_family_of_species = 1` : evaluate trees
 
-### Species in Multi-taxa setup:
-SatBird & SatButterfly:
+For models that support partial labels such as CISO and MLP++:
+
 - To evaluate with **no partial labels** given (everything is unknown), set `eval_known_rate == 0 `
+- To evaluate with **partial labels** given (other group labels known), set `eval_known_rate == 1 `
+
+#### Species in Multi-taxa setup:
+SatBird & SatButterfly:
 - `predict_family_of_species = 0` : evaluate birds
 - `predict_family_of_species = 1` : evaluate butterflies
-	
-- To evaluate with **partial labels** given (some labels known), set `eval_known_rate == 1 `
+
+SatBird & sPlotOpen:
 - `predict_family_of_species = 0` : evaluate birds
-- `predict_family_of_species = 1` : evaluate butterflies
+- `predict_family_of_species = 1` : evaluate plants
 
+For models that support partial labels such as CISO and MLP++:
 
-### Running code:
+- To evaluate with **no partial labels** given (everything is unknown), set `eval_known_rate == 0 `
+- To evaluate with **partial labels** given (other group labels known), set `eval_known_rate == 1 `
 
-#### Installation 
-Code runs on Python 3.10. You can create conda env using `requirements/environment.yaml` or install pip packages from `requirements/requirements.txt`
+## Reproducing Results:
 
-We recommend following these steps for installing the required packages: 
+## Reproducing Figures:
 
-```conda env create -f requirements/environment.yaml``` 
-
-```conda activate satbird```
-
-```conda install pytorch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 pytorch-cuda=11.8 -c pytorch -c nvidia```
-
-#### Training and testing
-
-* To train the model (check `run_files/job.sh`) : `python train.py args.config=configs/base.yaml`. Examples of all config files for different baselines 
-are available in `configs`.
-* To train a model: `python train.py args.config=$CONFIG_FILE_NAME `
-* To test a model: `python test.py args.config=$CONFIG_FILE_NAME `
-
-To log experiments on comet-ml, make sure you have exported your COMET_API_KEY and COMET_WORKSPACE in your environmental variables.
-You can do so with `export COMET_API_KEY=your_comet_api_key` in your terminal.
 
 
 This work is licensed under a
