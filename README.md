@@ -1,104 +1,134 @@
-# CISO-SDM
+# CISO-SDM 🐦🦋🌿
 
-This repository contains the code to reproduce the results from the paper: **CISO - Species Distribution Modeling
-Conditioned on Incomplete Species Observations**.
+This repository contains the code to reproduce the results from the paper: 
 
-## Installation
+### CISO: Species Distribution Modeling Conditioned on Incomplete Species Observations
 
-Code runs on Python 3.11. You can install pip packages from `requirements/requirements.txt`
+## 🛠️ Installation
 
-We recommend following these steps for installing the required packages:
+### ⚙️ Requirements
 
-```conda create -n ciso_env python=3.11```
+This project requires **Python 3.11**. All dependencies are listed in `requirements/requirements.txt`. 
 
-```conda activate ciso_env```
+We recommend using **Conda** to create and manage a clean environment:
 
-```pip install -r requirements.txt```
+```bash
+conda create -n ciso_env python=3.11
+conda activate ciso_env
+pip install -r requirements/requirements.txt
+```
 
-## Datasets:
+#### 💡Not using Conda?
 
-All datasets and data files are publicly released [here](https://huggingface.co/cisosdm/datasets).
+You can also use a standard Python virtual environment:
 
-#### Data preparation:
+```bash
+python3.11 -m venv ciso_env
+source ciso_env/bin/activate # On Windows use `ciso_env\Scripts\activate`
+pip install -r requirements/requirements.txt
+```
 
-The folder `data_preprocessing` include preparation files for:
+### 🖥️ Hardware Support
 
-* SatButterfly dataset: `ebutterfly_data_preparation`
+The results can be reproduced on any device (GPU, eGPU, or CPU), though the computational time will vary depending on the hardware's parallel processing capabilities. If you encounter memory issues, especially on lower-end devices, consider reducing the batch size in the training configuration to mitigate them. You may also need to install or update the appropriate NVIDIA drivers to work with PyTorch, depending on your specific setup.
+
+## 📂 Datasets
+
+All datasets used in the paper are publicly available [here](https://huggingface.co/cisosdm/datasets) on Hugging Face.
+
+#### Data preparation scripts
+
+Data preparation code is located in the `data_preprocessing/` folder:
+
+* SatButterfly: `ebutterfly_data_preparation.ipynb`
 * sPlotOpen: `prepare_sPlotOpen_data.ipynb`
-* SatBirdxsPlotOpen co-located data: `prepare_satbirdxsplots.ipynb`
+* SatBird × sPlotOpen (co-located data): `prepare_satbirdxsplots.ipynb`
 
-## Experiment configurations:
+## 🔬 Experiment configurations:
 
-The folder `configs` include one folder for each dataset setup:
+The `configs` directory contains subfolders for each dataset setup:
 
 * `configs/satbird`
 * `configs/satbirdxsatbutterfly`
 * `configs/satbirdxsplot`
 * `configs/splot`
 
-Under each folder, there exists a file for each model reported in our work. A config file supports both training and
-evaluating a model:
+Each subfolder includes YAML config files for models reported in the paper. These configs are used for both training and evaluation.
+| File                       | Model Description                 |
+| -------------------------- | --------------------------------- |
+| `config_ciso.yaml`         | CISO model                        |
+| `config_linear.yaml`       | Linear model                      |
+| `config_maxent.yaml`       | Linear model with MaxEnt features |
+| `config_mlp.yaml`          | MLP                               |
+| `config_mlp_plusplus.yaml` | MLP++                             |
 
-* `config_ciso.yaml`: CISO model
-* `config_linear.yaml`: linear model
-* `config_maxent.yaml`: linear model with maxent features
-* `config_mlp.yaml`: mlp model
-* `config_mlp_plusplus.yaml`: MLP++ model
+## 🤖 Trained model checkpoints:
 
-## Trained model checkpoints:
+All trained model checkpoints are available [here](https://huggingface.co/cisosdm/model_checkpoints).
 
-All model checkpoints are publicly released [here](https://huggingface.co/cisosdm/model_checkpoints).
+## 🚀 Running code
 
-## Running code:
+### 🔹 Training
+You can log experiments using [Comet ML](https://www.comet.com/site/). To enable logging, make sure to export your `COMET_API_KEY` and `COMET_WORKSPACE` environment variables:
 
-### Training:
+```bash
+export COMET_API_KEY=your_comet_api_key
+export COMET_WORKSPACE=your_workspace
+```
 
-To log experiments on comet-ml, make sure you have exported your COMET_API_KEY and COMET_WORKSPACE in your environmental
-variables.
-You can do so with `export COMET_API_KEY=your_comet_api_key` in your terminal.
+To train a model, run:
 
-* To train the model: `python train.py args.config=configs/`. Examples of all config files for different models and
-  datasets
-  are available in `configs`.
+```bash
+python train.py args.config=configs/<dataset>/<model_config>.yaml
+```
 
-### Evaluation:
+Examples of configuration files for different datasets and models can be found in the `configs/` directory.
 
-We mainly use the parameter `predict_family_of_species` to control which family subset of species we are
-evaluating. `predict_family_of_species` defaults to `-1` during training.
+### 🔹 Evaluation
 
-#### Species within a single taxonomy setup:
-SatBird:
-- `predict_family_of_species = 0` : evaluate non-songbirds
-- `predict_family_of_species = 1` : evaluate songbirds
+Use the `predict_family_of_species` parameter to control the subset of species evaluated. This parameter defaults to`-1` during training (i.e., not used).
 
-splot:
-- `predict_family_of_species = 0` : evaluate non-trees
-- `predict_family_of_species = 1` : evaluate trees
+#### Evaluating species groups *within* a dataset
 
-For models that support partial labels such as CISO and MLP++:
+🐦 **SatBird**:
+- `predict_family_of_species = 0` → evaluate **non-songbirds**
+- `predict_family_of_species = 1` → evaluate **songbirds**
 
-- To evaluate with **no partial labels** given (everything is unknown), set `eval_known_rate == 0 `
-- To evaluate with **partial labels** given (other group labels known), set `eval_known_rate == 1 `
-
-#### Species in Multi-taxa setup:
-SatBird & SatButterfly:
-- `predict_family_of_species = 0` : evaluate birds
-- `predict_family_of_species = 1` : evaluate butterflies
-
-SatBird & sPlotOpen:
-- `predict_family_of_species = 0` : evaluate birds
-- `predict_family_of_species = 1` : evaluate plants
-
-For models that support partial labels such as CISO and MLP++:
-
-- To evaluate with **no partial labels** given (everything is unknown), set `eval_known_rate == 0 `
-- To evaluate with **partial labels** given (other group labels known), set `eval_known_rate == 1 `
-
-## Reproducing Results:
-
-## Reproducing Figures:
+🌿 **sPlotOpen**:
+- `predict_family_of_species = 0` → evaluate **non-trees**
+- `predict_family_of_species = 1` → evaluate **trees**
 
 
+#### Evaluating species groups *across* datasets
+🐦🦋 **SatBird & SatButterfly**:
+- `predict_family_of_species = 0` → evaluate **birds**
+- `predict_family_of_species = 1` → evaluate **butterflies**
 
+🐦🌿**SatBird & sPlotOpen**:
+- `predict_family_of_species = 0` → evaluate **plants**
+- `predict_family_of_species = 1` → evaluate **birds**
+
+
+#### Conditioning on other species groups
+
+For models that support partial labels (i.e., CISO and MLP++), evaluation can be conditioned on the observations of species from another group:
+
+- `eval_known_rate == 0 ` → evaluate with no partial labels (all other species groups are unknown)
+- `eval_known_rate == 1 `  → evaluate with partial labels (labels from the other species group are provided)
+
+
+## 📊 Reproducing Results and Figures
+
+You can reproduce the key results and figures from the paper using the scripts and notebooks provided below:
+
+### 📈 Results
+* TODO
+
+### 🖼️ Figures
+* Figure 3: `figures/generate_figure_3.ipynb`
+* Figure 4: `figures/generate_figure_4.ipynb`
+* Figure 5: `figures/generate_figure_5.ipynb`
+
+## 📜 License
 This work is licensed under a
 [Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) License](https://creativecommons.org/licenses/by-nc/4.0/).
