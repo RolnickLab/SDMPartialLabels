@@ -13,4 +13,4 @@
 module load miniconda/3
 conda activate new_env
 export COMET_API_KEY=$COMET_API_KEY
-python train.py args.config="configs/satbirdxsatbutterfly/config_ctran.yaml" args.run_id=$SLURM_ARRAY_TASK_ID
+python train.py args.config="configs/satbirdxsatbutterfly/config_ciso.yaml" args.run_id=$SLURM_ARRAY_TASK_ID

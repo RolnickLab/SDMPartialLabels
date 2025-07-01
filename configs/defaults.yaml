@@ -75,38 +75,14 @@ losses:
   criterion: "CE" #or MAE or MSE  (loss to choosefor optim )
 
 metrics:
-  - name: ce
-    ignore: True
-    #weights on the cross entropy
-    lambd_pres: 1
-    lambd_abs: 1
-    scale : 1
   - name: mae
     ignore: False
-    scale: 10
-  - name: nonzero_mae
-    ignore: True
     scale: 10
   - name: mse
     ignore: False
     scale: 10
-  - name: nonzero_mse
-    ignore: True
-    scale: 10
   - name: topk
     ignore: False
-    scale: 1
-  - name: topk2
-    ignore: True
-    scale: 1
-  - name: r2
-    ignore: True #False
-    scale: 1
-  - name: kl
-    ignore: True
-    scale : 1
-  - name: accuracy
-    ignore: True
     scale: 1
   - name: top10
     ignore: False

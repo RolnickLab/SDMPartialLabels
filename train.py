@@ -167,7 +167,7 @@ def main(opts):
             monitor="val_topk",
             dirpath=config.save_path,
             save_top_k=1,
-            filename="best_val_topk_-{epoch:02d}-{val_topk:.4f}",
+            filename="best-{epoch:02d}-{val_topk:.4f}",
             mode="max",
             save_last=True,
             save_weights_only=True,
@@ -183,12 +183,6 @@ def main(opts):
     # Run experiment
     trainer.fit(model=task, datamodule=datamodule)
     trainer.test(model=task, datamodule=datamodule)
-
-    # logging the best checkpoint to comet ML
-    # print(multi_ckpt_callback.best_model_path)
-    # trainer.logger.experiment.log_asset(
-    #     multi_ckpt_callback.best_model_path, file_name="best_checkpoint.ckpt"
-    # )
 
 
 if __name__ == "__main__":

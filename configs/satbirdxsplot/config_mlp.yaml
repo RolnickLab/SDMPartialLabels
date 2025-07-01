@@ -1,15 +1,15 @@
 #where to save checkpoints
-save_path: "multirun_experiments/final_satbirdxsplot/satbirdxsplot_MLP_v4"
+save_path: "model_checkpoints/4_SatBirdxsPlotOpen/satbirdxsplot_mlp"
 
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 # always use the best checkpoint
-load_ckpt_path: "multirun_experiments/final_satbirdxsplot/satbirdxsplot_MLP_v4"
+load_ckpt_path: "model_checkpoints/4_SatBirdxsPlotOpen/satbirdxsplot_mlp"
 save_preds_path: ""
 
 comet:
   project_name: "SDMPartialLabels"
   tags: [ "satbird + splots", "baseline", "multimetric" ]
-  experiment_name: "satbirdxsplot_MLP_v4" # specify for training, or use to report test results
+  experiment_name: "satbirdxsplot_mlp" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
 
 dataloader_to_use: "SDMEnvDataset"
@@ -29,17 +29,6 @@ training:
 losses:
   criterion: "BCE"
 
-partial_labels:
-    use: false
-    # mask known labels out of the loss (true or false)
-    masked_loss: False
-    # quantized mask (1 if all positives to 1, > 1 to indicate bins)
-    quantized_mask_bins: 4
-    # max ratio of unknown labels during training
-    train_known_ratio: 0.75
-    # what known ratios do we consider when testing
-    eval_known_ratio: 0 # [1.0, 0.9, 0.8, 0.5]
-
 # During testing, eval family of birds (0), or family of plants (1)
 predict_family_of_species: -1
 
@@ -57,19 +46,19 @@ data:
        'phihox', 'sltppt', 'sndppt']
   
   files:
-    base: "/Users/hagerradi/Projects/SDMPartialLabels/data"
-    train: ["satbirdxsplotopen/satbird_splots_train_split.csv"]
-    val: ["satbirdxsplotopen/satbird_splots_valid_split_coloc.csv"]
-    test: ["satbirdxsplotopen/satbird_splots_test_split.csv"]
+    base: "/data"
+    train: [ "SatBirdxsPlotOpen/satbird_splots_train_split.csv" ]
+    val: [ "SatBirdxsPlotOpen/satbird_splots_valid_split.csv" ]
+    test: [ "SatBirdxsPlotOpen/satbird_splots_test_split.csv" ]
 
     # it has to be in this order as the keys in per_taxa_species_count
-    targets_file: ["SatBird/satbird_usa_summer_targets.pkl",
-                   "sPlotOpen/sPlotOpen_targets_US_only.pkl" ] # target files follow the same format as SatBird (hotspotID: target_array)
+    targets_file: [ "SatBird_data_v2/USA_summer/satbird_usa_summer_targets.pkl",
+                    "SatBirdxsPlotOpen/sPlotOpen_targets_US_only.pkl" ] # target files follow the same format as SatBird (hotspotID: target_array)
 
-    satbird_species_indices_path: "SatBird/stats"
+    satbird_species_indices_path: "SatBird_data_v2/USA_summer/stats"
     #TODO: remove this and compute dynamically
-    plant_test_species_indices_file: "satbirdxsplotopen/plant_test_species_indices_US_only.npy"
-    plant_val_species_indices_file: "satbirdxsplotopen/plant_validation_species_indices_US_only.npy"
+    plant_test_species_indices_file: "SatBirdxsPlotOpen/plant_test_species_indices_US_only.npy"
+    plant_val_species_indices_file: "SatBirdxsPlotOpen/plant_validation_species_indices_US_only.npy"
 
   # when combining two different taxa
   multi_taxa: True

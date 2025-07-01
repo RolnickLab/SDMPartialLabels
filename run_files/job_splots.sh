@@ -12,4 +12,4 @@
 module load miniconda/3
 conda activate new_env
 export COMET_API_KEY=$COMET_API_KEY
-python main.py --config="configs/splot/config_ctran.yaml"
+python main.py --config="configs/splot/config_ciso.yaml"

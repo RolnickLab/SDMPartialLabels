@@ -14,7 +14,7 @@ from src.models.state_embeddings import SpeciesTokenizer
 from src.models.utils import custom_replace_n, weights_init
 
 
-class CTranModel(nn.Module):
+class CISOModel(nn.Module):
     def __init__(
         self,
         num_classes,
@@ -30,7 +30,6 @@ class CTranModel(nn.Module):
         use_unknown_token=False,
     ):
         """
-        pos_emb is false by default
         num_classes: total number of species
         species_list: list of species
         backbone: backbone to process input (MLP)
@@ -43,7 +42,7 @@ class CTranModel(nn.Module):
         dropout: dropout ratio
         use_unknown_token: add special parameter to encode unknown state when state is linearly tokenized
         """
-        super(CTranModel, self).__init__()
+        super(CISOModel, self).__init__()
         self.hidden_dim = hidden_dim  # this should match the backbone output feature size (512 for Resnet18, 2048 for Resnet50)
         self.quantized_mask_bins = quantized_mask_bins
         self.n_embedding_state = self.quantized_mask_bins + 2

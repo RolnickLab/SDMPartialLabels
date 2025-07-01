@@ -1,5 +1,5 @@
 """
-Trainer for the ctran framework
+Trainer for the CISO-SDM framework
 """
 
 import inspect
@@ -8,7 +8,7 @@ from src.dataloaders.dataloader import *
 from src.trainers.base import BaseTrainer
 from src.utils import eval_species_split
 from src.models.baselines import *
-from src.models.ctran import *
+from src.models.ciso import *
 
 
 class SDMPartialTrainer(BaseTrainer):

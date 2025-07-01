@@ -1,20 +1,20 @@
 #where to save checkpoints
-save_path: "multirun_experiments/satbird_maskedmlp"
+save_path: "model_checkpoints/2_SatBird/satbird_mlp_plusplus"
 # load existing checkpoint for inference. If passing experiment folder instead (for multiple seeds), it will evaluate all of them.
 # always use the best checkpoint
-load_ckpt_path: "multirun_experiments/satbird_maskedmlp"
+load_ckpt_path: "model_checkpoints/2_SatBird/satbird_mlp_plusplus"
 save_preds_path: ""
 
 dataloader_to_use: "SDMEnvMaskedDataset"
 
 comet:
   project_name: "SDMPartialLabels"
-  tags: ["MaskedMLP_v1", "direct_encounter_rates", "EnvNormalization", "satbird"]
-  experiment_name: "satbird_maskedmlp" # specify for training, or use to report test results, TODO: also use to resume training
+  tags: [ "direct_encounter_rates", "EnvNormalization", "satbird" ]
+  experiment_name: "satbird_mlp_plusplus" # specify for training, or use to report test results
   experiment_key: "" # use to report test results,
 
 model:
-  name: "SimpleMLPMasked_v1"
+  name: "SimpleMLP_PlusPlus"
   input_dim: 27
   hidden_dim: 256
   backbone:
@@ -30,8 +30,6 @@ losses:
 
 partial_labels:
     use: true
-    # mask known labels out of the loss (true or false)
-    masked_loss: False
     # quantized mask (1 if all positives to 1, > 1 to indicate bins)
     quantized_mask_bins: 4
     # max ratio of unknown labels during training
@@ -55,7 +53,7 @@ data:
        'phihox', 'sltppt', 'sndppt']
   
   files:
-    base: "/Users/hagerradi/Projects/SDMPartialLabels/data/SatBird"
+    base: "/data/SatBird_data_v2/USA_summer"
     train: ["train_split.csv"]
     val: ["valid_split.csv"]
     test: ["test_split.csv"]
