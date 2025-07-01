@@ -4,6 +4,14 @@ This repository contains the code to reproduce the results from the paper:
 
 ### CISO: Species Distribution Modeling Conditioned on Incomplete Species Observations
 
+<br>
+
+<div align="left">
+<img src="figures/overview_dataset.png" alt="Figure" width="780"/>
+</div>
+
+<br>
+
 ## 🛠️ Installation
 
 ### ⚙️ Requirements
