@@ -86,7 +86,7 @@ For each dataset, each folder includes 3 sub-folders corresponding to 3 differen
 ## 🚀 Running code
 
 ### 🔹 Training
-You can log experiments using [Comet ML](https://www.comet.com/site/). To enable logging, make sure to export your `COMET_API_KEY` and `COMET_WORKSPACE` environment variables:
+You can log experiments using [Comet ML](https://www.comet.com/site/), a platform for visualizing metrics as your models are training. To enable logging, make sure to export your `COMET_API_KEY` and `COMET_WORKSPACE` environment variables:
 
 ```bash
 export COMET_API_KEY=your_comet_api_key
