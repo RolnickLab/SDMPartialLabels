@@ -100,7 +100,7 @@ def save_test_results_to_csv(results, root_dir, results_file_name="test_results.
     print(f"CSV file '{output_file}' has been saved.")
 
 
-def load_opts(path, default, commandline_opts):
+def load_opts(path, default = None, commandline_opts = None):
     """
     Args:
     path (pathlib.Path): where to find the overriding configuration
