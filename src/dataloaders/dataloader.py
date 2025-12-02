@@ -195,7 +195,7 @@ class SDMDataModule(pl.LightningDataModule):
         self.seed = self.config.training.seed
         self.batch_size = self.config.data.loaders.batch_size
         self.num_workers = self.config.data.loaders.num_workers
-        self.data_base_dir = self.config.data.files.base
+        self.data_base_dir = os.path.join(self.config.base_dir, self.config.data.files.base)
         self.targets_file = self.config.data.files.targets_file
 
         # combining multiple train files

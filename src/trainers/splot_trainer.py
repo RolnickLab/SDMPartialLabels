@@ -8,7 +8,7 @@ from torchmetrics.classification import MultilabelAUROC
 
 from src.models.baselines import *
 from src.utils import multi_label_accuracy, trees_masking
-from src.models.ctran import *
+from src.models.ciso import *
 
 
 class sPlotTrainer(pl.LightningModule):

@@ -182,29 +182,29 @@ class sPlotDataModule(pl.LightningDataModule):
             maximum_known_labels_ratio=self.config.partial_labels.eval_known_ratio,
         )
 
-    def train_dataloader(self):
+    def train_dataloader(self, num_workers = 8, pin_memory = True, persistent_workers = True) -> DataLoader:
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
-            persistent_workers=True,
-            pin_memory=True,
-            num_workers=16,
+            persistent_workers=persistent_workers,
+            pin_memory=pin_memory,
+            num_workers=num_workers,
         )
 
-    def val_dataloader(self):
+    def val_dataloader(self, num_workers = 8, pin_memory = True, persistent_workers = True):
         return DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
-            persistent_workers=True,
-            pin_memory=True,
-            num_workers=16,
+            persistent_workers=persistent_workers,
+            pin_memory=pin_memory,
+            num_workers=num_workers,
         )
 
-    def test_dataloader(self):
+    def test_dataloader(self, num_workers = 8, pin_memory = True, persistent_workers = True):
         return DataLoader(
             self.test_dataset,
             batch_size=self.batch_size,
-            pin_memory=True,
-            num_workers=16,
+            pin_memory=pin_memory,
+            num_workers=num_workers,
         )

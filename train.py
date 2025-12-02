@@ -110,6 +110,8 @@ def main(opts):
     global_seed = (run_id * (config.training.seed + (run_id - 1))) % (2**31 - 1)
 
     # naming experiment folders with seed information
+    print(base_dir)
+    print(config.save_path)
     config.save_path = os.path.join(base_dir, config.save_path, str(global_seed))
     config.comet.experiment_name = (
         config.comet.experiment_name + "_seed_" + str(global_seed)
@@ -146,7 +148,6 @@ def main(opts):
             trainer_args["logger"] = comet_logger
         else:
             print("no COMET API Key found..continuing without logging..")
-            return
 
     if config.data.multi_taxa:
         val_monitor_1 = config.data.monitor_metric_1
