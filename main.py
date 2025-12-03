@@ -40,7 +40,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="PyTorch Lightning Tabular Data MLP Training"
     )
-    parser.add_argument("--config", type=str, default="config.yaml", required=True)
+    parser.add_argument("--config", type=str, default="configs/splot/config_ciso.yaml", required=True)
     parser.add_argument("--run_id", type=int, default=1)
     parser.add_argument("--results_file_name", type=str, default="test_results.csv")
     args = parser.parse_args()
@@ -97,7 +97,8 @@ def main():
         save_last=True,
         auto_insert_metric_name=True,
     )
-
+    # device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # torch.set_default_device(device)
     # Train the model
     trainer = Trainer(
         max_epochs=config.training.max_epochs,

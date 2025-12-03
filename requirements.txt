@@ -17,3 +17,5 @@ tifffile==2023.12.9
 torch==2.4.1
 torchmetrics==1.4.0.post0
 tqdm==4.66.1
+seaborn==0.13.2
+comet-ml==3.54.2

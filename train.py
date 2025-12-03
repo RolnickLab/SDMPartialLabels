@@ -146,7 +146,6 @@ def main(opts):
             trainer_args["logger"] = comet_logger
         else:
             print("no COMET API Key found..continuing without logging..")
-            return
 
     if config.data.multi_taxa:
         val_monitor_1 = config.data.monitor_metric_1

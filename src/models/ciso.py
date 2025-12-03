@@ -18,10 +18,10 @@ class CISOModel(nn.Module):
     def __init__(
         self,
         num_classes,
-            backbone="SimpleMLPBackbone",
-            quantized_mask_bins=4,
+        backbone="SimpleMLPBackbone",
+        quantized_mask_bins=1,
         input_dim=27,
-            hidden_dim=256,
+        hidden_dim=256,
         n_attention_layers=3,
         n_heads=4,
         dropout=0.2,

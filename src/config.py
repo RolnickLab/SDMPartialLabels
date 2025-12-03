@@ -18,10 +18,10 @@ class TrainingConfig(BaseModel):
     )
     max_epochs: Optional[int] = Field(..., description="Number of epochs to train")
     accelerator: Optional[str] = Field(
-        ..., description="Accelerator for training: gpu, cpu, or auto"
+        ..., description="Accelerator for training: gpu, cpu, mps (for mac) or auto"
     )
     devices: Optional[int] = Field(
-        ..., description="Accelerator for training: gpu, cpu, or auto"
+        ..., description="Number of devices for training: gpu, cpu, or auto"
     )
 
 

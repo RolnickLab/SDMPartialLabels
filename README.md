@@ -86,17 +86,17 @@ For each dataset, each folder includes 3 sub-folders corresponding to 3 differen
 ## 🚀 Running code
 
 ### 🔹 Training
-You can log experiments using [Comet ML](https://www.comet.com/site/). To enable logging, make sure to export your `COMET_API_KEY` and `COMET_WORKSPACE` environment variables:
+[Optional] You can log experiments using [Comet ML](https://www.comet.com/site/), a platform for visualizing metrics as your models are training. To enable logging, make sure to export your `COMET_API_KEY` and `COMET_WORKSPACE` environment variables:
 
 ```bash
 export COMET_API_KEY=your_comet_api_key
 export COMET_WORKSPACE=your_workspace
 ```
 
-To train a model, run:
+To train a model, set `config.mode = "train"` ,and run:
 
 ```bash
-python train.py args.config=configs/<dataset>/<model_config>.yaml
+python main.py --config=configs/<dataset>/<model_config>.yaml
 ```
 
 Examples of configuration files for different datasets and models can be found in the `configs/` directory.
@@ -153,8 +153,9 @@ For the config file specified, you need to control the following parameters:
 | `predict_family_of_species`       | Controls which family of species to evaluate  as shown above in Evaluation. |
 | `partial_labels/eval_known_ratio` | Set to 1, to condition on known labels for the other group of species.      |
 
+Set `config.mode = "test"`
 ```bash
-python test.py args.config=configs/<dataset>/<model_config>.yaml args.results_file_name=<results_file_name.csv>
+python main.py --config=configs/<dataset>/<model_config>.yaml --results_file_name=<results_file_name.csv>
 ```
 
 ##### Example:
