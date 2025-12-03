@@ -12,7 +12,7 @@ from omegaconf import DictConfig, OmegaConf
 def eval_species_split(
     index: int,
     base_data_folder,
-    multi_taxa: bool,
+    multi_taxa: bool = False,
     per_taxa_species_count: dict = None,
 ) -> np.ndarray:
     if not multi_taxa:
