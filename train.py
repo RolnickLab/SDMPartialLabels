@@ -110,8 +110,6 @@ def main(opts):
     global_seed = (run_id * (config.training.seed + (run_id - 1))) % (2**31 - 1)
 
     # naming experiment folders with seed information
-    print(base_dir)
-    print(config.save_path)
     config.save_path = os.path.join(base_dir, config.save_path, str(global_seed))
     config.comet.experiment_name = (
         config.comet.experiment_name + "_seed_" + str(global_seed)
