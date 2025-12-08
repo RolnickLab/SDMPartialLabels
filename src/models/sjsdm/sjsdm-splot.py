@@ -3,14 +3,9 @@ import numpy as np
 import torch
 import argparse
 import json
-from sklearn import metrics
 import os
 from tqdm import tqdm
 import time
-
-
-def mae(target, pred):
-    return(np.mean(np.abs(target-pred)))
 
 def iterate_in_batches(Env, Occ, batch_size):
     """
