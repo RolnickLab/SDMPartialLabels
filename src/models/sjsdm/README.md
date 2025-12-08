@@ -29,4 +29,4 @@ and run the script inside the `s-jSDM/sjSDM/inst/python/` folder.
 
 In order to run sjSDM, we prepare the environmental data in a num_sites x num_covariates matrix (`env.npy` in the script) which was created following the script in `utils.py`. 
 
-The code the train an sjSDM on splot andrun inference in the conditioned and unconditioned case is in `sjsdm-splot.py`. 
+The code the train an sjSDM on sPlotOpen and run inference in the conditioned and unconditioned case is in `sjsdm-splot.py`. 
