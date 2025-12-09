@@ -173,6 +173,9 @@ to `model_checkpoints/2_SatBird/satbird_ciso` to evaluate the 3 different runs.
 * Figure 4: `figures/generate_figure_4.ipynb`
 * Figure 5: `figures/generate_figure_5.ipynb`
 
+### Revision 1: 
+Code for additional baselines such as Random Forest and sjSDM is available under `src/models`.
+
 ## 📜 License
 This work is licensed under a
 [Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) License](https://creativecommons.org/licenses/by-nc/4.0/).
