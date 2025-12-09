@@ -1,7 +1,7 @@
 """
-random_forest_baseline.py
+random_forest_splots.py
 
-End-to-end Random Forest baseline using a PyTorch Dataset.
+End-to-end Random Forest baseline using a PyTorch Dataset for sPlotOpen
 - Uses scikit-learn RandomForestClassifier
 - Works with any PyTorch Dataset that returns (x, y)
 """
@@ -13,7 +13,6 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.metrics import roc_auc_score
 from torchmetrics.classification import MultilabelAUROC
 
 from main import load_config
@@ -21,7 +20,7 @@ from src.dataloaders.splot_dataloader import sPlotDataModule
 
 
 # ============================================================
-# 1. Reproducibility
+# Reproducibility
 # ============================================================
 
 def set_seed(seed: int = 1337):
@@ -49,7 +48,7 @@ def trees_masking(index, config):
     return indices_to_predict
 
 # ============================================================
-# 3. Helper: DataLoader -> NumPy arrays
+# DataLoader -> NumPy arrays
 # ============================================================
 
 def dataloader_to_numpy(dataloader: DataLoader, device: str = "cpu"):
@@ -149,7 +148,6 @@ def train_random_forest(
     # ----- 4.5 Test evaluation -----
     print("\n=== Test Evaluation ===")
     X_test, y_test = dataloader_to_numpy(test_loader, device=device)
-    # probs_test, y_test_valid= rf_predict_proba_matrix_and_valid_outputs(rf, X_test, y_test)
     probs_test = rf.predict(X_test)
     y_test_valid = y_test
 
@@ -179,11 +177,6 @@ def train_random_forest(
         test_AUC.append(test_auc_)
 
     return rf, test_AUC
-
-
-# ============================================================
-# 5. Example usage
-# ============================================================
 
 def main():
     seed = 1337

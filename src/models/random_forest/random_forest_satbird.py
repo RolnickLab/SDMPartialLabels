@@ -1,20 +1,18 @@
 """
-random_forest_baseline.py
+random_forest_satbird.py
 
-End-to-end Random Forest baseline using a PyTorch Dataset.
-- Uses scikit-learn RandomForestClassifier
+End-to-end Random Forest baseline using a PyTorch Dataset for SatBird
+- Uses scikit-learn RandomForestRegressor
 - Works with any PyTorch Dataset that returns (x, y)
 """
 import csv
 import os
 import random
 
-import joblib
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.metrics import roc_auc_score
+from sklearn.ensemble import RandomForestRegressor
 
 from src.dataloaders.dataloader import SDMDataModule
 from src.metrics import CustomTopK, MaskedMAE
@@ -163,9 +161,6 @@ def train_random_forest(
         val_mae = compute_masked_mae_from_numpy(y_val, y_val_proba)
 
         print(f"Validation MAE:  {val_mae:.4f}")
-    else:
-        val_custom_k = None
-        val_mae = None
 
     test_topk = []
     test_mae = []
@@ -204,13 +199,9 @@ def train_random_forest(
     return rf, test_topk, test_mae
 
 
-# ============================================================
-# 5. Example usage
-# ============================================================
-
 def main():
     seed = 1337
-    run_id = 3
+    run_id = 1
     global_seed = (run_id * (seed + (run_id - 1))) % (2**31 - 1)
 
     set_seed(global_seed)
